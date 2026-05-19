@@ -42,12 +42,13 @@ arguments and return values are built from:
 
 The body subset includes variables, literals, `if`, `let`, scalar comparisons,
 wrapping arithmetic, `Option`/`Except` constructors, struct literals, field
-projection, enum payload constructors, and `match` over `Bool`, `Option`, and
-simple no-field enums. Explicit concrete monomorphizations are registered with
-`rust_mono_export`.
+projection, enum payload constructors, payload enum pattern matching, and
+first-order calls to other tagged exported Lean declarations. Explicit concrete
+monomorphizations are registered with `rust_mono_export`.
 
-The next milestones are payload enum pattern matching, recursive functions,
-automatically discovered monomorphizations, and richer generic type arguments.
+The next milestones are recursive functions, automatically discovered
+monomorphizations, parser-backed Rust validation, and richer generic type
+arguments.
 
 ## Differential and validation additions
 

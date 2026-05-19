@@ -32,7 +32,7 @@ inductive SurfaceExpr where
   | ite : SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | matchBool : SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | matchOption : SurfaceExpr → SurfaceExpr → String → SurfaceExpr → SurfaceExpr
-  | matchEnum : RType → SurfaceExpr → List (String × SurfaceExpr) → SurfaceExpr
+  | matchEnum : RType → SurfaceExpr → List (String × (List String × SurfaceExpr)) → SurfaceExpr
   | not : SurfaceExpr → SurfaceExpr
   | and : SurfaceExpr → SurfaceExpr → SurfaceExpr
   | or : SurfaceExpr → SurfaceExpr → SurfaceExpr
@@ -53,6 +53,7 @@ inductive SurfaceExpr where
   | structLit : RType → List (String × SurfaceExpr) → SurfaceExpr
   | field : SurfaceExpr → String → SurfaceExpr
   | enumVariant : RType → String → List SurfaceExpr → SurfaceExpr
+  | call : String → List RType → RType → List SurfaceExpr → SurfaceExpr
   deriving Repr, BEq
 
 /-- A checked extracted function, before packaging into proof-carrying `RFun`s. -/
@@ -194,12 +195,16 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       match enumVariants? enumTy with
       | none => throw (report .unsupportedType ("enum match target has type " ++ rTypeLabel enumTy))
       | some variants => do
-          if !allEnumVariantsAreNullary variants then
-            throw (report .unsupportedExpression "enum match over payload variants is not in the current extractor subset")
           let variantNames := enumVariantNames variants
           let seen := branches.map (fun b => b.1)
+          if seen.eraseDups.length != seen.length then
+            throw (report .unsupportedExpression "enum match contains a duplicate variant branch")
+          for branch in branches do
+            match lookupVariant variants branch.1 with
+            | some _ => pure ()
+            | none => throw (report .unsupportedExpression ("enum match contains unknown variant `" ++ branch.1 ++ "`"))
           if variantNames.all (fun variant => containsString seen variant) then
-            typeBranchListWithExpected ctx branches expected
+            typeEnumBranchesWithExpected ctx variants branches expected
           else
             throw (report .unsupportedExpression "enum match is missing at least one variant branch")
   | .not a => checkExpected ctx a .bool *> applyExpected expected .bool
@@ -273,6 +278,13 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
               applyExpected expected ty
           | none => throw (report .unsupportedExpression ("unknown enum variant `" ++ variant ++ "`"))
       | none => throw (report .unsupportedType "enum variant node does not carry an enum type")
+  | .call name argTypes ret args => do
+      if argTypes.length == args.length then
+        for pair in argTypes.zip args do
+          discard <| typeOfExpected ctx pair.2 (some pair.1)
+        applyExpected expected ret
+      else
+        throw (report .unsupportedExpression ("function call `" ++ name ++ "` received the wrong number of arguments"))
 where
   checkExpected (ctx : List RArg) (expr : SurfaceExpr) (wanted : RType) : Except CompatibilityReport Unit := do
     discard <| typeOfExpected ctx expr (some wanted)
@@ -303,20 +315,33 @@ where
         let bTy ← typeOfExpected ctx b (some aTy)
         if aTy == bTy then pure aTy else throw (report .unsupportedType (label ++ " branches have different extracted types"))
 
-  typeBranchListWithExpected (ctx : List RArg) (branches : List (String × SurfaceExpr)) (expected : Option RType) : Except CompatibilityReport RType := do
+  branchCtx (ctx : List RArg) (payloadTypes : List RType) (binders : List String) : Except CompatibilityReport (List RArg) := do
+    if payloadTypes.length == binders.length then
+      pure (binders.zip payloadTypes ++ ctx)
+    else
+      throw (report .unsupportedExpression "enum match branch has the wrong number of payload binders")
+
+  typeEnumBranchWithExpected (ctx : List RArg) (variants : List (String × List RType)) (branch : (String × (List String × SurfaceExpr))) (expected : Option RType) : Except CompatibilityReport RType := do
+    match lookupVariant variants branch.1 with
+    | none => throw (report .unsupportedExpression ("enum match contains unknown variant `" ++ branch.1 ++ "`"))
+    | some payloadTypes => do
+        let ctx' ← branchCtx ctx payloadTypes branch.2.1
+        typeOfExpected ctx' branch.2.2 expected
+
+  typeEnumBranchesWithExpected (ctx : List RArg) (variants : List (String × List RType)) (branches : List (String × (List String × SurfaceExpr))) (expected : Option RType) : Except CompatibilityReport RType := do
     match branches with
     | [] => throw (report .unsupportedExpression "enum match has no branches")
-    | (_, first) :: rest =>
+    | first :: rest =>
         match expected with
         | some wanted =>
-            discard <| typeOfExpected ctx first (some wanted)
+            discard <| typeEnumBranchWithExpected ctx variants first (some wanted)
             for branch in rest do
-              discard <| typeOfExpected ctx branch.2 (some wanted)
+              discard <| typeEnumBranchWithExpected ctx variants branch (some wanted)
             pure wanted
         | none => do
-            let firstTy ← typeOfExpected ctx first none
+            let firstTy ← typeEnumBranchWithExpected ctx variants first none
             for branch in rest do
-              discard <| typeOfExpected ctx branch.2 (some firstTy)
+              discard <| typeEnumBranchWithExpected ctx variants branch (some firstTy)
             pure firstTy
 
   checkStructFields (ctx : List RArg) (declared : List RArg) (provided : List (String × SurfaceExpr)) : Except CompatibilityReport Unit := do

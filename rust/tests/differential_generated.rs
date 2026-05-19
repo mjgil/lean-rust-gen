@@ -29,6 +29,10 @@ fn extracted_declarations_keep_expected_surface_semantics() {
     assert_eq!(bool_match_u32(false, 1, 2), 2u32);
     assert_eq!(some_u32(4), Some(4u32));
     assert_eq!(none_u32(()), None::<u32>);
+    assert_eq!(step_amount_or(Step::Stay, 9), 9u32);
+    assert_eq!(step_amount_or(Step::Jump(12), 9), 12u32);
+    assert_eq!(inc_twice_u32(40), 42u32);
+    assert_eq!(inc_twice_u32(u32::MAX), 1u32);
     assert_eq!(choose_generic_u32(true, 10, 20), 10u32);
     assert_eq!(choose_generic_u32(false, 10, 20), 20u32);
     assert_eq!(option_default_u64(None, 77), 77u64);

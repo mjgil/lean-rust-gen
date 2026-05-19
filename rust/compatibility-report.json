@@ -1,7 +1,7 @@
 {
   "format": "lean-rust-core.compatibility-report.v1",
   "architecture": "direct-lean-emits-rust",
-  "generated_function_count": 32,
+  "generated_function_count": 36,
   "diagnostics": [
     { "source": "LeanRustCore.Examples.clamp_u32", "rust_name": "clamp_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.max_u32", "rust_name": "max_u32", "code": "supported", "detail": "exported" },
@@ -14,6 +14,8 @@
     { "source": "LeanRustCore.Examples.echo_i32", "rust_name": "echo_i32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.echo_i64", "rust_name": "echo_i64", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.add_u64", "rust_name": "add_u64", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.inc_u32", "rust_name": "inc_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.inc_twice_u32", "rust_name": "inc_twice_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.unit_roundtrip", "rust_name": "unit_roundtrip", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.bool_match_u32", "rust_name": "bool_match_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.option_identity_u32", "rust_name": "option_identity_u32", "code": "supported", "detail": "exported" },
@@ -29,6 +31,8 @@
     { "source": "LeanRustCore.Examples.shift_point_x", "rust_name": "shift_point_x", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.step_stay", "rust_name": "step_stay", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.step_jump", "rust_name": "step_jump", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.step_amount_or", "rust_name": "step_amount_or", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.step_amount_plus_one_or", "rust_name": "step_amount_plus_one_or", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.nested_none_u32", "rust_name": "nested_none_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.result_ok_none_u32", "rust_name": "result_ok_none_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.result_err_some_u32", "rust_name": "result_err_some_u32", "code": "supported", "detail": "exported" },

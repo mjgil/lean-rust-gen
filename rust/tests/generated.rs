@@ -82,6 +82,22 @@ fn enum_declarations_and_payload_constructors_lower() {
 }
 
 #[test]
+fn payload_enum_matches_bind_variant_fields() {
+    assert_eq!(step_amount_or(Step::Stay, 99), 99);
+    assert_eq!(step_amount_or(Step::Jump(12), 99), 12);
+    assert_eq!(step_amount_plus_one_or(Step::Stay, 7), 7);
+    assert_eq!(step_amount_plus_one_or(Step::Jump(u32::MAX), 7), 0);
+}
+
+#[test]
+fn first_order_function_calls_lower_to_rust_calls() {
+    assert_eq!(inc_u32(41), 42);
+    assert_eq!(inc_u32(u32::MAX), 0);
+    assert_eq!(inc_twice_u32(40), 42);
+    assert_eq!(inc_twice_u32(u32::MAX), 1);
+}
+
+#[test]
 fn expected_type_propagates_through_nested_constructors() {
     assert_eq!(nested_none_u32(()), Some(None));
     assert_eq!(result_ok_none_u32(()), Ok(None));

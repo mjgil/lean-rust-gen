@@ -44,11 +44,11 @@ body against the declared Rust-facing return type before emission.
 
 - `Bool`, emitted as Rust `match flag { true => ..., false => ... }`,
 - `Option`, emitted as Rust `match option { None => ..., Some(value) => ... }`,
-- simple no-field inductive enums, emitted as Rust enum declarations plus Rust
-  `match` expressions.
+- closed inductive enums, including payload variants, emitted as Rust enum
+  declarations plus Rust `match` expressions with variant-field binders.
 
-Payload enum constructors are supported as expressions. Payload enum pattern
-matching remains intentionally out of scope for this pass.
+Payload enum constructors and payload enum pattern matching are both supported in
+this slice.
 
 ## Completed step 3: declarations, struct construction, field projection
 
@@ -109,8 +109,8 @@ lake exe gen_differential_tests rust/tests/differential_generated.rs
 ```
 
 The suite currently covers the proof-carrying scalar/option examples and a small
-set of extracted-declaration examples for `u64`, `Bool` matches, `Option`, and
-explicit monomorphizations.
+set of extracted-declaration examples for `u64`, `Bool` matches, `Option`,
+payload enum matches, first-order calls, and explicit monomorphizations.
 
 ## Completed step 8: emitted-subset validation gate
 
@@ -127,3 +127,14 @@ subset:
 This is a validation gate for the current generated subset. A future parser-backed
 Rust→Lean validator can replace the manifest once the generated Rust grammar is
 large enough to justify a separate target-language parser.
+
+## Newly completed: payload enum pattern matching and first-order calls
+
+`SurfaceExpr.matchEnum` now stores payload binders per branch. The extractor
+lowers elaborated enum `casesOn`/`rec` branches with constructor payload lambdas,
+and the emitter renders Rust patterns such as `Step::Jump(amount) => ...`.
+
+`SurfaceExpr.call` now represents calls to other tagged first-order Lean
+functions. The extractor checks the callee signature, translates each argument
+with the expected parameter type, and the emitter keeps generated functions in a
+stable dependency-aware order.

@@ -40,6 +40,12 @@ private def enumPath (ty : RType) (variant : String) : String :=
   | .enum name _ => name ++ "::" ++ rustVariantName variant
   | _ => rustVariantName variant
 
+private def emitEnumPattern (ty : RType) (branch : String × (List String × SurfaceExpr)) : String :=
+  if branch.2.1.isEmpty then
+    enumPath ty branch.1
+  else
+    enumPath ty branch.1 ++ "(" ++ joinWith ", " branch.2.1 ++ ")"
+
 private def emitInt (n : Int) : String :=
   toString n
 
@@ -102,7 +108,7 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .matchBool c whenTrue whenFalse => "match " ++ emitSurfaceExpr c ++ " { true => " ++ emitSurfaceExpr whenTrue ++ ", false => " ++ emitSurfaceExpr whenFalse ++ " }"
   | .matchOption target noneCase someName someCase => "match " ++ emitSurfaceExpr target ++ " { None => " ++ emitSurfaceExpr noneCase ++ ", Some(" ++ someName ++ ") => " ++ emitSurfaceExpr someCase ++ " }"
   | .matchEnum enumTy target branches =>
-      let rendered := branches.map (fun branch => enumPath enumTy branch.1 ++ " => " ++ emitSurfaceExpr branch.2)
+      let rendered := branches.map (fun branch => emitEnumPattern enumTy branch ++ " => " ++ emitSurfaceExpr branch.2.2)
       "match " ++ emitSurfaceExpr target ++ " { " ++ joinWith ", " rendered ++ " }"
   | .not a => "(!" ++ emitSurfaceExpr a ++ ")"
   | .and a b => "(" ++ emitSurfaceExpr a ++ " && " ++ emitSurfaceExpr b ++ ")"
@@ -130,6 +136,8 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .enumVariant ty variant payload =>
       let renderedPayload := if payload.isEmpty then "" else "(" ++ joinWith ", " (payload.map emitSurfaceExpr) ++ ")"
       enumPath ty variant ++ renderedPayload
+  | .call name _ _ args =>
+      name ++ "(" ++ joinWith ", " (args.map emitSurfaceExpr) ++ ")"
 
 /-- Emit one Rust function argument. -/
 def emitArg (arg : RArg) : String :=
@@ -173,7 +181,7 @@ partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
   | .ite c a b => collectSurfaceStructs c ++ collectSurfaceStructs a ++ collectSurfaceStructs b
   | .matchBool c a b => collectSurfaceStructs c ++ collectSurfaceStructs a ++ collectSurfaceStructs b
   | .matchOption target noneCase _ someCase => collectSurfaceStructs target ++ collectSurfaceStructs noneCase ++ collectSurfaceStructs someCase
-  | .matchEnum ty target branches => collectTypeStructs ty ++ collectSurfaceStructs target ++ branches.bind (fun branch => collectSurfaceStructs branch.2)
+  | .matchEnum ty target branches => collectTypeStructs ty ++ collectSurfaceStructs target ++ branches.bind (fun branch => collectSurfaceStructs branch.2.2)
   | .not a => collectSurfaceStructs a
   | .and a b => collectSurfaceStructs a ++ collectSurfaceStructs b
   | .or a b => collectSurfaceStructs a ++ collectSurfaceStructs b
@@ -194,6 +202,7 @@ partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
   | .structLit ty fields => collectTypeStructs ty ++ fields.bind (fun field => collectSurfaceStructs field.2)
   | .field target _ => collectSurfaceStructs target
   | .enumVariant ty _ payload => collectTypeStructs ty ++ payload.bind collectSurfaceStructs
+  | .call _ argTypes ret args => argTypes.bind collectTypeStructs ++ collectTypeStructs ret ++ args.bind collectSurfaceStructs
 
 partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .var _ => []
@@ -207,7 +216,7 @@ partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .ite c a b => collectSurfaceEnums c ++ collectSurfaceEnums a ++ collectSurfaceEnums b
   | .matchBool c a b => collectSurfaceEnums c ++ collectSurfaceEnums a ++ collectSurfaceEnums b
   | .matchOption target noneCase _ someCase => collectSurfaceEnums target ++ collectSurfaceEnums noneCase ++ collectSurfaceEnums someCase
-  | .matchEnum ty target branches => collectTypeEnums ty ++ collectSurfaceEnums target ++ branches.bind (fun branch => collectSurfaceEnums branch.2)
+  | .matchEnum ty target branches => collectTypeEnums ty ++ collectSurfaceEnums target ++ branches.bind (fun branch => collectSurfaceEnums branch.2.2)
   | .not a => collectSurfaceEnums a
   | .and a b => collectSurfaceEnums a ++ collectSurfaceEnums b
   | .or a b => collectSurfaceEnums a ++ collectSurfaceEnums b
@@ -228,6 +237,42 @@ partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .structLit ty fields => collectTypeEnums ty ++ fields.bind (fun field => collectSurfaceEnums field.2)
   | .field target _ => collectSurfaceEnums target
   | .enumVariant ty _ payload => collectTypeEnums ty ++ payload.bind collectSurfaceEnums
+  | .call _ argTypes ret args => argTypes.bind collectTypeEnums ++ collectTypeEnums ret ++ args.bind collectSurfaceEnums
+
+partial def collectSurfaceCalls : SurfaceExpr → List String
+  | .var _ => []
+  | .litUnit => []
+  | .litBool _ => []
+  | .litU32 _ => []
+  | .litU64 _ => []
+  | .litI32 _ => []
+  | .litI64 _ => []
+  | .letIn _ value body => collectSurfaceCalls value ++ collectSurfaceCalls body
+  | .ite c a b => collectSurfaceCalls c ++ collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .matchBool c a b => collectSurfaceCalls c ++ collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .matchOption target noneCase _ someCase => collectSurfaceCalls target ++ collectSurfaceCalls noneCase ++ collectSurfaceCalls someCase
+  | .matchEnum _ target branches => collectSurfaceCalls target ++ branches.bind (fun branch => collectSurfaceCalls branch.2.2)
+  | .not a => collectSurfaceCalls a
+  | .and a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .or a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .eq _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .lt _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .le _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .gt _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .ge _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .add _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .sub _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .mul _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .min _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .max _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .optionNone _ => []
+  | .optionSome a => collectSurfaceCalls a
+  | .resultOk _ a => collectSurfaceCalls a
+  | .resultErr _ e => collectSurfaceCalls e
+  | .structLit _ fields => fields.bind (fun field => collectSurfaceCalls field.2)
+  | .field target _ => collectSurfaceCalls target
+  | .enumVariant _ _ payload => payload.bind collectSurfaceCalls
+  | .call name _ _ args => name :: args.bind collectSurfaceCalls
 
 private def collectFunStructs (f : SurfaceFun) : List SurfaceStruct :=
   f.args.bind (fun arg => collectTypeStructs arg.2) ++ collectTypeStructs f.ret ++ collectSurfaceStructs f.body
@@ -273,11 +318,54 @@ private def emitEnum (e : SurfaceEnum) : String :=
   "#[derive(Clone, Debug, PartialEq, Eq)]\n" ++
   "pub enum " ++ e.name ++ " { " ++ joinWith ", " (e.variants.map emitEnumVariantDecl) ++ " }\n"
 
+private def containsNameString : List String → String → Bool
+  | [], _ => false
+  | x :: xs, name => x == name || containsNameString xs name
+
+private def generatedFunctionNames (fns : List SurfaceFun) : List String :=
+  fns.map (fun f => f.name)
+
+private def relevantFunctionDeps (allNames : List String) (f : SurfaceFun) : List String :=
+  ((collectSurfaceCalls f.body).filter (fun dep => dep != f.name && containsNameString allNames dep)).eraseDups
+
+private def depsReady (emitted : List String) (deps : List String) : Bool :=
+  deps.all (fun dep => containsNameString emitted dep)
+
+private partial def partitionReadyInOrder (allNames emitted : List String) : List SurfaceFun → (List SurfaceFun × (List SurfaceFun × List String))
+  | [] => ([], ([], emitted))
+  | f :: rest =>
+      if depsReady emitted (relevantFunctionDeps allNames f) then
+        let result := partitionReadyInOrder allNames (emitted ++ [f.name]) rest
+        (f :: result.1, (result.2.1, result.2.2))
+      else
+        let result := partitionReadyInOrder allNames emitted rest
+        (result.1, (f :: result.2.1, result.2.2))
+
+private partial def orderFunctionsByDepsAux (allNames emitted : List String) (acc remaining : List SurfaceFun) (fuel : Nat) : List SurfaceFun :=
+  match fuel, remaining with
+  | _, [] => acc
+  | 0, _ => acc ++ remaining
+  | fuel' + 1, _ =>
+      let result := partitionReadyInOrder allNames emitted remaining
+      let ready := result.1
+      let rest := result.2.1
+      let emitted' := result.2.2
+      if ready.isEmpty then
+        acc ++ remaining
+      else
+        orderFunctionsByDepsAux allNames emitted' (acc ++ ready) rest fuel'
+
+/-- Stable dependency-aware ordering for generated functions. Rust can resolve later functions, but the ordered snapshot keeps call dependencies visibly earlier. -/
+def orderFunctionsByDeps (fns : List SurfaceFun) : List SurfaceFun :=
+  let allNames := generatedFunctionNames fns
+  orderFunctionsByDepsAux allNames [] [] fns (fns.length + 1)
+
 /-- Build a declaration-aware surface module from checked functions. -/
 def SurfaceModule.fromFunctions (fns : List SurfaceFun) : SurfaceModule :=
-  { structs := uniqueStructs (fns.bind collectFunStructs),
-    enums := uniqueEnums (fns.bind collectFunEnums),
-    functions := fns }
+  let ordered := orderFunctionsByDeps fns
+  { structs := uniqueStructs (ordered.bind collectFunStructs),
+    enums := uniqueEnums (ordered.bind collectFunEnums),
+    functions := ordered }
 
 private def emitDecls (m : SurfaceModule) : String :=
   let structText := joinWith "\n" (m.structs.map emitStruct)

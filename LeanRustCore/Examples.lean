@@ -74,6 +74,14 @@ def add_u64 (a b : UInt64) : UInt64 :=
   a + b
 
 @[rust_export]
+def inc_u32 (x : UInt32) : UInt32 :=
+  x + 1
+
+@[rust_export]
+def inc_twice_u32 (x : UInt32) : UInt32 :=
+  inc_u32 (inc_u32 x)
+
+@[rust_export]
 def unit_roundtrip (x : Unit) : Unit :=
   x
 
@@ -138,6 +146,18 @@ def step_stay (_x : Unit) : Step :=
 @[rust_export]
 def step_jump (amount : UInt32) : Step :=
   Step.jump amount
+
+@[rust_export]
+def step_amount_or (s : Step) (fallback : UInt32) : UInt32 :=
+  match s with
+  | Step.stay => fallback
+  | Step.jump amount => amount
+
+@[rust_export]
+def step_amount_plus_one_or (s : Step) (fallback : UInt32) : UInt32 :=
+  match s with
+  | Step.stay => fallback
+  | Step.jump amount => amount + 1
 
 @[rust_export]
 def nested_none_u32 (_x : Unit) : Option (Option UInt32) :=

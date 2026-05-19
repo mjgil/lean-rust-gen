@@ -2,7 +2,7 @@
 
 A self-contained direct **Lean → Rust** workflow.
 
-This pass extends the direct Lean emits Rust implementation through steps 1-8:
+This pass extends the direct Lean emits Rust implementation through steps 1-8, plus the next two implementation items: payload enum pattern matching and first-order function-call lowering:
 
 1. Export extraction accepts `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`,
    `Option`, `Except`, and closed inductive/structure types in addition to the
@@ -49,6 +49,8 @@ pub fn echo_u64(x: u64) -> u64
 pub fn echo_i32(x: i32) -> i32
 pub fn echo_i64(x: i64) -> i64
 pub fn add_u64(a: u64, b: u64) -> u64
+pub fn inc_u32(x: u32) -> u32
+pub fn inc_twice_u32(x: u32) -> u32
 pub fn unit_roundtrip(x: ()) -> ()
 pub fn bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32
 pub fn option_identity_u32(x: Option<u32>) -> Option<u32>
@@ -64,6 +66,8 @@ pub fn point_y(p: Point) -> u32
 pub fn shift_point_x(p: Point, dx: u32) -> Point
 pub fn step_stay(_x: ()) -> Step
 pub fn step_jump(amount: u32) -> Step
+pub fn step_amount_or(s: Step, fallback: u32) -> u32
+pub fn step_amount_plus_one_or(s: Step, fallback: u32) -> u32
 pub fn nested_none_u32(_x: ()) -> Option<Option<u32>>
 pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32>
 pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>>
@@ -137,9 +141,10 @@ Supported now:
 - variables, literals, `if`, `let`, equality,
 - `<`, `<=`, `>`, `>=` for fixed-width numeric types,
 - `+`, `-`, `*` lowered to Rust `wrapping_*` operations,
-- Lean `match` over `Bool`, `Option`, and simple no-field enums,
+- Lean `match` over `Bool`, `Option`, and closed enums including payload variants,
 - struct constructors and field projection,
 - enum constructors with payload fields,
+- first-order calls to other tagged exported Lean declarations,
 - expected-type propagation through nested `Option`/`Except` constructors,
 - explicit concrete monomorphizations of generic functions with scalar type arguments,
 - structured compatibility reports for unsupported tagged exports,
@@ -148,7 +153,6 @@ Supported now:
 
 Still intentionally out of scope:
 
-- payload enum pattern matching,
 - recursive functions and loops,
 - higher-order functions and closures,
 - implicit / discovered monomorphization; concrete generic exports currently use `rust_mono_export`,
@@ -174,11 +178,11 @@ in the generated Rust snapshot.
 
 ## Fully working implementation steps remaining
 
-1. Add payload enum pattern lowering.
+1. Add ordinary recursion or an explicit final no-recursion policy.
 2. Extend monomorphization from explicit scalar type arguments to discovered
    concrete instantiations and generic structures/enums.
 3. Expand the differential suite from evaluator-backed scalar/option cases to
-   all extracted structs, payload enums, and future recursive functions.
+   all extracted structs, payload enums, calls, and future recursive functions.
 4. Replace the current emitted-subset validation manifest with a parser-backed
    Rust→Lean translation validator or a full formal semantics for the generated
    Rust subset.

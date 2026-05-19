@@ -54,7 +54,7 @@
     },
     {
       "name": "match_lowering",
-      "statement": "Bool, Option, and simple no-field enum matches lower from elaborated recursor/casesOn forms"
+      "statement": "Bool, Option, and closed enum matches, including payload variant binders, lower from elaborated recursor/casesOn forms"
     },
     {
       "name": "struct_enum_declarations",
@@ -71,6 +71,14 @@
     {
       "name": "compatibility_reporting",
       "statement": "unsupported tagged exports are skipped and recorded in a structured compatibility report"
+    },
+    {
+      "name": "payload_enum_branch_binders",
+      "statement": "payload enum pattern matching stores checked branch binders and emits Rust variant patterns"
+    },
+    {
+      "name": "first_order_function_calls",
+      "statement": "calls to other tagged first-order exports lower to checked SurfaceExpr.call nodes and Rust function calls"
     },
     {
       "name": "rust_adapter_owned_rejected",

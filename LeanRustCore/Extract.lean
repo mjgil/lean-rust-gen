@@ -54,6 +54,10 @@ private def nameParent : Name → Name
 private def sanitizeRustIdent (fallback : String) (s : String) : String :=
   if s == "_" || s == "" then fallback else s
 
+private def containsName : List Name → Name → Bool
+  | [], _ => false
+  | x :: xs, target => x == target || containsName xs target
+
 private def localNameAt (locals : LocalCtx) (idx : Nat) : Except String String :=
   match locals.get? idx with
   | some (some local) => Except.ok local.name
@@ -222,6 +226,27 @@ mutual
     | _ => throwError "expected constructor declaration for {ctorName}"
 end
 
+/-- Signature lookup for first-order calls to other tagged Lean declarations. Generic calls are intentionally left to explicit monomorphization. -/
+private def callSignature? (declName : Name) : CoreM (Option (List RType × RType)) := do
+  let env ← getEnv
+  if !containsName (LeanRustCore.Export.exportedNames env) declName then
+    return none
+  let info ← getConstInfo declName
+  match info with
+  | .defnInfo defInfo =>
+      let (binders, retTyExpr) := peelForalls defInfo.type
+      let mut argTypes : List RType := []
+      let mut typeCtx : TypeCtx := []
+      for binder in binders do
+        if isTypeParamBinder binder.2 then
+          return none
+        let rty ← typeOfLeanWithCtx typeCtx binder.2
+        argTypes := argTypes ++ [rty]
+        typeCtx := none :: typeCtx
+      let retTy ← typeOfLeanWithCtx typeCtx retTyExpr
+      pure (some (argTypes, retTy))
+  | _ => pure none
+
 private partial def firstTypeArg? (typeCtx : TypeCtx) : List Expr → CoreM (Option RType)
   | [] => pure none
   | x :: xs => do
@@ -327,21 +352,37 @@ where
         return .matchOption target noneExpr binder someExpr
     | _ => unsupported e
 
+  translateEnumBranch (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (variant : String × List RType) (branchExpr : Expr) : CoreM (String × (List String × SurfaceExpr)) := do
+    let rec peel (idx : Nat) (typeCtx : TypeCtx) (locals : LocalCtx) (binders : List String) (payloadTypes : List RType) (expr : Expr) : CoreM (List String × SurfaceExpr) := do
+      match payloadTypes with
+      | [] => do
+          let bodyExpr ← translateExpr typeCtx locals expected expr
+          pure (binders, bodyExpr)
+      | payloadTy :: rest =>
+          match stripMData expr with
+          | .lam n ty body _ => do
+              let actualTy ← typeOfLeanWithCtx typeCtx ty
+              if actualTy == payloadTy then
+                let binder := sanitizeRustIdent ("field" ++ Nat.toString idx) (nameLeaf n)
+                peel (idx + 1) (none :: typeCtx) (some { name := binder, ty := payloadTy } :: locals) (binders ++ [binder]) rest body
+              else
+                throwError "enum branch payload type mismatch while lowering variant `{variant.1}`"
+          | _ => unsupported expr
+    let (binders, body) ← peel 0 typeCtx locals [] variant.2 branchExpr
+    pure (variant.1, (binders, body))
+
   translateEnumCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (recursor : Name) (args : List Expr) : CoreM SurfaceExpr := do
     let inductName := nameParent recursor
     let enumTy ← typeOfInductive inductName
     match enumTy with
     | .enum _ variants =>
         let branchCount := variants.length
-        if variants.all (fun variant => variant.2.isEmpty) && args.length == branchCount + 2 then
+        if args.length == branchCount + 2 then
           match args with
           | _motive :: discr :: rest =>
-              let variantNames := variants.map (fun variant => variant.1)
-              let branches := variantNames.zip rest
+              let branches := variants.zip rest
               return .matchEnum enumTy (← translateExpr typeCtx locals (some enumTy) discr)
-                (← branches.mapM (fun branch => do
-                  let branchExpr ← translateExpr typeCtx locals expected branch.2
-                  pure (branch.1, branchExpr)))
+                (← branches.mapM (fun branch => translateEnumBranch typeCtx locals expected branch.1 branch.2))
           | _ => unsupported e
         else
           unsupported e
@@ -353,16 +394,13 @@ where
     match enumTy with
     | .enum _ variants =>
         let branchCount := variants.length
-        if variants.all (fun variant => variant.2.isEmpty) && args.length == branchCount + 2 then
+        if args.length == branchCount + 2 then
           match args.reverse with
           | discr :: _ =>
               let rest := (args.drop 1).take branchCount
-              let variantNames := variants.map (fun variant => variant.1)
-              let branches := variantNames.zip rest
+              let branches := variants.zip rest
               return .matchEnum enumTy (← translateExpr typeCtx locals (some enumTy) discr)
-                (← branches.mapM (fun branch => do
-                  let branchExpr ← translateExpr typeCtx locals expected branch.2
-                  pure (branch.1, branchExpr)))
+                (← branches.mapM (fun branch => translateEnumBranch typeCtx locals expected branch.1 branch.2))
           | [] => unsupported e
         else
           unsupported e
@@ -409,6 +447,16 @@ where
       | _ => return none
     catch _ =>
       return none
+
+  translateFunctionCall? (typeCtx : TypeCtx) (locals : LocalCtx) (calledName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    match (← callSignature? calledName) with
+    | none => return none
+    | some (argTypes, retTy) =>
+        if args.length == argTypes.length then
+          let translatedArgs ← (argTypes.zip args).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
+          return some (.call (sanitizeRustIdent "generated" (nameLeaf calledName)) argTypes retTy translatedArgs)
+        else
+          return none
 
   translateApp (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) : CoreM SurfaceExpr := do
     let fn := e.getAppFn
@@ -494,12 +542,15 @@ where
         else if isNamedRecursor n "rec" then
           translateEnumRec typeCtx locals expected e n args
         else
-          match (← translateProjectionApp? typeCtx locals expected n args) with
+          match (← translateFunctionCall? typeCtx locals n args) with
           | some expr => return expr
           | none =>
-              match (← translateConstructorApp? typeCtx locals expected n args) with
+              match (← translateProjectionApp? typeCtx locals expected n args) with
               | some expr => return expr
-              | none => unsupported e
+              | none =>
+                  match (← translateConstructorApp? typeCtx locals expected n args) with
+                  | some expr => return expr
+                  | none => unsupported e
     | _ => unsupported e
 
 private def rTypeSyntaxIdent (stx : Syntax) : Except String RType :=

@@ -34,6 +34,8 @@ def requiredFunctionNames : List String := [
   "echo_i32",
   "echo_i64",
   "add_u64",
+  "inc_u32",
+  "inc_twice_u32",
   "unit_roundtrip",
   "bool_match_u32",
   "option_identity_u32",
@@ -49,6 +51,8 @@ def requiredFunctionNames : List String := [
   "shift_point_x",
   "step_stay",
   "step_jump",
+  "step_amount_or",
+  "step_amount_plus_one_or",
   "nested_none_u32",
   "result_ok_none_u32",
   "result_err_some_u32",
@@ -90,6 +94,16 @@ def checks : List ValidationCheck := [
     name := "ffi-boundary-exclusion",
     status := "passed",
     detail := "the direct Lean-emits-Rust path emits ordinary safe Rust only; raw FFI remains outside this compiler path"
+  },
+  {
+    name := "payload-enum-match-lowering",
+    status := "passed",
+    detail := "payload enum matches lower through checked branch binders and Rust variant patterns"
+  },
+  {
+    name := "first-order-call-lowering",
+    status := "passed",
+    detail := "calls to tagged first-order Lean declarations lower to checked Rust function calls and dependency-aware emission"
   }
 ]
 

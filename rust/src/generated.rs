@@ -54,6 +54,14 @@ pub fn add_u64(a: u64, b: u64) -> u64 {
     (a).wrapping_add(b)
 }
 
+pub fn inc_u32(x: u32) -> u32 {
+    (x).wrapping_add(1)
+}
+
+pub fn inc_twice_u32(x: u32) -> u32 {
+    inc_u32(inc_u32(x))
+}
+
 pub fn unit_roundtrip(x: ()) -> () {
     x
 }
@@ -112,6 +120,14 @@ pub fn step_stay(_x: ()) -> Step {
 
 pub fn step_jump(amount: u32) -> Step {
     Step::Jump(amount)
+}
+
+pub fn step_amount_or(s: Step, fallback: u32) -> u32 {
+    match s { Step::Stay => fallback, Step::Jump(amount) => amount }
+}
+
+pub fn step_amount_plus_one_or(s: Step, fallback: u32) -> u32 {
+    match s { Step::Stay => fallback, Step::Jump(amount) => (amount).wrapping_add(1) }
 }
 
 pub fn nested_none_u32(_x: ()) -> Option<Option<u32>> {
