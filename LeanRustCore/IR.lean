@@ -19,7 +19,8 @@ inductive RType where
   | i64
   | option : RType → RType
   | result : RType → RType → RType
-  | enum : String → List String → RType
+  | struct : String → List (String × RType) → RType
+  | enum : String → List (String × List RType) → RType
   deriving Repr, BEq, DecidableEq
 
 /-- Denotational meaning of an IR type inside Lean. -/
@@ -32,6 +33,7 @@ def Denote : RType → Type
   | .i64 => Int
   | .option t => Option (Denote t)
   | .result ok err => Except (Denote err) (Denote ok)
+  | .struct _ _ => Unit
   | .enum _ _ => Nat
 
 /-- The modulus used by Rust `u32::wrapping_*` operations. -/

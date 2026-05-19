@@ -33,7 +33,7 @@ There is no core/app split in this scaffold. The app is **Lean emits Rust**.
 - `Unit` and `Bool`,
 - `Option T`,
 - `Except E T`, emitted as Rust `Result<T, E>`,
-- closed parameter-free inductive enums.
+- closed structures and inductive enums, including enum payload constructors.
 
 The surface checker in `LeanRustCore.Surface` verifies every extracted function
 body against the declared Rust-facing return type before emission.
@@ -47,8 +47,22 @@ body against the declared Rust-facing return type before emission.
 - simple no-field inductive enums, emitted as Rust enum declarations plus Rust
   `match` expressions.
 
-The enum support is intentionally narrow: the inductive must be closed,
-parameter-free, and its constructors must not carry payload fields.
+Payload enum constructors are supported as expressions. Payload enum pattern
+matching remains intentionally out of scope for this pass.
+
+## Completed step 3: declarations, struct construction, field projection
+
+`LeanRustCore.Surface` now includes `SurfaceStruct`, `SurfaceEnum`, struct
+literals, field projections, and enum variant constructors. The emitter produces
+Rust `struct`/`enum` items before the generated functions and collects nested
+declarations from argument, return, and body types.
+
+## Completed step 4: expected-type propagation
+
+`Surface.typeOfExpected` checks expressions with an optional expected type. The
+extractor passes that type into nested `Option.none`, `Option.some`, `Except.ok`,
+and `Except.error`, so examples such as `some none`, `Except.ok none`, and
+`Except.error (some e)` lower without ambiguous constructor defaults.
 
 ## Boundary model
 

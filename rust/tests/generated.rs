@@ -37,7 +37,7 @@ fn expanded_scalar_types_round_trip() {
     assert_eq!(echo_u64(u64::MAX), u64::MAX);
     assert_eq!(echo_i32(-17), -17);
     assert_eq!(echo_i64(i64::MIN), i64::MIN);
-    let _: () = unit_roundtrip(());
+    unit_roundtrip(());
 }
 
 #[test]
@@ -61,4 +61,29 @@ fn except_lowers_to_rust_result() {
 fn simple_enum_match_lowers() {
     assert_eq!(choose_by_enum(Choice::First, 10, 20), 10);
     assert_eq!(choose_by_enum(Choice::Second, 10, 20), 20);
+}
+
+#[test]
+fn struct_literals_and_field_projection_lower() {
+    let p = make_point(3, 4);
+    assert_eq!(p, Point { x: 3, y: 4 });
+    assert_eq!(point_x(Point { x: 8, y: 9 }), 8);
+    assert_eq!(point_y(Point { x: 8, y: 9 }), 9);
+    assert_eq!(
+        shift_point_x(Point { x: u32::MAX, y: 7 }, 1),
+        Point { x: 0, y: 7 }
+    );
+}
+
+#[test]
+fn enum_declarations_and_payload_constructors_lower() {
+    assert_eq!(step_stay(()), Step::Stay);
+    assert_eq!(step_jump(12), Step::Jump(12));
+}
+
+#[test]
+fn expected_type_propagates_through_nested_constructors() {
+    assert_eq!(nested_none_u32(()), Some(None));
+    assert_eq!(result_ok_none_u32(()), Ok(None));
+    assert_eq!(result_err_some_u32(44), Err(Some(44)));
 }

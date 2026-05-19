@@ -52,6 +52,14 @@ private def lastTwo {α : Type} : List α → Option (α × α)
   | [a, b] => some (a, b)
   | _ :: xs => lastTwo xs
 
+private def last? {α : Type} : List α → Option α
+  | [] => none
+  | [x] => some x
+  | _ :: xs => last? xs
+
+private def takeLast {α : Type} (n : Nat) (xs : List α) : List α :=
+  xs.drop (xs.length - n)
+
 private def natLiteral? (e : Expr) : Option Nat :=
   let e := stripMData e
   match e with
@@ -87,50 +95,85 @@ private def unitLiteral? (e : Expr) : Bool :=
 private def unsupported (e : Expr) : CoreM α :=
   throwError "unsupported Lean expression in rust_export extraction: {e}"
 
-private def enumTypeOfInductive (inductName : Name) : CoreM RType := do
-  let env ← getEnv
-  match env.find? inductName with
-  | some (.inductInfo info) =>
-      if info.numParams == 0 && info.numIndices == 0 then
-        pure (.enum (nameLeaf inductName) (info.ctors.map nameLeaf))
-      else
-        throwError "rust_export enum lowering currently supports only closed, parameter-free inductives; got {inductName}"
-  | _ => throwError "expected inductive enum declaration for {inductName}"
+private def lookupRField (fields : List RArg) (fieldName : String) : Option RType :=
+  match fields with
+  | [] => none
+  | (name, ty) :: rest => if name == fieldName then some ty else lookupRField rest fieldName
 
-private partial def typeOfLeanM (ty0 : Expr) : CoreM RType := do
-  let ty := stripMData ty0
-  if ty.isConstOf ``Nat then
-    return .u32
-  else if ty.isConstOf ``Bool then
-    return .bool
-  else if ty.isConstOf ``Unit then
-    return .unit
-  else if ty.isConstOf ``UInt32 then
-    return .u32
-  else if ty.isConstOf ``UInt64 then
-    return .u64
-  else if ty.isConstOf ``Int32 then
-    return .i32
-  else if ty.isConstOf ``Int64 then
-    return .i64
-  else
-    let fn := ty.getAppFn
-    let args := ty.getAppArgs.toList
-    match fn with
-    | .const n _ =>
-        if n == ``Option then
-          match args with
-          | [inner] => return .option (← typeOfLeanM inner)
-          | _ => throwError "unsupported Option type shape in rust_export extraction"
-        else if n == ``Except then
-          match args with
-          | [errTy, okTy] => return .result (← typeOfLeanM okTy) (← typeOfLeanM errTy)
-          | _ => throwError "unsupported Except type shape in rust_export extraction"
+mutual
+  partial def typeOfLeanM (ty0 : Expr) : CoreM RType := do
+    let ty := stripMData ty0
+    if ty.isConstOf ``Nat then
+      return .u32
+    else if ty.isConstOf ``Bool then
+      return .bool
+    else if ty.isConstOf ``Unit then
+      return .unit
+    else if ty.isConstOf ``UInt32 then
+      return .u32
+    else if ty.isConstOf ``UInt64 then
+      return .u64
+    else if ty.isConstOf ``Int32 then
+      return .i32
+    else if ty.isConstOf ``Int64 then
+      return .i64
+    else
+      let fn := ty.getAppFn
+      let args := ty.getAppArgs.toList
+      match fn with
+      | .const n _ =>
+          if n == ``Option then
+            match args with
+            | [inner] => return .option (← typeOfLeanM inner)
+            | _ => throwError "unsupported Option type shape in rust_export extraction"
+          else if n == ``Except then
+            match args with
+            | [errTy, okTy] => return .result (← typeOfLeanM okTy) (← typeOfLeanM errTy)
+            | _ => throwError "unsupported Except type shape in rust_export extraction"
+          else
+            match (← getEnv).find? n with
+            | some (.inductInfo _) => typeOfInductive n
+            | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
+      | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
+
+  partial def typeOfInductive (inductName : Name) : CoreM RType := do
+    let env ← getEnv
+    match env.find? inductName with
+    | some (.inductInfo info) =>
+        if info.numParams == 0 && info.numIndices == 0 then
+          match info.ctors with
+          | [ctorName] =>
+              let fields ← ctorPayloadFields ctorName
+              if fields.isEmpty then
+                pure (.enum (nameLeaf inductName) [(nameLeaf ctorName, [])])
+              else
+                pure (.struct (nameLeaf inductName) fields)
+          | ctors => do
+              let variants ← ctors.mapM (fun ctorName => do
+                let fields ← ctorPayloadFields ctorName
+                pure (nameLeaf ctorName, fields.map (fun field => field.2)))
+              pure (.enum (nameLeaf inductName) variants)
         else
-          match (← getEnv).find? n with
-          | some (.inductInfo _) => enumTypeOfInductive n
-          | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
-    | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
+          throwError "rust_export type lowering currently supports only closed, parameter-free inductives and structures; got {inductName}"
+    | _ => throwError "expected inductive declaration for {inductName}"
+
+  partial def ctorPayloadFields (ctorName : Name) : CoreM (List RArg) := do
+    let env ← getEnv
+    match env.find? ctorName with
+    | some (.ctorInfo info) =>
+        let (binders, _) := peelForalls info.type
+        let fieldBinders := (binders.drop info.numParams).take info.numFields
+        let mut out : List RArg := []
+        let mut idx : Nat := 0
+        for field in fieldBinders do
+          let fallback := "field" ++ Nat.toString idx
+          let fieldName := sanitizeRustIdent fallback (nameLeaf field.1)
+          let fieldTy ← typeOfLeanM field.2
+          out := out ++ [(fieldName, fieldTy)]
+          idx := idx + 1
+        pure out
+    | _ => throwError "expected constructor declaration for {ctorName}"
+end
 
 private partial def firstTypeArg? : List Expr → CoreM (Option RType)
   | [] => pure none
@@ -158,15 +201,6 @@ private def literalForExpected (expected : Option RType) (n : Nat) : SurfaceExpr
 private def isNamedRecursor (n : Name) (leaf : String) : Bool :=
   nameLeaf n == leaf
 
-private def parseNullaryConstructor (n : Name) : CoreM (Option (RType × String)) := do
-  match (← getEnv).find? n with
-  | some (.ctorInfo info) =>
-      if info.numFields == 0 then
-        return some (← enumTypeOfInductive info.induct, nameLeaf n)
-      else
-        return none
-  | _ => return none
-
 private partial def translateExpr (locals : List Local) (expected : Option RType) (e0 : Expr) : CoreM SurfaceExpr := do
   let e := stripMData e0
   if unitLiteral? e then
@@ -181,8 +215,8 @@ private partial def translateExpr (locals : List Local) (expected : Option RType
       | .ok name => return .var name
       | .error msg => throwError msg
   | .const n _ =>
-      match (← parseNullaryConstructor n) with
-      | some (ty, variant) => return .enumVariant ty variant
+      match (← translateConstructorApp? locals expected n []) with
+      | some expr => return expr
       | none => unsupported e
   | .letE n ty value body _ =>
       let rustName := sanitizeRustIdent "tmp" (nameLeaf n)
@@ -248,14 +282,15 @@ where
 
   translateEnumCasesOn (locals : List Local) (expected : Option RType) (e : Expr) (recursor : Name) (args : List Expr) : CoreM SurfaceExpr := do
     let inductName := nameParent recursor
-    let enumTy ← enumTypeOfInductive inductName
+    let enumTy ← typeOfInductive inductName
     match enumTy with
     | .enum _ variants =>
         let branchCount := variants.length
-        if args.length == branchCount + 2 then
+        if variants.all (fun variant => variant.2.isEmpty) && args.length == branchCount + 2 then
           match args with
           | _motive :: discr :: rest =>
-              let branches := variants.zip rest
+              let variantNames := variants.map (fun variant => variant.1)
+              let branches := variantNames.zip rest
               return .matchEnum enumTy (← translateExpr locals (some enumTy) discr)
                 (← branches.mapM (fun branch => do
                   let branchExpr ← translateExpr locals expected branch.2
@@ -267,15 +302,16 @@ where
 
   translateEnumRec (locals : List Local) (expected : Option RType) (e : Expr) (recursor : Name) (args : List Expr) : CoreM SurfaceExpr := do
     let inductName := nameParent recursor
-    let enumTy ← enumTypeOfInductive inductName
+    let enumTy ← typeOfInductive inductName
     match enumTy with
     | .enum _ variants =>
         let branchCount := variants.length
-        if args.length == branchCount + 2 then
+        if variants.all (fun variant => variant.2.isEmpty) && args.length == branchCount + 2 then
           match args.reverse with
           | discr :: _ =>
               let rest := (args.drop 1).take branchCount
-              let branches := variants.zip rest
+              let variantNames := variants.map (fun variant => variant.1)
+              let branches := variantNames.zip rest
               return .matchEnum enumTy (← translateExpr locals (some enumTy) discr)
                 (← branches.mapM (fun branch => do
                   let branchExpr ← translateExpr locals expected branch.2
@@ -284,6 +320,48 @@ where
         else
           unsupported e
     | _ => unsupported e
+
+  translateConstructorApp? (locals : List Local) (expected : Option RType) (ctorName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    match (← getEnv).find? ctorName with
+    | some (.ctorInfo info) =>
+        let ty ← typeOfInductive info.induct
+        let fields ← ctorPayloadFields ctorName
+        let valueArgs := takeLast info.numFields args
+        match ty with
+        | .struct _ declared =>
+            if declared.length == fields.length && valueArgs.length == fields.length then
+              let mut provided : List (String × SurfaceExpr) := []
+              for pair in fields.zip valueArgs do
+                provided := provided ++ [(pair.1.1, (← translateExpr locals (some pair.1.2) pair.2))]
+              return some (.structLit ty provided)
+            else
+              return none
+        | .enum _ _ =>
+            if valueArgs.length == fields.length then
+              let mut payload : List SurfaceExpr := []
+              for pair in fields.zip valueArgs do
+                payload := payload ++ [(← translateExpr locals (some pair.1.2) pair.2)]
+              return some (.enumVariant ty (nameLeaf ctorName) payload)
+            else
+              return none
+        | _ => return none
+    | _ => return none
+
+  translateProjectionApp? (locals : List Local) (expected : Option RType) (projName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    let parent := nameParent projName
+    try
+      let ty ← typeOfInductive parent
+      match ty with
+      | .struct _ fields =>
+          let fieldName := nameLeaf projName
+          match lookupRField fields fieldName, last? args with
+          | some fieldTy, some target =>
+              let targetExpr ← translateExpr locals (some ty) target
+              return some (.field targetExpr fieldName)
+          | _, _ => return none
+      | _ => return none
+    catch _ =>
+      return none
 
   translateApp (locals : List Local) (expected : Option RType) (e : Expr) : CoreM SurfaceExpr := do
     let fn := e.getAppFn
@@ -369,7 +447,12 @@ where
         else if isNamedRecursor n "rec" then
           translateEnumRec locals expected e n args
         else
-          unsupported e
+          match (← translateProjectionApp? locals expected n args) with
+          | some expr => return expr
+          | none =>
+              match (← translateConstructorApp? locals expected n args) with
+              | some expr => return expr
+              | none => unsupported e
     | _ => unsupported e
 
 /-- Extract one ordinary Lean definition into the first-pass Rust surface IR. -/

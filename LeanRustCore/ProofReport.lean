@@ -21,6 +21,8 @@ def facts : List ProofFact := [
   { name := "option_default_refines_spec", statement := "eval optionDefaultBody = Option-match spec" },
   { name := "fixed_width_type_extraction", statement := "rust_export extraction recognizes UInt32, UInt64, Int32, Int64, Unit, Option, Except, and simple closed enums" },
   { name := "match_lowering", statement := "Bool, Option, and simple no-field enum matches lower from elaborated recursor/casesOn forms" },
+  { name := "struct_enum_declarations", statement := "SurfaceStruct and SurfaceEnum declarations are emitted before generated Rust functions" },
+  { name := "expected_type_propagation", statement := "nested Option and Except constructors are checked with the Rust-facing expected type" },
   { name := "rust_adapter_owned_rejected", statement := "owned Rust values cannot cross the raw FFI boundary" },
   { name := "result_u32_i32_lowering", statement := "Result<u32,i32> lowers to status plus two out parameters" }
 ]
@@ -42,7 +44,7 @@ def reportJson : String :=
   "{\n" ++
   "  \"format\": \"lean-rust-core.proof-report.v1\",\n" ++
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Surface.typeOf\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.IR.eval\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++

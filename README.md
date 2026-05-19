@@ -2,22 +2,32 @@
 
 A self-contained direct **Lean → Rust** workflow.
 
-This pass completes the two requested implementation steps:
+This pass extends the direct Lean emits Rust implementation through steps 1-4:
 
-1. Export extraction now accepts `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`,
-   `Option`, `Except`, and closed parameter-free inductive enums in addition to
-   the original `Nat`/`Bool` slice.
-2. The extractor now lowers Lean `match` forms for `Bool`, `Option`, and simple
+1. Export extraction accepts `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`,
+   `Option`, `Except`, and closed inductive/structure types in addition to the
+   original `Nat`/`Bool` slice.
+2. The extractor lowers Lean `match` forms for `Bool`, `Option`, and simple
    no-field inductive enums by recognizing their elaborated recursor/casesOn
    shapes.
+3. The surface IR now has declaration models for structs/enums, struct literals,
+   field projection, and enum variant constructors with payload fields.
+4. Type checking and extraction propagate expected types through nested
+   `Option.none`, `Option.some`, `Except.ok`, and `Except.error` constructors.
 
 ## What is generated
 
 The Lean generator emits:
 
 ```rust
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Point { pub x: u32, pub y: u32 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Choice { First, Second }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Step { Stay, Jump(u32) }
 
 pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32
 pub fn max_u32(a: u32, b: u32) -> u32
@@ -39,6 +49,15 @@ pub fn option_default_u32(x: Option<u32>, fallback: u32) -> u32
 pub fn result_ok_u32(x: u32) -> Result<u32, u32>
 pub fn result_err_u32(e: u32) -> Result<u32, u32>
 pub fn choose_by_enum(choice: Choice, left: u32, right: u32) -> u32
+pub fn make_point(x: u32, y: u32) -> Point
+pub fn point_x(p: Point) -> u32
+pub fn point_y(p: Point) -> u32
+pub fn shift_point_x(p: Point, dx: u32) -> Point
+pub fn step_stay(_x: ()) -> Step
+pub fn step_jump(amount: u32) -> Step
+pub fn nested_none_u32(_x: ()) -> Option<Option<u32>>
+pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32>
+pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>>
 ```
 
 All of these are emitted from ordinary `@[rust_export]` Lean definitions in
@@ -53,7 +72,7 @@ rust_emit_exports generatedRust
 ```text
 LeanRustCore/
   IR.lean                proof-carrying typed IR + Lean evaluator
-  Surface.lean           first-order extracted IR + type checker
+  Surface.lean           first-order extracted IR + declaration model + type checker
   Extract.lean           elaborated Lean declaration extractor
   EmitRust.lean          Rust emitter for typed and extracted IR
   Lowering.lean          compatibility/lowering seam
@@ -92,16 +111,18 @@ Supported now:
 - `Nat` lowered to Rust `u32` for the original arithmetic slice,
 - `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`, and `Bool`,
 - `Option T` and `Except E T`, emitted as Rust `Option<T>` and `Result<T, E>`,
-- closed parameter-free inductive enums, emitted as Rust `enum`s,
+- closed structures and inductive enums, emitted as Rust `struct`s and `enum`s,
 - variables, literals, `if`, `let`, equality,
 - `<`, `<=`, `>`, `>=` for fixed-width numeric types,
 - `+`, `-`, `*` lowered to Rust `wrapping_*` operations,
-- Lean `match` over `Bool`, `Option`, and simple no-field enums.
+- Lean `match` over `Bool`, `Option`, and simple no-field enums,
+- struct constructors and field projection,
+- enum constructors with payload fields,
+- expected-type propagation through nested `Option`/`Except` constructors.
 
 Still intentionally out of scope:
 
-- structs and field projection,
-- enum variants with payload fields,
+- payload enum pattern matching,
 - recursive functions and loops,
 - higher-order functions and closures,
 - generics and monomorphization,
@@ -109,15 +130,14 @@ Still intentionally out of scope:
 
 ## Fully working implementation steps remaining
 
-1. Add struct declarations, field projection, and struct constructors.
-2. Add enum variants with payload fields and nested pattern lowering.
-3. Add a richer compatibility report instead of failing command elaboration for
+1. Add payload enum pattern lowering.
+2. Add a richer compatibility report instead of failing command elaboration for
    unsupported exports.
-4. Add monomorphization: collect concrete type instantiations used by exported
+3. Add monomorphization: collect concrete type instantiations used by exported
    declarations and emit one Rust function per concrete instance.
-5. Keep the snapshot gate: generated Rust must exactly match the checked-in
+4. Keep the snapshot gate: generated Rust must exactly match the checked-in
    fallback.
-6. Add differential tests that evaluate the Lean IR and the generated Rust over
+5. Add differential tests that evaluate the Lean IR and the generated Rust over
    the same cases.
-7. Later, validate emitted Rust with a Rust→Lean translation path or a small
+6. Later, validate emitted Rust with a Rust→Lean translation path or a small
    formal semantics for the generated Rust subset.

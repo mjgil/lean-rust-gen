@@ -20,6 +20,14 @@ inductive Choice where
   | first
   | second
 
+structure Point where
+  x : UInt32
+  y : UInt32
+
+inductive Step where
+  | stay
+  | jump (amount : UInt32)
+
 @[rust_export]
 def clamp_u32 (lo hi x : Nat) : Nat :=
   if x < lo then lo else if x > hi then hi else x
@@ -106,6 +114,42 @@ def choose_by_enum (choice : Choice) (left right : UInt32) : UInt32 :=
   match choice with
   | Choice.first => left
   | Choice.second => right
+
+@[rust_export]
+def make_point (x y : UInt32) : Point :=
+  { x := x, y := y }
+
+@[rust_export]
+def point_x (p : Point) : UInt32 :=
+  p.x
+
+@[rust_export]
+def point_y (p : Point) : UInt32 :=
+  p.y
+
+@[rust_export]
+def shift_point_x (p : Point) (dx : UInt32) : Point :=
+  { x := p.x + dx, y := p.y }
+
+@[rust_export]
+def step_stay (_x : Unit) : Step :=
+  Step.stay
+
+@[rust_export]
+def step_jump (amount : UInt32) : Step :=
+  Step.jump amount
+
+@[rust_export]
+def nested_none_u32 (_x : Unit) : Option (Option UInt32) :=
+  some none
+
+@[rust_export]
+def result_ok_none_u32 (_x : Unit) : Except UInt32 (Option UInt32) :=
+  Except.ok none
+
+@[rust_export]
+def result_err_some_u32 (e : UInt32) : Except (Option UInt32) UInt32 :=
+  Except.error (some e)
 
 rust_emit_exports generatedRust
 

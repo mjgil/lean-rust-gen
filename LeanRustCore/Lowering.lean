@@ -17,7 +17,8 @@ def supportedRustType : RType → Bool
   | .unit | .bool | .u32 | .u64 | .i32 | .i64 => true
   | .option t => supportedRustType t
   | .result ok err => supportedRustType ok && supportedRustType err
-  | .enum _ _ => true
+  | .struct _ fields => fields.all (fun field => supportedRustType field.2)
+  | .enum _ variants => variants.all (fun variant => variant.2.all supportedRustType)
 
 /-- Check all function argument and return types are in the supported subset. -/
 def checkFunctionShape (name : String) (args : List RArg) (ret : RType) : CompatibilityReport :=

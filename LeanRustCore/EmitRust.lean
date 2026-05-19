@@ -19,6 +19,7 @@ def rustType : RType → String
   | .i64 => "i64"
   | .option t => "Option<" ++ rustType t ++ ">"
   | .result ok err => "Result<" ++ rustType ok ++ ", " ++ rustType err ++ ">"
+  | .struct name _ => name
   | .enum name _ => name
 
 def rustVariantName (variant : String) : String :=
@@ -30,6 +31,8 @@ def rustVariantName (variant : String) : String :=
   else if variant == "blue" then "Blue"
   else if variant == "left" then "Left"
   else if variant == "right" then "Right"
+  else if variant == "stay" then "Stay"
+  else if variant == "jump" then "Jump"
   else variant
 
 private def enumPath (ty : RType) (variant : String) : String :=
@@ -118,7 +121,15 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .optionSome a => "Some(" ++ emitSurfaceExpr a ++ ")"
   | .resultOk _ a => "Ok(" ++ emitSurfaceExpr a ++ ")"
   | .resultErr _ e => "Err(" ++ emitSurfaceExpr e ++ ")"
-  | .enumVariant ty variant => enumPath ty variant
+  | .structLit ty fields =>
+      let rendered := fields.map (fun field => field.1 ++ ": " ++ emitSurfaceExpr field.2)
+      match ty with
+      | .struct name _ => name ++ " { " ++ joinWith ", " rendered ++ " }"
+      | _ => "/* malformed struct literal */"
+  | .field target fieldName => "(" ++ emitSurfaceExpr target ++ ")." ++ fieldName
+  | .enumVariant ty variant payload =>
+      let renderedPayload := if payload.isEmpty then "" else "(" ++ joinWith ", " (payload.map emitSurfaceExpr) ++ ")"
+      enumPath ty variant ++ renderedPayload
 
 /-- Emit one Rust function argument. -/
 def emitArg (arg : RArg) : String :=
@@ -134,13 +145,57 @@ def emitSurfaceFun (f : SurfaceFun) : String :=
   "pub fn " ++ f.name ++ "(" ++ joinWith ", " (f.args.map emitArg) ++ ") -> " ++
     rustType f.ret ++ " {\n    " ++ emitSurfaceExpr f.body ++ "\n}\n"
 
-private def collectTypeEnums : RType → List RType
-  | .option t => collectTypeEnums t
-  | .result ok err => collectTypeEnums ok ++ collectTypeEnums err
-  | e@(.enum _ _) => [e]
+private def collectTypeStructs : RType → List SurfaceStruct
+  | .option t => collectTypeStructs t
+  | .result ok err => collectTypeStructs ok ++ collectTypeStructs err
+  | s@(.struct name fields) =>
+      { name := name, fields := fields } :: fields.bind (fun field => collectTypeStructs field.2)
+  | .enum _ variants => variants.bind (fun variant => variant.2.bind collectTypeStructs)
   | _ => []
 
-partial def collectSurfaceEnums : SurfaceExpr → List RType
+private def collectTypeEnums : RType → List SurfaceEnum
+  | .option t => collectTypeEnums t
+  | .result ok err => collectTypeEnums ok ++ collectTypeEnums err
+  | .struct _ fields => fields.bind (fun field => collectTypeEnums field.2)
+  | .enum name variants =>
+      { name := name, variants := variants } :: variants.bind (fun variant => variant.2.bind collectTypeEnums)
+  | _ => []
+
+partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
+  | .var _ => []
+  | .litUnit => []
+  | .litBool _ => []
+  | .litU32 _ => []
+  | .litU64 _ => []
+  | .litI32 _ => []
+  | .litI64 _ => []
+  | .letIn _ value body => collectSurfaceStructs value ++ collectSurfaceStructs body
+  | .ite c a b => collectSurfaceStructs c ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .matchBool c a b => collectSurfaceStructs c ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .matchOption target noneCase _ someCase => collectSurfaceStructs target ++ collectSurfaceStructs noneCase ++ collectSurfaceStructs someCase
+  | .matchEnum ty target branches => collectTypeStructs ty ++ collectSurfaceStructs target ++ branches.bind (fun branch => collectSurfaceStructs branch.2)
+  | .not a => collectSurfaceStructs a
+  | .and a b => collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .or a b => collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .eq t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .lt t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .le t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .gt t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .ge t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .add t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .sub t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .mul t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .min t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .max t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .optionNone t => collectTypeStructs t
+  | .optionSome a => collectSurfaceStructs a
+  | .resultOk t a => collectTypeStructs t ++ collectSurfaceStructs a
+  | .resultErr t e => collectTypeStructs t ++ collectSurfaceStructs e
+  | .structLit ty fields => collectTypeStructs ty ++ fields.bind (fun field => collectSurfaceStructs field.2)
+  | .field target _ => collectSurfaceStructs target
+  | .enumVariant ty _ payload => collectTypeStructs ty ++ payload.bind collectSurfaceStructs
+
+partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .var _ => []
   | .litUnit => []
   | .litBool _ => []
@@ -170,32 +225,65 @@ partial def collectSurfaceEnums : SurfaceExpr → List RType
   | .optionSome a => collectSurfaceEnums a
   | .resultOk t a => collectTypeEnums t ++ collectSurfaceEnums a
   | .resultErr t e => collectTypeEnums t ++ collectSurfaceEnums e
-  | .enumVariant ty _ => collectTypeEnums ty
+  | .structLit ty fields => collectTypeEnums ty ++ fields.bind (fun field => collectSurfaceEnums field.2)
+  | .field target _ => collectSurfaceEnums target
+  | .enumVariant ty _ payload => collectTypeEnums ty ++ payload.bind collectSurfaceEnums
 
-private def collectFunEnums (f : SurfaceFun) : List RType :=
+private def collectFunStructs (f : SurfaceFun) : List SurfaceStruct :=
+  f.args.bind (fun arg => collectTypeStructs arg.2) ++ collectTypeStructs f.ret ++ collectSurfaceStructs f.body
+
+private def collectFunEnums (f : SurfaceFun) : List SurfaceEnum :=
   f.args.bind (fun arg => collectTypeEnums arg.2) ++ collectTypeEnums f.ret ++ collectSurfaceEnums f.body
 
-private def hasEnumNamed (name : String) : List RType → Bool
+private def hasStructNamed (name : String) : List SurfaceStruct → Bool
   | [] => false
-  | (.enum candidate _) :: rest => candidate == name || hasEnumNamed name rest
-  | _ :: rest => hasEnumNamed name rest
+  | s :: rest => s.name == name || hasStructNamed name rest
 
-private def uniqueEnums : List RType → List RType
+private def hasEnumNamed (name : String) : List SurfaceEnum → Bool
+  | [] => false
+  | e :: rest => e.name == name || hasEnumNamed name rest
+
+private def uniqueStructs : List SurfaceStruct → List SurfaceStruct
   | [] => []
-  | e@(.enum name _) :: rest =>
+  | s :: rest =>
+      let tail := uniqueStructs rest
+      if hasStructNamed s.name tail then tail else s :: tail
+
+private def uniqueEnums : List SurfaceEnum → List SurfaceEnum
+  | [] => []
+  | e :: rest =>
       let tail := uniqueEnums rest
-      if hasEnumNamed name tail then tail else e :: tail
-  | _ :: rest => uniqueEnums rest
+      if hasEnumNamed e.name tail then tail else e :: tail
 
-private def emitEnum : RType → String
-  | .enum name variants =>
-      "#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n" ++
-      "pub enum " ++ name ++ " { " ++ joinWith ", " (variants.map rustVariantName) ++ " }\n"
-  | _ => ""
+private def emitStructFieldDecl (field : RArg) : String :=
+  "pub " ++ field.1 ++ ": " ++ rustType field.2
 
-private def emitEnums (fns : List SurfaceFun) : String :=
-  let enums := uniqueEnums (fns.bind collectFunEnums)
-  if enums.isEmpty then "" else joinWith "\n" (enums.map emitEnum) ++ "\n"
+private def emitStruct (s : SurfaceStruct) : String :=
+  "#[derive(Clone, Debug, PartialEq, Eq)]\n" ++
+  "pub struct " ++ s.name ++ " { " ++ joinWith ", " (s.fields.map emitStructFieldDecl) ++ " }\n"
+
+private def emitEnumVariantDecl (variant : String × List RType) : String :=
+  let name := rustVariantName variant.1
+  if variant.2.isEmpty then
+    name
+  else
+    name ++ "(" ++ joinWith ", " (variant.2.map rustType) ++ ")"
+
+private def emitEnum (e : SurfaceEnum) : String :=
+  "#[derive(Clone, Debug, PartialEq, Eq)]\n" ++
+  "pub enum " ++ e.name ++ " { " ++ joinWith ", " (e.variants.map emitEnumVariantDecl) ++ " }\n"
+
+/-- Build a declaration-aware surface module from checked functions. -/
+def SurfaceModule.fromFunctions (fns : List SurfaceFun) : SurfaceModule :=
+  { structs := uniqueStructs (fns.bind collectFunStructs),
+    enums := uniqueEnums (fns.bind collectFunEnums),
+    functions := fns }
+
+private def emitDecls (m : SurfaceModule) : String :=
+  let structText := joinWith "\n" (m.structs.map emitStruct)
+  let enumText := joinWith "\n" (m.enums.map emitEnum)
+  let decls := [structText, enumText].filter (fun s => s != "")
+  if decls.isEmpty then "" else joinWith "\n" decls ++ "\n"
 
 /-- Emit a whole generated module from proof-carrying functions. -/
 def emitRustModule (fns : List RFun) : String :=
@@ -204,10 +292,14 @@ def emitRustModule (fns : List RFun) : String :=
   joinWith "\n" (fns.map emitFun)
 
 /-- Emit a whole generated module from extracted Lean declarations. -/
-def emitSurfaceRustModule (fns : List SurfaceFun) : String :=
+def emitSurfaceModule (m : SurfaceModule) : String :=
   "// Generated by LeanRustCore from elaborated Lean declarations. Do not edit by hand.\n" ++
   "// The checked-in rust/src/generated.rs is a fallback snapshot; scripts/gen.sh regenerates it.\n\n" ++
-  emitEnums fns ++
-  joinWith "\n" (fns.map emitSurfaceFun)
+  emitDecls m ++
+  joinWith "\n" (m.functions.map emitSurfaceFun)
+
+/-- Emit a whole generated module from extracted Lean declarations. -/
+def emitSurfaceRustModule (fns : List SurfaceFun) : String :=
+  emitSurfaceModule (SurfaceModule.fromFunctions fns)
 
 end LeanRustCore
