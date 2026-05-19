@@ -3,6 +3,8 @@
 ## Trusted definitions
 
 - `LeanRustCore.Extract.extractConst`
+- `LeanRustCore.Extract.extractMonoConst`
+- `LeanRustCore.Extract.extractWithDiagnostics`
 - `LeanRustCore.Extract.typeOfLeanM`
 - `LeanRustCore.Surface.SurfaceExpr`
 - `LeanRustCore.Surface.typeOf`
@@ -35,11 +37,13 @@ arguments and return values are built from:
 - `UInt32`, `UInt64`, `Int32`, `Int64`,
 - `Option`,
 - `Except`,
-- closed parameter-free inductive enums.
+- closed parameter-free structures and inductive enums.
 
 The body subset includes variables, literals, `if`, `let`, scalar comparisons,
-wrapping arithmetic, `Option`/`Except` constructors, and `match` over `Bool`,
-`Option`, and simple no-field enums.
+wrapping arithmetic, `Option`/`Except` constructors, struct literals, field
+projection, enum payload constructors, and `match` over `Bool`, `Option`, and
+simple no-field enums. Explicit concrete monomorphizations are registered with
+`rust_mono_export`.
 
-The next milestones are structs, field access, enum payload variants, recursive
-functions, and monomorphized generics.
+The next milestones are payload enum pattern matching, recursive functions,
+automatically discovered monomorphizations, and richer generic type arguments.

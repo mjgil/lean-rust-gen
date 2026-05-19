@@ -1,4 +1,8 @@
-use std::{env, fs, path::PathBuf, process::Command};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 fn main() {
     println!("cargo:rerun-if-changed=../LeanRustCore");
@@ -41,7 +45,7 @@ fn main() {
     }
 }
 
-fn copy_fallback(manifest_dir: &PathBuf, generated_out: &PathBuf) {
+fn copy_fallback(manifest_dir: &Path, generated_out: &Path) {
     let fallback = manifest_dir.join("src/generated.rs");
     fs::copy(&fallback, generated_out).unwrap_or_else(|err| {
         panic!(

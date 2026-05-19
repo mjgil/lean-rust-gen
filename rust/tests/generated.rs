@@ -87,3 +87,12 @@ fn expected_type_propagates_through_nested_constructors() {
     assert_eq!(result_ok_none_u32(()), Ok(None));
     assert_eq!(result_err_some_u32(44), Err(Some(44)));
 }
+
+#[test]
+fn concrete_generic_instantiations_are_emitted() {
+    assert_eq!(identity_u64(99), 99);
+    assert_eq!(choose_generic_u32(true, 10, 20), 10);
+    assert_eq!(choose_generic_u32(false, 10, 20), 20);
+    assert_eq!(option_default_u64(None, 77), 77);
+    assert_eq!(option_default_u64(Some(55), 77), 55);
+}

@@ -68,3 +68,30 @@ and `Except.error`, so examples such as `some none`, `Except.ok none`, and
 
 `ChimeraBoundary` is retained only as a small vendored ABI/result-lowering model
 for future raw FFI exports. It is not the main compiler architecture.
+
+
+## Completed step 5: explicit concrete monomorphization
+
+`rust_mono_export` records concrete type instantiations of generic Lean
+definitions. The extractor reuses the elaborated generic body, maps the leading
+`Type` binders to concrete `RType`s, and emits one ordinary Rust function per
+requested instance. This pass supports scalar concrete type arguments such as
+`UInt32` and `UInt64`; generic structures/enums and automatically discovered
+instances remain future work.
+
+Example:
+
+```lean
+rust_mono_export generic_choose as choose_generic_u32 [UInt32]
+```
+
+## Completed step 6: structured compatibility reporting
+
+`rust_emit_exports_with_report` emits Rust for every supported export and also
+defines a JSON compatibility report. Unsupported tagged declarations are not
+silently accepted and no longer abort the whole generation pass; they appear as
+`unsupported-declaration` diagnostics in `rust/compatibility-report.json`.
+
+```lean
+rust_emit_exports_with_report generatedRust generatedCompatibilityReport
+```

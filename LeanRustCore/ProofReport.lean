@@ -23,6 +23,8 @@ def facts : List ProofFact := [
   { name := "match_lowering", statement := "Bool, Option, and simple no-field enum matches lower from elaborated recursor/casesOn forms" },
   { name := "struct_enum_declarations", statement := "SurfaceStruct and SurfaceEnum declarations are emitted before generated Rust functions" },
   { name := "expected_type_propagation", statement := "nested Option and Except constructors are checked with the Rust-facing expected type" },
+  { name := "generic_monomorphization", statement := "rust_mono_export registers concrete type instantiations of generic Lean definitions and emits concrete Rust functions" },
+  { name := "compatibility_reporting", statement := "unsupported tagged exports are skipped and recorded in a structured compatibility report" },
   { name := "rust_adapter_owned_rejected", statement := "owned Rust values cannot cross the raw FFI boundary" },
   { name := "result_u32_i32_lowering", statement := "Result<u32,i32> lowers to status plus two out parameters" }
 ]

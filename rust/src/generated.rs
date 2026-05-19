@@ -125,3 +125,15 @@ pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32> {
 pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>> {
     Err(Some(e))
 }
+
+pub fn identity_u64(x: u64) -> u64 {
+    x
+}
+
+pub fn choose_generic_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
+    if flag { when_true } else { when_false }
+}
+
+pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64 {
+    match x { None => fallback, Some(value) => value }
+}

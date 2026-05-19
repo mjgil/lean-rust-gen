@@ -151,7 +151,30 @@ def result_ok_none_u32 (_x : Unit) : Except UInt32 (Option UInt32) :=
 def result_err_some_u32 (e : UInt32) : Except (Option UInt32) UInt32 :=
   Except.error (some e)
 
-rust_emit_exports generatedRust
+/-- A generic source function. It is exported only through explicit concrete monomorphizations. -/
+def generic_identity (α : Type) (x : α) : α :=
+  x
+
+/-- A generic source function whose concrete instances become Rust functions. -/
+def generic_choose (α : Type) (flag : Bool) (when_true when_false : α) : α :=
+  if flag then when_true else when_false
+
+/-- A generic source function with an `Option` argument. -/
+def generic_option_default (α : Type) (x : Option α) (fallback : α) : α :=
+  match x with
+  | none => fallback
+  | some value => value
+
+rust_mono_export generic_identity as identity_u64 [UInt64]
+rust_mono_export generic_choose as choose_generic_u32 [UInt32]
+rust_mono_export generic_option_default as option_default_u64 [UInt64]
+
+/-- Demonstrates step 6: unsupported tagged exports are reported and skipped instead of aborting codegen. -/
+@[rust_export]
+def unsupported_higher_order_u32 (f : UInt32 → UInt32) (x : UInt32) : UInt32 :=
+  f x
+
+rust_emit_exports_with_report generatedRust generatedCompatibilityReport
 
 /-!
 ## Proof-carrying IR examples

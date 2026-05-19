@@ -2,7 +2,7 @@
 
 A self-contained direct **Lean → Rust** workflow.
 
-This pass extends the direct Lean emits Rust implementation through steps 1-4:
+This pass extends the direct Lean emits Rust implementation through steps 1-6:
 
 1. Export extraction accepts `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`,
    `Option`, `Except`, and closed inductive/structure types in addition to the
@@ -14,6 +14,10 @@ This pass extends the direct Lean emits Rust implementation through steps 1-4:
    field projection, and enum variant constructors with payload fields.
 4. Type checking and extraction propagate expected types through nested
    `Option.none`, `Option.some`, `Except.ok`, and `Except.error` constructors.
+5. `rust_mono_export` registers concrete type instantiations of generic Lean
+   definitions and emits concrete Rust functions.
+6. Unsupported tagged exports are skipped and recorded in
+   `rust/compatibility-report.json` instead of aborting Rust generation.
 
 ## What is generated
 
@@ -58,13 +62,18 @@ pub fn step_jump(amount: u32) -> Step
 pub fn nested_none_u32(_x: ()) -> Option<Option<u32>>
 pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32>
 pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>>
+pub fn identity_u64(x: u64) -> u64
+pub fn choose_generic_u32(flag: bool, when_true: u32, when_false: u32) -> u32
+pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64
 ```
 
-All of these are emitted from ordinary `@[rust_export]` Lean definitions in
-`LeanRustCore/Examples.lean` via:
+The non-generic functions are emitted from ordinary `@[rust_export]` Lean definitions; the generic examples use explicit concrete monomorphization specs:
 
 ```lean
-rust_emit_exports generatedRust
+rust_mono_export generic_identity as identity_u64 [UInt64]
+rust_mono_export generic_choose as choose_generic_u32 [UInt32]
+rust_mono_export generic_option_default as option_default_u64 [UInt64]
+rust_emit_exports_with_report generatedRust generatedCompatibilityReport
 ```
 
 ## Repository layout
@@ -81,12 +90,13 @@ LeanRustCore/
   ProofReport.lean       proof-sidecar JSON model
 Main.lean                `lake exe gen_rust`
 ProofReportMain.lean     `lake exe gen_proof_report`
+CompatibilityReportMain.lean `lake exe gen_compatibility_report`
 rust/
   build.rs               tries Lean generator, falls back to checked-in snapshot
   src/generated.rs       checked-in fallback generated Rust
   tests/generated.rs     Rust tests for generated functions
 scripts/
-  gen.sh                 regenerate Rust + proof report
+  gen.sh                 regenerate Rust, proof report, and compatibility report
   check-extractor-snapshot.sh
   check.sh
 ```
@@ -118,26 +128,24 @@ Supported now:
 - Lean `match` over `Bool`, `Option`, and simple no-field enums,
 - struct constructors and field projection,
 - enum constructors with payload fields,
-- expected-type propagation through nested `Option`/`Except` constructors.
+- expected-type propagation through nested `Option`/`Except` constructors,
+- explicit concrete monomorphizations of generic functions with scalar type arguments,
+- structured compatibility reports for unsupported tagged exports.
 
 Still intentionally out of scope:
 
 - payload enum pattern matching,
 - recursive functions and loops,
 - higher-order functions and closures,
-- generics and monomorphization,
+- implicit / discovered monomorphization; concrete generic exports currently use `rust_mono_export`,
 - formal Rust operational semantics for emitted text.
 
 ## Fully working implementation steps remaining
 
 1. Add payload enum pattern lowering.
-2. Add a richer compatibility report instead of failing command elaboration for
-   unsupported exports.
-3. Add monomorphization: collect concrete type instantiations used by exported
-   declarations and emit one Rust function per concrete instance.
-4. Keep the snapshot gate: generated Rust must exactly match the checked-in
-   fallback.
-5. Add differential tests that evaluate the Lean IR and the generated Rust over
+2. Extend monomorphization from explicit scalar type arguments to discovered
+   concrete instantiations and generic structures/enums.
+3. Add differential tests that evaluate the Lean IR and the generated Rust over
    the same cases.
-6. Later, validate emitted Rust with a Rust→Lean translation path or a small
+4. Later, validate emitted Rust with a Rust→Lean translation path or a small
    formal semantics for the generated Rust subset.

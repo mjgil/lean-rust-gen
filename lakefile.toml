@@ -12,3 +12,7 @@ root = "Main"
 [[lean_exe]]
 name = "gen_proof_report"
 root = "ProofReportMain"
+
+[[lean_exe]]
+name = "gen_compatibility_report"
+root = "CompatibilityReportMain"
