@@ -95,3 +95,35 @@ silently accepted and no longer abort the whole generation pass; they appear as
 ```lean
 rust_emit_exports_with_report generatedRust generatedCompatibilityReport
 ```
+
+## Completed step 7: Lean-evaluator differential tests
+
+`LeanRustCore.Differential` generates `rust/tests/differential_generated.rs`.
+The right-hand side of each evaluator-backed assertion is computed in Lean from
+`LeanRustCore.IR.eval`, while the left-hand side calls the generated Rust
+function. This gives the current workflow a cross-language regression gate over
+the proof-carrying semantic model and the emitted Rust snapshot.
+
+```bash
+lake exe gen_differential_tests rust/tests/differential_generated.rs
+```
+
+The suite currently covers the proof-carrying scalar/option examples and a small
+set of extracted-declaration examples for `u64`, `Bool` matches, `Option`, and
+explicit monomorphizations.
+
+## Completed step 8: emitted-subset validation gate
+
+`LeanRustCore.RustValidation` generates `rust/validation-report.json`, and
+`scripts/check-rust-validation.sh` enforces the current direct Lean→Rust emitted
+subset:
+
+- generated Rust must not contain `unsafe`, raw `extern "C"` boundaries,
+  `panic!`, `todo!`, `unimplemented!`, or malformed emitter markers,
+- validation and compatibility reports must remain snapshot-reproducible,
+- Lean-generated differential tests must be checked into the Rust test suite,
+- the Rust crate continues to use `#![forbid(unsafe_code)]`.
+
+This is a validation gate for the current generated subset. A future parser-backed
+Rust→Lean validator can replace the manifest once the generated Rust grammar is
+large enough to justify a separate target-language parser.

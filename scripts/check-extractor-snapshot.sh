@@ -11,3 +11,13 @@ tmp_report="$(mktemp)"
 lake exe gen_compatibility_report "$tmp_report"
 diff -u rust/compatibility-report.json "$tmp_report"
 rm -f "$tmp_report"
+
+tmp_diff="$(mktemp)"
+lake exe gen_differential_tests "$tmp_diff"
+diff -u rust/tests/differential_generated.rs "$tmp_diff"
+rm -f "$tmp_diff"
+
+tmp_validation="$(mktemp)"
+lake exe gen_validation_report "$tmp_validation"
+diff -u rust/validation-report.json "$tmp_validation"
+rm -f "$tmp_validation"

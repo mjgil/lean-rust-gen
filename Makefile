@@ -1,4 +1,4 @@
-.PHONY: gen check rust-test no-placeholders
+.PHONY: gen check rust-test no-placeholders rust-validation
 
 gen:
 	./scripts/gen.sh
@@ -11,3 +11,6 @@ rust-test:
 
 no-placeholders:
 	./scripts/check-no-placeholders.sh
+
+rust-validation:
+	./scripts/check-rust-validation.sh

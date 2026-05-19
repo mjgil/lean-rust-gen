@@ -16,3 +16,11 @@ root = "ProofReportMain"
 [[lean_exe]]
 name = "gen_compatibility_report"
 root = "CompatibilityReportMain"
+
+[[lean_exe]]
+name = "gen_differential_tests"
+root = "DifferentialMain"
+
+[[lean_exe]]
+name = "gen_validation_report"
+root = "ValidationReportMain"

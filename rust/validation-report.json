@@ -1,0 +1,16 @@
+{
+  "format": "lean-rust-core.rust-validation.v1",
+  "architecture": "direct-lean-emits-rust",
+  "generated_function_count": 32,
+  "generated_type_count": 3,
+  "differential_assertion_count": 24,
+  "required_functions": ["clamp_u32", "max_u32", "is_nonzero_u32", "add_u32", "mul_u32", "bounded_bump_u32", "echo_u32", "echo_u64", "echo_i32", "echo_i64", "add_u64", "unit_roundtrip", "bool_match_u32", "option_identity_u32", "none_u32", "some_u32", "option_default_u32", "result_ok_u32", "result_err_u32", "choose_by_enum", "make_point", "point_x", "point_y", "shift_point_x", "step_stay", "step_jump", "nested_none_u32", "result_ok_none_u32", "result_err_some_u32", "identity_u64", "choose_generic_u32", "option_default_u64"],
+  "required_types": ["Point", "Choice", "Step"],
+  "checks": [
+    { "name": "surface-type-check-before-emission", "status": "passed", "detail": "every emitted declaration passes LeanRustCore.Surface.checkSurfaceFun before Rust source is produced" },
+    { "name": "snapshot-reproducibility", "status": "passed", "detail": "scripts/check-extractor-snapshot.sh diffs generated.rs, differential tests, compatibility report, and validation report against Lean output" },
+    { "name": "lean-evaluator-differential-tests", "status": "passed", "detail": "rust/tests/differential_generated.rs compares generated Rust calls with expectations computed by LeanRustCore.IR.eval" },
+    { "name": "safe-rust-subset-gate", "status": "passed", "detail": "scripts/check-rust-validation.sh rejects unsafe, extern boundaries, panic/todo/unimplemented calls, and malformed emitter markers in generated Rust" },
+    { "name": "ffi-boundary-exclusion", "status": "passed", "detail": "the direct Lean-emits-Rust path emits ordinary safe Rust only; raw FFI remains outside this compiler path" }
+  ]
+}
