@@ -4,7 +4,7 @@
 use lean_rust_core_generated::*;
 
 #[test]
-fn lean_evaluator_matches_generated_rust() {
+fn lean_ir_evaluator_matches_generated_rust() {
     assert_eq!(clamp_u32(10, 20, 5), 10u32);
     assert_eq!(clamp_u32(10, 20, 25), 20u32);
     assert_eq!(clamp_u32(10, 20, 15), 15u32);
@@ -23,16 +23,39 @@ fn lean_evaluator_matches_generated_rust() {
 }
 
 #[test]
-fn extracted_declarations_keep_expected_surface_semantics() {
+fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(add_u64(u64::MAX, 1), 0u64);
     assert_eq!(bool_match_u32(true, 1, 2), 1u32);
     assert_eq!(bool_match_u32(false, 1, 2), 2u32);
     assert_eq!(some_u32(4), Some(4u32));
     assert_eq!(none_u32(()), None::<u32>);
+    assert_eq!(option_default_u32(None, 8), 8u32);
+    assert_eq!(option_default_u32(Some(3), 8), 3u32);
+    assert_eq!(result_ok_u32(5), Ok(5u32));
+    assert_eq!(result_err_u32(7), Err(7u32));
+    assert_eq!(choose_by_enum(Choice::First, 10, 20), 10u32);
+    assert_eq!(choose_by_enum(Choice::Second, 10, 20), 20u32);
+    assert_eq!(make_point(3, 4), Point { x: 3u32, y: 4u32 });
+    assert_eq!(point_x(Point { x: 8, y: 9 }), 8u32);
+    assert_eq!(point_y(Point { x: 8, y: 9 }), 9u32);
+    assert_eq!(
+        shift_point_x(Point { x: u32::MAX, y: 7 }, 1),
+        Point { x: 0u32, y: 7u32 }
+    );
+    assert_eq!(step_stay(()), Step::Stay);
+    assert_eq!(step_jump(12), Step::Jump(12u32));
     assert_eq!(step_amount_or(Step::Stay, 9), 9u32);
     assert_eq!(step_amount_or(Step::Jump(12), 9), 12u32);
+    assert_eq!(step_amount_plus_one_or(Step::Stay, 7), 7u32);
+    assert_eq!(step_amount_plus_one_or(Step::Jump(u32::MAX), 7), 0u32);
+    assert_eq!(inc_u32(41), 42u32);
+    assert_eq!(inc_u32(u32::MAX), 0u32);
     assert_eq!(inc_twice_u32(40), 42u32);
     assert_eq!(inc_twice_u32(u32::MAX), 1u32);
+    assert_eq!(nested_none_u32(()), Some(None::<u32>));
+    assert_eq!(result_ok_none_u32(()), Ok(None::<u32>));
+    assert_eq!(result_err_some_u32(44), Err(Some(44u32)));
+    assert_eq!(identity_u64(99), 99u64);
     assert_eq!(choose_generic_u32(true, 10, 20), 10u32);
     assert_eq!(choose_generic_u32(false, 10, 20), 20u32);
     assert_eq!(option_default_u64(None, 77), 77u64);

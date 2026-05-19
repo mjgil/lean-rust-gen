@@ -27,6 +27,8 @@ def facts : List ProofFact := [
   { name := "compatibility_reporting", statement := "unsupported tagged exports are skipped and recorded in a structured compatibility report" },
   { name := "payload_enum_branch_binders", statement := "payload enum pattern matching stores checked branch binders and emits Rust variant patterns" },
   { name := "first_order_function_calls", statement := "calls to other tagged first-order exports lower to checked SurfaceExpr.call nodes and Rust function calls" },
+  { name := "surface_expr_evaluator", statement := "evalSurfaceFun interprets the checked SurfaceExpr subset used by the direct Lean-to-Rust emitter" },
+  { name := "expanded_surface_differential", statement := "Lean-generated differential tests compute extracted struct, enum, Result, call, and monomorphization expectations with evalSurfaceFun" },
   { name := "rust_adapter_owned_rejected", statement := "owned Rust values cannot cross the raw FFI boundary" },
   { name := "result_u32_i32_lowering", statement := "Result<u32,i32> lowers to status plus two out parameters" }
 ]
@@ -48,7 +50,7 @@ def reportJson : String :=
   "{\n" ++
   "  \"format\": \"lean-rust-core.proof-report.v1\",\n" ++
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.IR.eval\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++

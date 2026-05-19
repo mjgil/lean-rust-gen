@@ -8,6 +8,8 @@
 - `LeanRustCore.Extract.typeOfLeanM`
 - `LeanRustCore.Surface.SurfaceExpr`
 - `LeanRustCore.Surface.typeOf`
+- `LeanRustCore.Surface.evalSurfaceExpr`
+- `LeanRustCore.Surface.evalSurfaceFun`
 - `LeanRustCore.EmitRust.emitSurfaceRustModule`
 - `LeanRustCore.IR.RType`
 - `LeanRustCore.IR.RExpr`
@@ -46,6 +48,11 @@ projection, enum payload constructors, payload enum pattern matching, and
 first-order calls to other tagged exported Lean declarations. Explicit concrete
 monomorphizations are registered with `rust_mono_export`.
 
+`LeanRustCore.Surface.evalSurfaceFun` now gives this extracted surface subset a
+dynamic Lean semantics used by the differential suite. It covers the same
+expression families as the emitter and bounds call evaluation with explicit fuel
+for the current non-recursive subset.
+
 The next milestones are recursive functions, automatically discovered
 monomorphizations, parser-backed Rust validation, and richer generic type
 arguments.
@@ -63,4 +70,6 @@ Additional trusted/generated surfaces for steps 7 and 8:
 The validation gate is intentionally split: Lean generates the expected
 differential Rust tests and the validation manifest, while shell/Rust tests check
 that the generated Rust snapshot stays inside the current safe direct-emission
-subset.
+subset. The expanded differential suite now computes extracted-declaration
+expectations through `evalSurfaceFun` for structs, enums, `Result`, calls, and
+monomorphized functions.

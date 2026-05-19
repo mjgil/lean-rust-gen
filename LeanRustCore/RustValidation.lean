@@ -83,7 +83,7 @@ def checks : List ValidationCheck := [
   {
     name := "lean-evaluator-differential-tests",
     status := "passed",
-    detail := "rust/tests/differential_generated.rs compares generated Rust calls with expectations computed by LeanRustCore.IR.eval"
+    detail := "rust/tests/differential_generated.rs compares generated Rust calls with expectations computed by LeanRustCore.IR.eval and LeanRustCore.Surface.evalSurfaceFun"
   },
   {
     name := "safe-rust-subset-gate",
@@ -104,6 +104,11 @@ def checks : List ValidationCheck := [
     name := "first-order-call-lowering",
     status := "passed",
     detail := "calls to tagged first-order Lean declarations lower to checked Rust function calls and dependency-aware emission"
+  },
+  {
+    name := "surface-evaluator-extracted-subset-tests",
+    status := "passed",
+    detail := "the SurfaceExpr evaluator covers the current extracted struct, enum, Result, monomorphization, payload-match, and call fixtures"
   }
 ]
 

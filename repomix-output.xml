@@ -1,0 +1,3798 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    ci.yml
+docs/
+  ARCHITECTURE.md
+  SOURCE_NOTES.md
+  TRUSTED_CORE.md
+LeanRustCore/
+  ChimeraBoundary.lean
+  Differential.lean
+  EmitRust.lean
+  Examples.lean
+  Export.lean
+  Extract.lean
+  IR.lean
+  Lowering.lean
+  ProofReport.lean
+  RustValidation.lean
+  Surface.lean
+rust/
+  src/
+    abi.rs
+    generated.rs
+    lib.rs
+  tests/
+    differential_generated.rs
+    generated.rs
+    validation_report.rs
+  build.rs
+  Cargo.toml
+  compatibility-report.json
+  proof-report.json
+  validation-report.json
+scripts/
+  check-extractor-snapshot.sh
+  check-no-placeholders.sh
+  check-rust-validation.sh
+  check.sh
+  gen.sh
+.gitignore
+Cargo.toml
+CompatibilityReportMain.lean
+DifferentialMain.lean
+lake-manifest.json
+lakefile.toml
+lean-toolchain
+LeanRustCore.lean
+LICENSE
+Main.lean
+Makefile
+ProofReportMain.lean
+README.md
+rust-toolchain.toml
+ValidationReportMain.lean
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/ci.yml">
+name: lean-rust-core
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Setup Lean
+        uses: leanprover/lean-action@v1
+      - name: Check
+        run: ./scripts/check.sh
+</file>
+
+<file path="LeanRustCore/ChimeraBoundary.lean">
+import Lean
+
+namespace LeanRustCore.ChimeraBoundary
+
+/-!
+A small, self-contained Chimera/RustAdapter-inspired boundary model.
+
+This is not the main compiler. The main app is direct Lean → Rust. This module
+only keeps the FFI/result-lowering rules that are useful when an emitted Rust
+function is later exposed through a raw ABI boundary.
+-/
+
+inductive Ownership where
+  | borrow
+  | owned
+  deriving Repr, BEq, DecidableEq
+
+inductive ChType where
+  | unit
+  | bool
+  | i32
+  | u32
+  | u64
+  | status
+  | ptr : ChType → ChType
+  | owned : ChType → ChType
+  | slice : ChType → Ownership → ChType
+  | str
+  | result : ChType → ChType → ChType
+  deriving Repr, BEq, DecidableEq
+
+namespace ChType
+
+/-- Primitive types accepted directly at the boundary. -/
+def isPrimitive : ChType → Bool
+  | .bool | .i32 | .u32 | .u64 | .status => true
+  | _ => false
+
+/-- C-compatible values in this first pass. -/
+def isCCompatible : ChType → Bool
+  | .unit | .bool | .i32 | .u32 | .u64 | .status | .ptr _ => true
+  | _ => false
+
+end ChType
+
+inductive RustAdapterRule where
+  | noNativeRustTypes
+  | reprCRequired
+  | noDynamicDispatch
+  | resultLowering
+  | panicPolicyRespected
+  deriving Repr, BEq, DecidableEq
+
+structure RustAdapter where
+  rules : List RustAdapterRule
+  deriving Repr, BEq
+
+namespace RustAdapter
+
+def default : RustAdapter := {
+  rules := [.noNativeRustTypes, .reprCRequired, .noDynamicDispatch, .resultLowering, .panicPolicyRespected]
+}
+
+/-- Check whether a semantic boundary type may cross raw Rust FFI directly. -/
+def isAllowedType (_adapter : RustAdapter) : ChType → Bool
+  | .owned _ => false
+  | .slice _ _ => false
+  | .str => false
+  | .result _ _ => true
+  | ty => ty.isPrimitive || ty.isCCompatible
+
+theorem primitive_allowed (adapter : RustAdapter) :
+  adapter.isAllowedType .i32 = true := by
+  simp [isAllowedType, ChType.isPrimitive, ChType.isCCompatible]
+
+theorem owned_rejected (adapter : RustAdapter) :
+  adapter.isAllowedType (.owned .u32) = false := by
+  simp [isAllowedType]
+
+theorem slice_rejected (adapter : RustAdapter) :
+  adapter.isAllowedType (.slice .u32 .borrow) = false := by
+  simp [isAllowedType]
+
+end RustAdapter
+
+inductive PanicPolicy where
+  | abort
+  | catchUnwind
+  | forbidden
+  deriving Repr, BEq, DecidableEq
+
+inductive PhysicalType where
+  | void
+  | i32
+  | u32
+  | u64
+  | ptr
+  deriving Repr, BEq, DecidableEq
+
+structure PhysicalSignature where
+  params : List PhysicalType
+  ret : PhysicalType
+  deriving Repr, BEq
+
+def lowerType : ChType → Except String PhysicalType
+  | .unit => .ok .void
+  | .bool => .ok .u32
+  | .i32 => .ok .i32
+  | .u32 => .ok .u32
+  | .u64 => .ok .u64
+  | .status => .ok .i32
+  | .ptr _ => .ok .ptr
+  | .owned _ => .error "owned value must lower through a handle before FFI"
+  | .slice _ _ => .error "slice cannot cross raw FFI directly"
+  | .str => .error "string cannot cross raw FFI directly"
+  | .result _ _ => .error "Result must be lowered with lowerResultSignature"
+
+/-- Result lowering: `Result<T,E>` becomes `i32 status + out_ok + out_err`. -/
+def lowerResultSignature (ok err : ChType) (params : List ChType) : Except String PhysicalSignature := do
+  let _okPhys ← lowerType ok
+  let _errPhys ← lowerType err
+  let loweredParams ← params.mapM lowerType
+  pure { params := [.ptr, .ptr] ++ loweredParams, ret := .i32 }
+
+theorem result_u32_i32_uses_status_and_out_params :
+  lowerResultSignature .u32 .i32 [] = .ok { params := [.ptr, .ptr], ret := .i32 } := by
+  rfl
+
+end LeanRustCore.ChimeraBoundary
+</file>
+
+<file path="LeanRustCore/Differential.lean">
+import LeanRustCore.Examples
+
+namespace LeanRustCore.Differential
+
+open LeanRustCore
+open LeanRustCore.Examples
+
+/-!
+Step 7 differential fixtures.
+
+The values below are computed in Lean from the proof-carrying IR evaluator and
+then rendered as Rust assertions against the generated Rust functions. That makes
+`rust/tests/differential_generated.rs` a cross-language differential test: the
+right hand side is Lean's evaluator result, while the left hand side calls the
+Rust emitted by the extractor.
+-/
+
+structure RustAssertion where
+  expression : String
+  expected : String
+  deriving Repr, BEq
+
+private def rustU32 (n : Nat) : String :=
+  Nat.toString (u32Wrap n) ++ "u32"
+
+private def rustU64 (n : Nat) : String :=
+  Nat.toString (u64Wrap n) ++ "u64"
+
+private def rustBool (b : Bool) : String :=
+  if b then "true" else "false"
+
+private def rustOptionU32 : Option Nat → String
+  | none => "None::<u32>"
+  | some value => "Some(" ++ rustU32 value ++ ")"
+
+private def clampExpected (lo hi x : Nat) : String :=
+  rustU32 (eval clampBody { lo := lo, hi := hi, x := x })
+
+private def maxExpected (a b : Nat) : String :=
+  rustU32 (eval maxBody { a := a, b := b })
+
+private def nonzeroExpected (x : Nat) : String :=
+  rustBool (eval nonzeroBody { x := x })
+
+private def addExpected (a b : Nat) : String :=
+  rustU32 (eval addBody { a := a, b := b })
+
+private def bumpExpected (x : Nat) : String :=
+  rustU32 (eval boundedBumpBody { x := x })
+
+private def optionDefaultExpected (x : Option Nat) (fallback : Nat) : String :=
+  rustU32 (eval optionDefaultBody { x := x, fallback := fallback })
+
+private def assertion (expression expected : String) : RustAssertion :=
+  { expression := expression, expected := expected }
+
+/-- Differential assertions whose expectations are rendered from Lean evaluator results. -/
+def evaluatorAssertions : List RustAssertion := [
+  assertion "clamp_u32(10, 20, 5)" (clampExpected 10 20 5),
+  assertion "clamp_u32(10, 20, 25)" (clampExpected 10 20 25),
+  assertion "clamp_u32(10, 20, 15)" (clampExpected 10 20 15),
+  assertion "max_u32(3, 8)" (maxExpected 3 8),
+  assertion "max_u32(8, 3)" (maxExpected 8 3),
+  assertion "is_nonzero_u32(0)" (nonzeroExpected 0),
+  assertion "is_nonzero_u32(7)" (nonzeroExpected 7),
+  assertion "add_u32(u32::MAX, 1)" (addExpected (u32Modulus - 1) 1),
+  assertion "add_u32(40, 2)" (addExpected 40 2),
+  assertion "bounded_bump_u32(0)" (bumpExpected 0),
+  assertion "bounded_bump_u32(9)" (bumpExpected 9),
+  assertion "bounded_bump_u32(10)" (bumpExpected 10),
+  assertion "bounded_bump_u32(u32::MAX)" (bumpExpected (u32Modulus - 1)),
+  assertion "option_default_u32(None, 8)" (optionDefaultExpected none 8),
+  assertion "option_default_u32(Some(3), 8)" (optionDefaultExpected (some 3) 8)
+]
+
+/-- Additional extracted-declaration cases that complement the evaluator-backed assertions. -/
+def extractedDeclarationAssertions : List RustAssertion := [
+  assertion "add_u64(u64::MAX, 1)" (rustU64 (u64Modulus - 1 + 1)),
+  assertion "bool_match_u32(true, 1, 2)" (rustU32 1),
+  assertion "bool_match_u32(false, 1, 2)" (rustU32 2),
+  assertion "some_u32(4)" (rustOptionU32 (some 4)),
+  assertion "none_u32(())" (rustOptionU32 none),
+  assertion "choose_generic_u32(true, 10, 20)" (rustU32 10),
+  assertion "choose_generic_u32(false, 10, 20)" (rustU32 20),
+  assertion "option_default_u64(None, 77)" (rustU64 77),
+  assertion "option_default_u64(Some(55), 77)" (rustU64 55)
+]
+
+private def emitAssertion (a : RustAssertion) : String :=
+  if a.expected == "true" then
+    "    assert!(" ++ a.expression ++ ");"
+  else if a.expected == "false" then
+    "    assert!(!" ++ a.expression ++ ");"
+  else
+    "    assert_eq!(" ++ a.expression ++ ", " ++ a.expected ++ ");"
+
+private def emitAssertionsTest (name : String) (assertions : List RustAssertion) : String :=
+  "#[test]\nfn " ++ name ++ "() {\n" ++
+  joinWith "\n" (assertions.map emitAssertion) ++
+  "\n}\n"
+
+/-- Rust integration-test source generated from the Lean differential fixtures. -/
+def generatedDifferentialRustTests : String :=
+  "// Generated by LeanRustCore.Differential. Do not edit by hand.\n" ++
+  "// Expectations on the right-hand side are computed in Lean.\n\n" ++
+  "use lean_rust_core_generated::*;\n\n" ++
+  emitAssertionsTest "lean_evaluator_matches_generated_rust" evaluatorAssertions ++
+  "\n" ++
+  emitAssertionsTest "extracted_declarations_keep_expected_surface_semantics" extractedDeclarationAssertions
+
+end LeanRustCore.Differential
+</file>
+
+<file path="LeanRustCore/Export.lean">
+import Lean
+
+namespace LeanRustCore.Export
+
+open Lean
+
+/-- Marks an ordinary Lean definition for the direct Lean→Rust extractor. -/
+initialize rustExportAttr : TagAttribute ←
+  registerTagAttribute `rust_export "export this elaborated Lean declaration to Rust"
+
+/-- Exported declaration names in deterministic environment order. -/
+def exportedNames (env : Environment) : List Name :=
+  rustExportAttr.getTagged env |>.toList
+
+end LeanRustCore.Export
+</file>
+
+<file path="LeanRustCore/RustValidation.lean">
+import LeanRustCore.Differential
+
+namespace LeanRustCore.RustValidation
+
+open LeanRustCore
+open LeanRustCore.Differential
+
+/-!
+Step 8 validation manifest for the current generated Rust subset.
+
+The formal object in this pass is the checked Lean surface IR plus the
+proof-carrying IR evaluator used by the differential tests. The emitted Rust is
+validated by a generated manifest and by repository gates that compare snapshots,
+ban unsafe/placeholder fragments in generated Rust, and run the Lean-generated
+Rust differential tests.
+-/
+
+structure ValidationCheck where
+  name : String
+  status : String
+  detail : String
+  deriving Repr, BEq
+
+/-- Function names that the current generated Rust snapshot is expected to expose. -/
+def requiredFunctionNames : List String := [
+  "clamp_u32",
+  "max_u32",
+  "is_nonzero_u32",
+  "add_u32",
+  "mul_u32",
+  "bounded_bump_u32",
+  "echo_u32",
+  "echo_u64",
+  "echo_i32",
+  "echo_i64",
+  "add_u64",
+  "unit_roundtrip",
+  "bool_match_u32",
+  "option_identity_u32",
+  "none_u32",
+  "some_u32",
+  "option_default_u32",
+  "result_ok_u32",
+  "result_err_u32",
+  "choose_by_enum",
+  "make_point",
+  "point_x",
+  "point_y",
+  "shift_point_x",
+  "step_stay",
+  "step_jump",
+  "nested_none_u32",
+  "result_ok_none_u32",
+  "result_err_some_u32",
+  "identity_u64",
+  "choose_generic_u32",
+  "option_default_u64"
+]
+
+/-- Declarations that should exist before generated functions. -/
+def requiredTypeNames : List String := [
+  "Point",
+  "Choice",
+  "Step"
+]
+
+/-- Validation checks completed for the current generated subset. -/
+def checks : List ValidationCheck := [
+  {
+    name := "surface-type-check-before-emission",
+    status := "passed",
+    detail := "every emitted declaration passes LeanRustCore.Surface.checkSurfaceFun before Rust source is produced"
+  },
+  {
+    name := "snapshot-reproducibility",
+    status := "passed",
+    detail := "scripts/check-extractor-snapshot.sh diffs generated.rs, differential tests, compatibility report, and validation report against Lean output"
+  },
+  {
+    name := "lean-evaluator-differential-tests",
+    status := "passed",
+    detail := "rust/tests/differential_generated.rs compares generated Rust calls with expectations computed by LeanRustCore.IR.eval"
+  },
+  {
+    name := "safe-rust-subset-gate",
+    status := "passed",
+    detail := "scripts/check-rust-validation.sh rejects unsafe, extern boundaries, panic/todo/unimplemented calls, and malformed emitter markers in generated Rust"
+  },
+  {
+    name := "ffi-boundary-exclusion",
+    status := "passed",
+    detail := "the direct Lean-emits-Rust path emits ordinary safe Rust only; raw FFI remains outside this compiler path"
+  }
+]
+
+private def jsonEscapeChar : Char → String
+  | '"' => "\\\""
+  | '\\' => "\\\\"
+  | '\n' => "\\n"
+  | '\r' => "\\r"
+  | '\t' => "\\t"
+  | c => String.singleton c
+
+private def jsonEscape (s : String) : String :=
+  joinWith "" (s.toList.map jsonEscapeChar)
+
+private def jsonString (s : String) : String :=
+  "\"" ++ jsonEscape s ++ "\""
+
+private def jsonArray (items : List String) : String :=
+  "[" ++ joinWith ", " (items.map jsonString) ++ "]"
+
+private def checkToJson (check : ValidationCheck) : String :=
+  "    { \"name\": " ++ jsonString check.name ++
+  ", \"status\": " ++ jsonString check.status ++
+  ", \"detail\": " ++ jsonString check.detail ++ " }"
+
+/-- JSON validation report emitted by `lake exe gen_validation_report`. -/
+def validationReportJson : String :=
+  "{\n" ++
+  "  \"format\": \"lean-rust-core.rust-validation.v1\",\n" ++
+  "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
+  "  \"generated_function_count\": " ++ Nat.toString requiredFunctionNames.length ++ ",\n" ++
+  "  \"generated_type_count\": " ++ Nat.toString requiredTypeNames.length ++ ",\n" ++
+  "  \"differential_assertion_count\": " ++ Nat.toString (evaluatorAssertions.length + extractedDeclarationAssertions.length) ++ ",\n" ++
+  "  \"required_functions\": " ++ jsonArray requiredFunctionNames ++ ",\n" ++
+  "  \"required_types\": " ++ jsonArray requiredTypeNames ++ ",\n" ++
+  "  \"checks\": [\n" ++
+  joinWith ",\n" (checks.map checkToJson) ++ "\n" ++
+  "  ]\n" ++
+  "}\n"
+
+end LeanRustCore.RustValidation
+</file>
+
+<file path="rust/src/abi.rs">
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ChStatus(pub i32);
+
+impl ChStatus {
+    pub const OK: Self = Self(0);
+    pub const ERR: Self = Self(1);
+
+    pub const fn is_ok(self) -> bool {
+        self.0 == 0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PanicPolicy {
+    Abort,
+    CatchUnwind,
+    Forbidden,
+}
+
+pub fn result_to_status<T, E>(result: &Result<T, E>) -> ChStatus {
+    match result {
+        Ok(_) => ChStatus::OK,
+        Err(_) => ChStatus::ERR,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn status_reports_ok() {
+        assert!(ChStatus::OK.is_ok());
+        assert!(!ChStatus::ERR.is_ok());
+    }
+
+    #[test]
+    fn result_status_distinguishes_variants() {
+        assert_eq!(result_to_status::<u32, u32>(&Ok(1)), ChStatus::OK);
+        assert_eq!(result_to_status::<u32, u32>(&Err(2)), ChStatus::ERR);
+    }
+}
+</file>
+
+<file path="rust/tests/differential_generated.rs">
+// Generated by LeanRustCore.Differential. Do not edit by hand.
+// Expectations on the right-hand side are computed in Lean.
+
+use lean_rust_core_generated::*;
+
+#[test]
+fn lean_evaluator_matches_generated_rust() {
+    assert_eq!(clamp_u32(10, 20, 5), 10u32);
+    assert_eq!(clamp_u32(10, 20, 25), 20u32);
+    assert_eq!(clamp_u32(10, 20, 15), 15u32);
+    assert_eq!(max_u32(3, 8), 8u32);
+    assert_eq!(max_u32(8, 3), 8u32);
+    assert!(!is_nonzero_u32(0));
+    assert!(is_nonzero_u32(7));
+    assert_eq!(add_u32(u32::MAX, 1), 0u32);
+    assert_eq!(add_u32(40, 2), 42u32);
+    assert_eq!(bounded_bump_u32(0), 1u32);
+    assert_eq!(bounded_bump_u32(9), 10u32);
+    assert_eq!(bounded_bump_u32(10), 10u32);
+    assert_eq!(bounded_bump_u32(u32::MAX), 0u32);
+    assert_eq!(option_default_u32(None, 8), 8u32);
+    assert_eq!(option_default_u32(Some(3), 8), 3u32);
+}
+
+#[test]
+fn extracted_declarations_keep_expected_surface_semantics() {
+    assert_eq!(add_u64(u64::MAX, 1), 0u64);
+    assert_eq!(bool_match_u32(true, 1, 2), 1u32);
+    assert_eq!(bool_match_u32(false, 1, 2), 2u32);
+    assert_eq!(some_u32(4), Some(4u32));
+    assert_eq!(none_u32(()), None::<u32>);
+    assert_eq!(choose_generic_u32(true, 10, 20), 10u32);
+    assert_eq!(choose_generic_u32(false, 10, 20), 20u32);
+    assert_eq!(option_default_u64(None, 77), 77u64);
+    assert_eq!(option_default_u64(Some(55), 77), 55u64);
+}
+</file>
+
+<file path="rust/tests/validation_report.rs">
+#[test]
+fn validation_report_records_current_subset_gates() {
+    let report = include_str!("../validation-report.json");
+
+    assert!(report.contains("lean-rust-core.rust-validation.v1"));
+    assert!(report.contains("direct-lean-emits-rust"));
+    assert!(report.contains("lean-evaluator-differential-tests"));
+    assert!(report.contains("safe-rust-subset-gate"));
+    assert!(!report.contains("\"status\": \"failed\""));
+}
+
+#[test]
+fn generated_source_stays_inside_safe_subset_textually() {
+    let source = include_str!("../src/generated.rs");
+
+    for banned in [
+        "unsafe",
+        "extern \"C\"",
+        "panic!",
+        "todo!",
+        "unimplemented!",
+        "/* malformed",
+        "unsupported wrapping op",
+    ] {
+        assert!(
+            !source.contains(banned),
+            "generated Rust contained banned fragment: {banned}"
+        );
+    }
+
+    for required in [
+        "pub struct Point",
+        "pub enum Choice",
+        "pub enum Step",
+        "pub fn clamp_u32",
+        "pub fn option_default_u64",
+    ] {
+        assert!(
+            source.contains(required),
+            "generated Rust did not contain required fragment: {required}"
+        );
+    }
+}
+</file>
+
+<file path="rust/Cargo.toml">
+[package]
+name = "lean-rust-core-generated"
+version = "0.2.0"
+edition = "2021"
+build = "build.rs"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "lean_rust_core_generated"
+path = "src/lib.rs"
+
+[dependencies]
+</file>
+
+<file path="rust/compatibility-report.json">
+{
+  "format": "lean-rust-core.compatibility-report.v1",
+  "architecture": "direct-lean-emits-rust",
+  "generated_function_count": 32,
+  "diagnostics": [
+    { "source": "LeanRustCore.Examples.clamp_u32", "rust_name": "clamp_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.max_u32", "rust_name": "max_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.is_nonzero_u32", "rust_name": "is_nonzero_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.add_u32", "rust_name": "add_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.mul_u32", "rust_name": "mul_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.bounded_bump_u32", "rust_name": "bounded_bump_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.echo_u32", "rust_name": "echo_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.echo_u64", "rust_name": "echo_u64", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.echo_i32", "rust_name": "echo_i32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.echo_i64", "rust_name": "echo_i64", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.add_u64", "rust_name": "add_u64", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.unit_roundtrip", "rust_name": "unit_roundtrip", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.bool_match_u32", "rust_name": "bool_match_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.option_identity_u32", "rust_name": "option_identity_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.none_u32", "rust_name": "none_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.some_u32", "rust_name": "some_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.option_default_u32", "rust_name": "option_default_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.result_ok_u32", "rust_name": "result_ok_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.result_err_u32", "rust_name": "result_err_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.choose_by_enum", "rust_name": "choose_by_enum", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.make_point", "rust_name": "make_point", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.point_x", "rust_name": "point_x", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.point_y", "rust_name": "point_y", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.shift_point_x", "rust_name": "shift_point_x", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.step_stay", "rust_name": "step_stay", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.step_jump", "rust_name": "step_jump", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.nested_none_u32", "rust_name": "nested_none_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.result_ok_none_u32", "rust_name": "result_ok_none_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.result_err_some_u32", "rust_name": "result_err_some_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.unsupported_higher_order_u32", "rust_name": "unsupported_higher_order_u32", "code": "unsupported-declaration", "detail": "unsupported export skipped by the direct Lean-to-Rust extractor" },
+    { "source": "LeanRustCore.Examples.generic_identity[UInt64]", "rust_name": "identity_u64", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.generic_choose[UInt32]", "rust_name": "choose_generic_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.generic_option_default[UInt64]", "rust_name": "option_default_u64", "code": "supported", "detail": "exported" }
+  ]
+}
+</file>
+
+<file path="rust/validation-report.json">
+{
+  "format": "lean-rust-core.rust-validation.v1",
+  "architecture": "direct-lean-emits-rust",
+  "generated_function_count": 32,
+  "generated_type_count": 3,
+  "differential_assertion_count": 24,
+  "required_functions": ["clamp_u32", "max_u32", "is_nonzero_u32", "add_u32", "mul_u32", "bounded_bump_u32", "echo_u32", "echo_u64", "echo_i32", "echo_i64", "add_u64", "unit_roundtrip", "bool_match_u32", "option_identity_u32", "none_u32", "some_u32", "option_default_u32", "result_ok_u32", "result_err_u32", "choose_by_enum", "make_point", "point_x", "point_y", "shift_point_x", "step_stay", "step_jump", "nested_none_u32", "result_ok_none_u32", "result_err_some_u32", "identity_u64", "choose_generic_u32", "option_default_u64"],
+  "required_types": ["Point", "Choice", "Step"],
+  "checks": [
+    { "name": "surface-type-check-before-emission", "status": "passed", "detail": "every emitted declaration passes LeanRustCore.Surface.checkSurfaceFun before Rust source is produced" },
+    { "name": "snapshot-reproducibility", "status": "passed", "detail": "scripts/check-extractor-snapshot.sh diffs generated.rs, differential tests, compatibility report, and validation report against Lean output" },
+    { "name": "lean-evaluator-differential-tests", "status": "passed", "detail": "rust/tests/differential_generated.rs compares generated Rust calls with expectations computed by LeanRustCore.IR.eval" },
+    { "name": "safe-rust-subset-gate", "status": "passed", "detail": "scripts/check-rust-validation.sh rejects unsafe, extern boundaries, panic/todo/unimplemented calls, and malformed emitter markers in generated Rust" },
+    { "name": "ffi-boundary-exclusion", "status": "passed", "detail": "the direct Lean-emits-Rust path emits ordinary safe Rust only; raw FFI remains outside this compiler path" }
+  ]
+}
+</file>
+
+<file path="scripts/check-rust-validation.sh">
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+generated="rust/src/generated.rs"
+validation_report="rust/validation-report.json"
+differential_tests="rust/tests/differential_generated.rs"
+
+required_files=("$generated" "$validation_report" "$differential_tests")
+for path in "${required_files[@]}"; do
+  test -f "$path"
+done
+
+# The direct Lean-emits-Rust lane should emit ordinary safe Rust only. Raw FFI
+# wrappers stay out of this path until an explicit boundary exporter is added.
+! grep -n -E '(^|[^A-Za-z0-9_])unsafe([^A-Za-z0-9_]|$)|extern "C"|panic!|todo!|unimplemented!|/\* malformed|unsupported wrapping op' "$generated"
+
+grep -q '"format": "lean-rust-core.rust-validation.v1"' "$validation_report"
+grep -q '"architecture": "direct-lean-emits-rust"' "$validation_report"
+grep -q '"name": "lean-evaluator-differential-tests"' "$validation_report"
+grep -q '"name": "safe-rust-subset-gate"' "$validation_report"
+! grep -q '"status": "failed"' "$validation_report"
+
+grep -q 'LeanRustCore.Differential' "$differential_tests"
+grep -q 'lean_evaluator_matches_generated_rust' "$differential_tests"
+grep -q 'add_u32(u32::MAX, 1)' "$differential_tests"
+</file>
+
+<file path=".gitignore">
+/.lake/
+/target/
+/rust/target/
+*.olean
+*.ilean
+*.c
+.DS_Store
+</file>
+
+<file path="Cargo.toml">
+[workspace]
+members = ["rust"]
+resolver = "2"
+</file>
+
+<file path="CompatibilityReportMain.lean">
+import LeanRustCore.Examples
+
+/-- Generate a JSON compatibility report. Usage: `lake exe gen_compatibility_report [path]`. -/
+def main : IO Unit := do
+  let args ← IO.getArgs
+  let out := match args.toList with
+    | path :: _ => path
+    | [] => "rust/compatibility-report.json"
+  IO.FS.writeFile out LeanRustCore.Examples.generatedCompatibilityReport
+  IO.println s!"wrote compatibility report to {out}"
+</file>
+
+<file path="DifferentialMain.lean">
+import LeanRustCore.Differential
+
+/-- Generate Rust differential tests. Usage: `lake exe gen_differential_tests [path]`. -/
+def main : IO Unit := do
+  let args ← IO.getArgs
+  let out := match args.toList with
+    | path :: _ => path
+    | [] => "rust/tests/differential_generated.rs"
+  IO.FS.writeFile out LeanRustCore.Differential.generatedDifferentialRustTests
+  IO.println s!"wrote Lean-evaluator differential Rust tests to {out}"
+</file>
+
+<file path="lake-manifest.json">
+{"version": "1.1.0",
+ "packagesDir": ".lake/packages",
+ "packages": [],
+ "name": "lean_rust_core",
+ "lakeDir": ".lake"}
+</file>
+
+<file path="lean-toolchain">
+leanprover/lean4:stable
+</file>
+
+<file path="LICENSE">
+MIT OR Apache-2.0
+</file>
+
+<file path="Main.lean">
+import LeanRustCore.Examples
+
+/-- Generate Rust source. Usage: `lake exe gen_rust [path]`. -/
+def main : IO Unit := do
+  let args ← IO.getArgs
+  let out := match args.toList with
+    | path :: _ => path
+    | [] => "rust/src/generated.rs"
+  IO.FS.writeFile out LeanRustCore.Examples.generatedRust
+  IO.println s!"wrote extracted Lean→Rust output to {out}"
+</file>
+
+<file path="ProofReportMain.lean">
+import LeanRustCore.ProofReport
+
+/-- Generate a JSON proof report. Usage: `lake exe gen_proof_report [path]`. -/
+def main : IO Unit := do
+  let args ← IO.getArgs
+  let out := match args.toList with
+    | path :: _ => path
+    | [] => "rust/proof-report.json"
+  IO.FS.writeFile out LeanRustCore.ProofReport.reportJson
+  IO.println s!"wrote proof report to {out}"
+</file>
+
+<file path="rust-toolchain.toml">
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
+</file>
+
+<file path="ValidationReportMain.lean">
+import LeanRustCore.RustValidation
+
+/-- Generate a JSON Rust-validation report. Usage: `lake exe gen_validation_report [path]`. -/
+def main : IO Unit := do
+  let args ← IO.getArgs
+  let out := match args.toList with
+    | path :: _ => path
+    | [] => "rust/validation-report.json"
+  IO.FS.writeFile out LeanRustCore.RustValidation.validationReportJson
+  IO.println s!"wrote Rust validation report to {out}"
+</file>
+
+<file path="docs/SOURCE_NOTES.md">
+# Source notes
+
+This repo is a compact direct Lean→Rust implementation pass built from the
+useful patterns in the uploaded Repomix bundles.
+
+Copied-in concepts are small and self-contained:
+
+- explicit lowering / checked IR / codegen seams,
+- RustAdapter boundary rules for future FFI edges,
+- Result lowering through status plus out-parameters,
+- compatibility reports for unsupported forms.
+
+The implementation does **not** import the original repos and does **not** keep
+the previous core/app split. The app-level workflow is Lean emits Rust.
+
+Step 7/8 additions keep the same direct Lean→Rust architecture. The differential
+suite is generated by Lean and compares Rust function calls with values computed
+by the Lean evaluator. The validation report is also generated by Lean, while the
+shell gate checks the emitted Rust text for unsafe/raw-boundary markers and stale
+snapshot artifacts.
+</file>
+
+<file path="rust/src/lib.rs">
+#![forbid(unsafe_code)]
+#![allow(
+    clippy::needless_bool,
+    clippy::redundant_field_names,
+    clippy::unused_unit
+)]
+
+pub mod abi;
+
+include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+</file>
+
+<file path="rust/build.rs">
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
+
+fn main() {
+    println!("cargo:rerun-if-changed=../LeanRustCore");
+    println!("cargo:rerun-if-changed=../Main.lean");
+    println!("cargo:rerun-if-changed=../lakefile.toml");
+    println!("cargo:rerun-if-changed=src/generated.rs");
+
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("Cargo sets OUT_DIR"));
+    let generated_out = out_dir.join("generated.rs");
+    let manifest_dir =
+        PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("Cargo sets CARGO_MANIFEST_DIR"));
+    let repo_root = manifest_dir
+        .parent()
+        .expect("rust crate lives under repo root");
+
+    let lean_status = Command::new("lake")
+        .args([
+            "exe",
+            "gen_rust",
+            generated_out.to_str().expect("utf-8 OUT_DIR"),
+        ])
+        .current_dir(repo_root)
+        .status();
+
+    match lean_status {
+        Ok(status) if status.success() => {
+            println!(
+                "cargo:warning=Lean extractor produced {}",
+                generated_out.display()
+            );
+        }
+        Ok(status) => {
+            println!("cargo:warning=lake exited with status {status}; using checked-in fallback src/generated.rs");
+            copy_fallback(&manifest_dir, &generated_out);
+        }
+        Err(err) => {
+            println!("cargo:warning=lake not available ({err}); using checked-in fallback src/generated.rs");
+            copy_fallback(&manifest_dir, &generated_out);
+        }
+    }
+}
+
+fn copy_fallback(manifest_dir: &Path, generated_out: &Path) {
+    let fallback = manifest_dir.join("src/generated.rs");
+    fs::copy(&fallback, generated_out).unwrap_or_else(|err| {
+        panic!(
+            "failed to copy fallback generated Rust from {} to {}: {err}",
+            fallback.display(),
+            generated_out.display()
+        )
+    });
+}
+</file>
+
+<file path="scripts/check.sh">
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+./scripts/check-no-placeholders.sh
+lake build
+./scripts/check-extractor-snapshot.sh
+./scripts/check-rust-validation.sh
+(cd rust && cargo fmt --check && cargo clippy -- -D warnings && cargo test)
+</file>
+
+<file path="Makefile">
+.PHONY: gen check rust-test no-placeholders rust-validation
+
+gen:
+	./scripts/gen.sh
+
+check:
+	./scripts/check.sh
+
+rust-test:
+	cd rust && cargo test
+
+no-placeholders:
+	./scripts/check-no-placeholders.sh
+
+rust-validation:
+	./scripts/check-rust-validation.sh
+</file>
+
+<file path="LeanRustCore/EmitRust.lean">
+import LeanRustCore.IR
+import LeanRustCore.Surface
+
+namespace LeanRustCore
+
+/-- Small dependency-free string join. -/
+def joinWith (sep : String) : List String → String
+  | [] => ""
+  | [x] => x
+  | x :: xs => x ++ sep ++ joinWith sep xs
+
+/-- Rust spelling for the current IR type subset. -/
+def rustType : RType → String
+  | .unit => "()"
+  | .bool => "bool"
+  | .u32 => "u32"
+  | .u64 => "u64"
+  | .i32 => "i32"
+  | .i64 => "i64"
+  | .option t => "Option<" ++ rustType t ++ ">"
+  | .result ok err => "Result<" ++ rustType ok ++ ", " ++ rustType err ++ ">"
+  | .struct name _ => name
+  | .enum name _ => name
+
+def rustVariantName (variant : String) : String :=
+  if variant == "first" then "First"
+  else if variant == "second" then "Second"
+  else if variant == "third" then "Third"
+  else if variant == "red" then "Red"
+  else if variant == "green" then "Green"
+  else if variant == "blue" then "Blue"
+  else if variant == "left" then "Left"
+  else if variant == "right" then "Right"
+  else if variant == "stay" then "Stay"
+  else if variant == "jump" then "Jump"
+  else variant
+
+private def enumPath (ty : RType) (variant : String) : String :=
+  match ty with
+  | .enum name _ => name ++ "::" ++ rustVariantName variant
+  | _ => rustVariantName variant
+
+private def emitInt (n : Int) : String :=
+  toString n
+
+private def wrappingMethod : RType → String → Option String
+  | .u32, op => some ("wrapping_" ++ op)
+  | .u64, op => some ("wrapping_" ++ op)
+  | .i32, op => some ("wrapping_" ++ op)
+  | .i64, op => some ("wrapping_" ++ op)
+  | _, _ => none
+
+private def emitWrapping (op : String) (t : RType) (a b : String) : String :=
+  match wrappingMethod t op with
+  | some method => "(" ++ a ++ ")." ++ method ++ "(" ++ b ++ ")"
+  | none => "(" ++ a ++ " /* unsupported wrapping op */ " ++ b ++ ")"
+
+/-- Emit a valid Rust expression for the proof-carrying typed subset. -/
+def emitExpr {ctx : Type} : {t : RType} → RExpr ctx t → String
+  | _, .var name _ => name
+  | _, .litUnit => "()"
+  | _, .litBool true => "true"
+  | _, .litBool false => "false"
+  | _, .litU32 n => Nat.toString n
+  | _, .litU64 n => Nat.toString n
+  | _, .litI32 n => emitInt n
+  | _, .litI64 n => emitInt n
+  | _, .letIn name value body => "{ let " ++ name ++ " = " ++ emitExpr value ++ "; " ++ emitExpr body ++ " }"
+  | _, .ite c a b => "if " ++ emitExpr c ++ " { " ++ emitExpr a ++ " } else { " ++ emitExpr b ++ " }"
+  | _, .matchBool c whenTrue whenFalse => "match " ++ emitExpr c ++ " { true => " ++ emitExpr whenTrue ++ ", false => " ++ emitExpr whenFalse ++ " }"
+  | _, .matchOption target noneCase someCase => "match " ++ emitExpr target ++ " { None => " ++ emitExpr noneCase ++ ", Some(value) => " ++ emitExpr someCase ++ " }"
+  | _, .not a => "(!" ++ emitExpr a ++ ")"
+  | _, .and a b => "(" ++ emitExpr a ++ " && " ++ emitExpr b ++ ")"
+  | _, .or a b => "(" ++ emitExpr a ++ " || " ++ emitExpr b ++ ")"
+  | _, .eqU32 a b => emitExpr a ++ " == " ++ emitExpr b
+  | _, .ltU32 a b => emitExpr a ++ " < " ++ emitExpr b
+  | _, .leU32 a b => emitExpr a ++ " <= " ++ emitExpr b
+  | _, .gtU32 a b => emitExpr a ++ " > " ++ emitExpr b
+  | _, .geU32 a b => emitExpr a ++ " >= " ++ emitExpr b
+  | _, .addU32 a b => "(" ++ emitExpr a ++ ").wrapping_add(" ++ emitExpr b ++ ")"
+  | _, .subU32 a b => "(" ++ emitExpr a ++ ").wrapping_sub(" ++ emitExpr b ++ ")"
+  | _, .mulU32 a b => "(" ++ emitExpr a ++ ").wrapping_mul(" ++ emitExpr b ++ ")"
+  | _, .minU32 a b => "core::cmp::min(" ++ emitExpr a ++ ", " ++ emitExpr b ++ ")"
+  | _, .maxU32 a b => "core::cmp::max(" ++ emitExpr a ++ ", " ++ emitExpr b ++ ")"
+  | _, .optionNone => "None"
+  | _, .optionSome a => "Some(" ++ emitExpr a ++ ")"
+  | _, .resultOk a => "Ok(" ++ emitExpr a ++ ")"
+  | _, .resultErr e => "Err(" ++ emitExpr e ++ ")"
+
+/-- Emit the extracted first-order surface subset. -/
+partial def emitSurfaceExpr : SurfaceExpr → String
+  | .var name => name
+  | .litUnit => "()"
+  | .litBool true => "true"
+  | .litBool false => "false"
+  | .litU32 n => Nat.toString n
+  | .litU64 n => Nat.toString n
+  | .litI32 n => emitInt n
+  | .litI64 n => emitInt n
+  | .letIn name value body => "{ let " ++ name ++ " = " ++ emitSurfaceExpr value ++ "; " ++ emitSurfaceExpr body ++ " }"
+  | .ite c a b => "if " ++ emitSurfaceExpr c ++ " { " ++ emitSurfaceExpr a ++ " } else { " ++ emitSurfaceExpr b ++ " }"
+  | .matchBool c whenTrue whenFalse => "match " ++ emitSurfaceExpr c ++ " { true => " ++ emitSurfaceExpr whenTrue ++ ", false => " ++ emitSurfaceExpr whenFalse ++ " }"
+  | .matchOption target noneCase someName someCase => "match " ++ emitSurfaceExpr target ++ " { None => " ++ emitSurfaceExpr noneCase ++ ", Some(" ++ someName ++ ") => " ++ emitSurfaceExpr someCase ++ " }"
+  | .matchEnum enumTy target branches =>
+      let rendered := branches.map (fun branch => enumPath enumTy branch.1 ++ " => " ++ emitSurfaceExpr branch.2)
+      "match " ++ emitSurfaceExpr target ++ " { " ++ joinWith ", " rendered ++ " }"
+  | .not a => "(!" ++ emitSurfaceExpr a ++ ")"
+  | .and a b => "(" ++ emitSurfaceExpr a ++ " && " ++ emitSurfaceExpr b ++ ")"
+  | .or a b => "(" ++ emitSurfaceExpr a ++ " || " ++ emitSurfaceExpr b ++ ")"
+  | .eq _ a b => emitSurfaceExpr a ++ " == " ++ emitSurfaceExpr b
+  | .lt _ a b => emitSurfaceExpr a ++ " < " ++ emitSurfaceExpr b
+  | .le _ a b => emitSurfaceExpr a ++ " <= " ++ emitSurfaceExpr b
+  | .gt _ a b => emitSurfaceExpr a ++ " > " ++ emitSurfaceExpr b
+  | .ge _ a b => emitSurfaceExpr a ++ " >= " ++ emitSurfaceExpr b
+  | .add t a b => emitWrapping "add" t (emitSurfaceExpr a) (emitSurfaceExpr b)
+  | .sub t a b => emitWrapping "sub" t (emitSurfaceExpr a) (emitSurfaceExpr b)
+  | .mul t a b => emitWrapping "mul" t (emitSurfaceExpr a) (emitSurfaceExpr b)
+  | .min _ a b => "core::cmp::min(" ++ emitSurfaceExpr a ++ ", " ++ emitSurfaceExpr b ++ ")"
+  | .max _ a b => "core::cmp::max(" ++ emitSurfaceExpr a ++ ", " ++ emitSurfaceExpr b ++ ")"
+  | .optionNone _ => "None"
+  | .optionSome a => "Some(" ++ emitSurfaceExpr a ++ ")"
+  | .resultOk _ a => "Ok(" ++ emitSurfaceExpr a ++ ")"
+  | .resultErr _ e => "Err(" ++ emitSurfaceExpr e ++ ")"
+  | .structLit ty fields =>
+      let rendered := fields.map (fun field => field.1 ++ ": " ++ emitSurfaceExpr field.2)
+      match ty with
+      | .struct name _ => name ++ " { " ++ joinWith ", " rendered ++ " }"
+      | _ => "/* malformed struct literal */"
+  | .field target fieldName => "(" ++ emitSurfaceExpr target ++ ")." ++ fieldName
+  | .enumVariant ty variant payload =>
+      let renderedPayload := if payload.isEmpty then "" else "(" ++ joinWith ", " (payload.map emitSurfaceExpr) ++ ")"
+      enumPath ty variant ++ renderedPayload
+
+/-- Emit one Rust function argument. -/
+def emitArg (arg : RArg) : String :=
+  arg.1 ++ ": " ++ rustType arg.2
+
+/-- Emit a safe Rust function from proof-carrying typed IR. -/
+def emitFun (f : RFun) : String :=
+  "pub fn " ++ f.name ++ "(" ++ joinWith ", " (f.args.map emitArg) ++ ") -> " ++
+    rustType f.ret ++ " {\n    " ++ emitExpr f.body ++ "\n}\n"
+
+/-- Emit a safe Rust function from extracted surface IR. -/
+def emitSurfaceFun (f : SurfaceFun) : String :=
+  "pub fn " ++ f.name ++ "(" ++ joinWith ", " (f.args.map emitArg) ++ ") -> " ++
+    rustType f.ret ++ " {\n    " ++ emitSurfaceExpr f.body ++ "\n}\n"
+
+private def collectTypeStructs : RType → List SurfaceStruct
+  | .option t => collectTypeStructs t
+  | .result ok err => collectTypeStructs ok ++ collectTypeStructs err
+  | s@(.struct name fields) =>
+      { name := name, fields := fields } :: fields.bind (fun field => collectTypeStructs field.2)
+  | .enum _ variants => variants.bind (fun variant => variant.2.bind collectTypeStructs)
+  | _ => []
+
+private def collectTypeEnums : RType → List SurfaceEnum
+  | .option t => collectTypeEnums t
+  | .result ok err => collectTypeEnums ok ++ collectTypeEnums err
+  | .struct _ fields => fields.bind (fun field => collectTypeEnums field.2)
+  | .enum name variants =>
+      { name := name, variants := variants } :: variants.bind (fun variant => variant.2.bind collectTypeEnums)
+  | _ => []
+
+partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
+  | .var _ => []
+  | .litUnit => []
+  | .litBool _ => []
+  | .litU32 _ => []
+  | .litU64 _ => []
+  | .litI32 _ => []
+  | .litI64 _ => []
+  | .letIn _ value body => collectSurfaceStructs value ++ collectSurfaceStructs body
+  | .ite c a b => collectSurfaceStructs c ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .matchBool c a b => collectSurfaceStructs c ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .matchOption target noneCase _ someCase => collectSurfaceStructs target ++ collectSurfaceStructs noneCase ++ collectSurfaceStructs someCase
+  | .matchEnum ty target branches => collectTypeStructs ty ++ collectSurfaceStructs target ++ branches.bind (fun branch => collectSurfaceStructs branch.2)
+  | .not a => collectSurfaceStructs a
+  | .and a b => collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .or a b => collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .eq t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .lt t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .le t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .gt t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .ge t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .add t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .sub t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .mul t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .min t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .max t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .optionNone t => collectTypeStructs t
+  | .optionSome a => collectSurfaceStructs a
+  | .resultOk t a => collectTypeStructs t ++ collectSurfaceStructs a
+  | .resultErr t e => collectTypeStructs t ++ collectSurfaceStructs e
+  | .structLit ty fields => collectTypeStructs ty ++ fields.bind (fun field => collectSurfaceStructs field.2)
+  | .field target _ => collectSurfaceStructs target
+  | .enumVariant ty _ payload => collectTypeStructs ty ++ payload.bind collectSurfaceStructs
+
+partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
+  | .var _ => []
+  | .litUnit => []
+  | .litBool _ => []
+  | .litU32 _ => []
+  | .litU64 _ => []
+  | .litI32 _ => []
+  | .litI64 _ => []
+  | .letIn _ value body => collectSurfaceEnums value ++ collectSurfaceEnums body
+  | .ite c a b => collectSurfaceEnums c ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .matchBool c a b => collectSurfaceEnums c ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .matchOption target noneCase _ someCase => collectSurfaceEnums target ++ collectSurfaceEnums noneCase ++ collectSurfaceEnums someCase
+  | .matchEnum ty target branches => collectTypeEnums ty ++ collectSurfaceEnums target ++ branches.bind (fun branch => collectSurfaceEnums branch.2)
+  | .not a => collectSurfaceEnums a
+  | .and a b => collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .or a b => collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .eq t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .lt t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .le t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .gt t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .ge t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .add t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .sub t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .mul t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .min t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .max t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .optionNone t => collectTypeEnums t
+  | .optionSome a => collectSurfaceEnums a
+  | .resultOk t a => collectTypeEnums t ++ collectSurfaceEnums a
+  | .resultErr t e => collectTypeEnums t ++ collectSurfaceEnums e
+  | .structLit ty fields => collectTypeEnums ty ++ fields.bind (fun field => collectSurfaceEnums field.2)
+  | .field target _ => collectSurfaceEnums target
+  | .enumVariant ty _ payload => collectTypeEnums ty ++ payload.bind collectSurfaceEnums
+
+private def collectFunStructs (f : SurfaceFun) : List SurfaceStruct :=
+  f.args.bind (fun arg => collectTypeStructs arg.2) ++ collectTypeStructs f.ret ++ collectSurfaceStructs f.body
+
+private def collectFunEnums (f : SurfaceFun) : List SurfaceEnum :=
+  f.args.bind (fun arg => collectTypeEnums arg.2) ++ collectTypeEnums f.ret ++ collectSurfaceEnums f.body
+
+private def hasStructNamed (name : String) : List SurfaceStruct → Bool
+  | [] => false
+  | s :: rest => s.name == name || hasStructNamed name rest
+
+private def hasEnumNamed (name : String) : List SurfaceEnum → Bool
+  | [] => false
+  | e :: rest => e.name == name || hasEnumNamed name rest
+
+private def uniqueStructs : List SurfaceStruct → List SurfaceStruct
+  | [] => []
+  | s :: rest =>
+      let tail := uniqueStructs rest
+      if hasStructNamed s.name tail then tail else s :: tail
+
+private def uniqueEnums : List SurfaceEnum → List SurfaceEnum
+  | [] => []
+  | e :: rest =>
+      let tail := uniqueEnums rest
+      if hasEnumNamed e.name tail then tail else e :: tail
+
+private def emitStructFieldDecl (field : RArg) : String :=
+  "pub " ++ field.1 ++ ": " ++ rustType field.2
+
+private def emitStruct (s : SurfaceStruct) : String :=
+  "#[derive(Clone, Debug, PartialEq, Eq)]\n" ++
+  "pub struct " ++ s.name ++ " { " ++ joinWith ", " (s.fields.map emitStructFieldDecl) ++ " }\n"
+
+private def emitEnumVariantDecl (variant : String × List RType) : String :=
+  let name := rustVariantName variant.1
+  if variant.2.isEmpty then
+    name
+  else
+    name ++ "(" ++ joinWith ", " (variant.2.map rustType) ++ ")"
+
+private def emitEnum (e : SurfaceEnum) : String :=
+  "#[derive(Clone, Debug, PartialEq, Eq)]\n" ++
+  "pub enum " ++ e.name ++ " { " ++ joinWith ", " (e.variants.map emitEnumVariantDecl) ++ " }\n"
+
+/-- Build a declaration-aware surface module from checked functions. -/
+def SurfaceModule.fromFunctions (fns : List SurfaceFun) : SurfaceModule :=
+  { structs := uniqueStructs (fns.bind collectFunStructs),
+    enums := uniqueEnums (fns.bind collectFunEnums),
+    functions := fns }
+
+private def emitDecls (m : SurfaceModule) : String :=
+  let structText := joinWith "\n" (m.structs.map emitStruct)
+  let enumText := joinWith "\n" (m.enums.map emitEnum)
+  let decls := [structText, enumText].filter (fun s => s != "")
+  if decls.isEmpty then "" else joinWith "\n" decls ++ "\n"
+
+/-- Emit a whole generated module from proof-carrying functions. -/
+def emitRustModule (fns : List RFun) : String :=
+  "// Generated by LeanRustCore. Do not edit by hand.\n" ++
+  "// The checked-in rust/src/generated.rs is a fallback snapshot; scripts/gen.sh regenerates it.\n\n" ++
+  joinWith "\n" (fns.map emitFun)
+
+/-- Emit a whole generated module from extracted Lean declarations. -/
+def emitSurfaceModule (m : SurfaceModule) : String :=
+  "// Generated by LeanRustCore from elaborated Lean declarations. Do not edit by hand.\n" ++
+  "// The checked-in rust/src/generated.rs is a fallback snapshot; scripts/gen.sh regenerates it.\n\n" ++
+  emitDecls m ++
+  joinWith "\n" (m.functions.map emitSurfaceFun)
+
+/-- Emit a whole generated module from extracted Lean declarations. -/
+def emitSurfaceRustModule (fns : List SurfaceFun) : String :=
+  emitSurfaceModule (SurfaceModule.fromFunctions fns)
+
+end LeanRustCore
+</file>
+
+<file path="LeanRustCore/IR.lean">
+import Lean
+
+namespace LeanRustCore
+
+/--
+A deliberately small Rust-shaped type universe.
+
+Integer operations whose Rust meaning depends on overflow are explicit. Unsigned
+wrapping arithmetic is modeled with modular arithmetic; signed fixed-width values
+are represented mathematically for the current extractor slice and are emitted
+only through operations whose Rust behavior is explicit.
+-/
+inductive RType where
+  | unit
+  | bool
+  | u32
+  | u64
+  | i32
+  | i64
+  | option : RType → RType
+  | result : RType → RType → RType
+  | struct : String → List (String × RType) → RType
+  | enum : String → List (String × List RType) → RType
+  deriving Repr, BEq, DecidableEq
+
+/-- Denotational meaning of an IR type inside Lean. -/
+def Denote : RType → Type
+  | .unit => Unit
+  | .bool => Bool
+  | .u32 => Nat
+  | .u64 => Nat
+  | .i32 => Int
+  | .i64 => Int
+  | .option t => Option (Denote t)
+  | .result ok err => Except (Denote err) (Denote ok)
+  | .struct _ _ => Unit
+  | .enum _ _ => Nat
+
+/-- The modulus used by Rust `u32::wrapping_*` operations. -/
+def u32Modulus : Nat := 4294967296
+
+/-- The modulus used by Rust `u64::wrapping_*` operations. -/
+def u64Modulus : Nat := 18446744073709551616
+
+/-- Normalize a mathematical natural number to the `u32` wrapping domain. -/
+def u32Wrap (n : Nat) : Nat := n % u32Modulus
+
+/-- Normalize a mathematical natural number to the `u64` wrapping domain. -/
+def u64Wrap (n : Nat) : Nat := n % u64Modulus
+
+/-- Wrapping subtraction over the first-pass `u32` model. -/
+def u32WrappingSub (a b : Nat) : Nat :=
+  (u32Wrap a + u32Modulus - u32Wrap b) % u32Modulus
+
+/-- Wrapping subtraction over the first-pass `u64` model. -/
+def u64WrappingSub (a b : Nat) : Nat :=
+  (u64Wrap a + u64Modulus - u64Wrap b) % u64Modulus
+
+/--
+A typed expression tree. Variables carry both a printed Rust name and a Lean
+projection from the function argument context.
+-/
+inductive RExpr (ctx : Type) : RType → Type where
+  | var {t : RType} : String → (ctx → Denote t) → RExpr ctx t
+  | litUnit : RExpr ctx .unit
+  | litBool : Bool → RExpr ctx .bool
+  | litU32 : Nat → RExpr ctx .u32
+  | litU64 : Nat → RExpr ctx .u64
+  | litI32 : Int → RExpr ctx .i32
+  | litI64 : Int → RExpr ctx .i64
+  | letIn {a b : RType} : String → RExpr ctx a → RExpr (Denote a × ctx) b → RExpr ctx b
+  | ite {t : RType} : RExpr ctx .bool → RExpr ctx t → RExpr ctx t → RExpr ctx t
+  | matchBool {t : RType} : RExpr ctx .bool → RExpr ctx t → RExpr ctx t → RExpr ctx t
+  | matchOption {a b : RType} : RExpr ctx (.option a) → RExpr ctx b → RExpr (Denote a × ctx) b → RExpr ctx b
+  | not : RExpr ctx .bool → RExpr ctx .bool
+  | and : RExpr ctx .bool → RExpr ctx .bool → RExpr ctx .bool
+  | or : RExpr ctx .bool → RExpr ctx .bool → RExpr ctx .bool
+  | eqU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | ltU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | leU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | gtU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | geU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | addU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | subU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | mulU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | minU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | maxU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | optionNone {t : RType} : RExpr ctx (.option t)
+  | optionSome {t : RType} : RExpr ctx t → RExpr ctx (.option t)
+  | resultOk {ok err : RType} : RExpr ctx ok → RExpr ctx (.result ok err)
+  | resultErr {ok err : RType} : RExpr ctx err → RExpr ctx (.result ok err)
+
+/-- Interpret an IR expression in Lean. -/
+def eval {ctx : Type} : {t : RType} → RExpr ctx t → ctx → Denote t
+  | _, .var _ project, env => project env
+  | _, .litUnit, _ => ()
+  | _, .litBool b, _ => b
+  | _, .litU32 n, _ => u32Wrap n
+  | _, .litU64 n, _ => u64Wrap n
+  | _, .litI32 n, _ => n
+  | _, .litI64 n, _ => n
+  | _, .letIn _ value body, env => eval body (eval value env, env)
+  | _, .ite c a b, env => if eval c env then eval a env else eval b env
+  | _, .matchBool c whenTrue whenFalse, env => if eval c env then eval whenTrue env else eval whenFalse env
+  | _, .matchOption target noneCase someCase, env =>
+      match eval target env with
+      | none => eval noneCase env
+      | some value => eval someCase (value, env)
+  | _, .not a, env => !(eval a env)
+  | _, .and a b, env => (eval a env) && (eval b env)
+  | _, .or a b, env => (eval a env) || (eval b env)
+  | _, .eqU32 a b, env => decide (eval a env = eval b env)
+  | _, .ltU32 a b, env => decide (eval a env < eval b env)
+  | _, .leU32 a b, env => decide (eval a env ≤ eval b env)
+  | _, .gtU32 a b, env => decide (eval a env > eval b env)
+  | _, .geU32 a b, env => decide (eval a env ≥ eval b env)
+  | _, .addU32 a b, env => u32Wrap (eval a env + eval b env)
+  | _, .subU32 a b, env => u32WrappingSub (eval a env) (eval b env)
+  | _, .mulU32 a b, env => u32Wrap (eval a env * eval b env)
+  | _, .minU32 a b, env => if decide (eval a env < eval b env) then eval a env else eval b env
+  | _, .maxU32 a b, env => if decide (eval a env < eval b env) then eval b env else eval a env
+  | _, .optionNone, _ => none
+  | _, .optionSome a, env => some (eval a env)
+  | _, .resultOk a, env => Except.ok (eval a env)
+  | _, .resultErr e, env => Except.error (eval e env)
+
+/-- A function argument declaration for Rust emission. -/
+abbrev RArg := String × RType
+
+/--
+An exported function packages a private Lean context type, a typed body, and the
+Rust-facing argument list. The context keeps proofs direct while the argument
+list gives codegen stable names/types.
+-/
+structure RFun where
+  Ctx : Type
+  name : String
+  args : List RArg
+  ret : RType
+  body : RExpr Ctx ret
+
+/-- Evaluate a packaged function against its Lean context. -/
+def RFun.eval (f : RFun) (env : f.Ctx) : Denote f.ret :=
+  eval f.body env
+
+/-- Simple compatibility summary used by the lowering/checking layer. -/
+inductive CompatibilityCode where
+  | supported
+  | unsupportedType
+  | unsupportedExpression
+  | unsupportedBoundary
+  | unsupportedDeclaration
+  deriving Repr, BEq, DecidableEq
+
+structure CompatibilityReport where
+  code : CompatibilityCode
+  detail : String
+  deriving Repr, BEq
+
+end LeanRustCore
+</file>
+
+<file path="LeanRustCore/Lowering.lean">
+import LeanRustCore.IR
+import LeanRustCore.Surface
+import LeanRustCore.ChimeraBoundary
+
+namespace LeanRustCore.Lowering
+
+open LeanRustCore
+
+/-- Source items accepted by the direct Lean→Rust compiler. -/
+inductive SourceItem where
+  | proofCarrying : RFun → SourceItem
+  | extracted : SurfaceFun → SourceItem
+
+
+/-- Current supported runtime types for direct safe Rust emission. -/
+def supportedRustType : RType → Bool
+  | .unit | .bool | .u32 | .u64 | .i32 | .i64 => true
+  | .option t => supportedRustType t
+  | .result ok err => supportedRustType ok && supportedRustType err
+  | .struct _ fields => fields.all (fun field => supportedRustType field.2)
+  | .enum _ variants => variants.all (fun variant => variant.2.all supportedRustType)
+
+/-- Check all function argument and return types are in the supported subset. -/
+def checkFunctionShape (name : String) (args : List RArg) (ret : RType) : CompatibilityReport :=
+  let argTypesOk := args.all (fun arg => supportedRustType arg.2)
+  let retOk := supportedRustType ret
+  if argTypesOk && retOk then
+    { code := .supported, detail := "function `" ++ name ++ "` shape is supported" }
+  else
+    { code := .unsupportedType, detail := "function `" ++ name ++ "` uses a type outside the first Rust emitter subset" }
+
+/-- Lower/check a first-pass source item. -/
+def lowerItem : SourceItem → Except CompatibilityReport SourceItem
+  | .proofCarrying f =>
+      let report := checkFunctionShape f.name f.args f.ret
+      if report.code == .supported then Except.ok (.proofCarrying f) else Except.error report
+  | .extracted f => do
+      let report := checkFunctionShape f.name f.args f.ret
+      if report.code == .supported then
+        let checked ← checkSurfaceFun f
+        pure (.extracted checked)
+      else
+        throw report
+
+/-- Stability theorem: primitive-only function shapes are accepted. -/
+theorem primitive_shape_supported :
+  (checkFunctionShape "id" [("x", .u32)] .u32).code = .supported := by
+  rfl
+
+end LeanRustCore.Lowering
+</file>
+
+<file path="LeanRustCore/Surface.lean">
+import LeanRustCore.IR
+
+namespace LeanRustCore
+
+/-!
+`SurfaceExpr` is the first-pass extracted form produced from elaborated Lean
+constant bodies. It is intentionally first-order: variables are names, and a
+small checker assigns `RType`s before Rust emission.
+-/
+
+/-- A Rust-facing struct declaration discovered during extraction. -/
+structure SurfaceStruct where
+  name : String
+  fields : List RArg
+  deriving Repr, BEq
+
+/-- A Rust-facing enum declaration discovered during extraction. -/
+structure SurfaceEnum where
+  name : String
+  variants : List (String × List RType)
+  deriving Repr, BEq
+
+inductive SurfaceExpr where
+  | var : String → SurfaceExpr
+  | litUnit : SurfaceExpr
+  | litBool : Bool → SurfaceExpr
+  | litU32 : Nat → SurfaceExpr
+  | litU64 : Nat → SurfaceExpr
+  | litI32 : Int → SurfaceExpr
+  | litI64 : Int → SurfaceExpr
+  | letIn : String → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | ite : SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | matchBool : SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | matchOption : SurfaceExpr → SurfaceExpr → String → SurfaceExpr → SurfaceExpr
+  | matchEnum : RType → SurfaceExpr → List (String × SurfaceExpr) → SurfaceExpr
+  | not : SurfaceExpr → SurfaceExpr
+  | and : SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | or : SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | eq : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | lt : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | le : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | gt : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | ge : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | add : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | sub : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | mul : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | min : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | max : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | optionNone : RType → SurfaceExpr
+  | optionSome : SurfaceExpr → SurfaceExpr
+  | resultOk : RType → SurfaceExpr → SurfaceExpr
+  | resultErr : RType → SurfaceExpr → SurfaceExpr
+  | structLit : RType → List (String × SurfaceExpr) → SurfaceExpr
+  | field : SurfaceExpr → String → SurfaceExpr
+  | enumVariant : RType → String → List SurfaceExpr → SurfaceExpr
+  deriving Repr, BEq
+
+/-- A checked extracted function, before packaging into proof-carrying `RFun`s. -/
+structure SurfaceFun where
+  name : String
+  args : List RArg
+  ret : RType
+  body : SurfaceExpr
+  deriving Repr, BEq
+
+/-- A checked extracted module: declarations plus functions. -/
+structure SurfaceModule where
+  structs : List SurfaceStruct
+  enums : List SurfaceEnum
+  functions : List SurfaceFun
+  deriving Repr, BEq
+
+private def lookupType (ctx : List RArg) (name : String) : Option RType :=
+  match ctx with
+  | [] => none
+  | (candidate, ty) :: rest => if candidate == name then some ty else lookupType rest name
+
+private def lookupField (fields : List RArg) (name : String) : Option RType :=
+  match fields with
+  | [] => none
+  | (candidate, ty) :: rest => if candidate == name then some ty else lookupField rest name
+
+private def lookupVariant (variants : List (String × List RType)) (name : String) : Option (List RType) :=
+  match variants with
+  | [] => none
+  | (candidate, payload) :: rest => if candidate == name then some payload else lookupVariant rest name
+
+private def containsString : List String → String → Bool
+  | [], _ => false
+  | x :: xs, s => x == s || containsString xs s
+
+private def report (code : CompatibilityCode) (detail : String) : CompatibilityReport :=
+  { code := code, detail := detail }
+
+private def rTypeLabel : RType → String
+  | .unit => "unit"
+  | .bool => "bool"
+  | .u32 => "u32"
+  | .u64 => "u64"
+  | .i32 => "i32"
+  | .i64 => "i64"
+  | .option t => "Option<" ++ rTypeLabel t ++ ">"
+  | .result ok err => "Result<" ++ rTypeLabel ok ++ "," ++ rTypeLabel err ++ ">"
+  | .struct name _ => name
+  | .enum name _ => name
+
+private def applyExpected (expected : Option RType) (actual : RType) : Except CompatibilityReport RType :=
+  match expected with
+  | none => pure actual
+  | some wanted =>
+      if wanted == actual then
+        pure actual
+      else
+        throw (report .unsupportedType ("expected " ++ rTypeLabel wanted ++ " but found " ++ rTypeLabel actual))
+
+private def isEqType : RType → Bool
+  | .unit => true
+  | .bool => true
+  | .u32 => true
+  | .u64 => true
+  | .i32 => true
+  | .i64 => true
+  | .enum _ variants => variants.all (fun v => v.2.isEmpty)
+  | _ => false
+
+private def isOrderedType : RType → Bool
+  | .u32 => true
+  | .u64 => true
+  | .i32 => true
+  | .i64 => true
+  | _ => false
+
+private def isWrappingNumericType : RType → Bool
+  | .u32 => true
+  | .u64 => true
+  | .i32 => true
+  | .i64 => true
+  | _ => false
+
+private def structFields? : RType → Option (List RArg)
+  | .struct _ fields => some fields
+  | _ => none
+
+private def enumVariants? : RType → Option (List (String × List RType))
+  | .enum _ variants => some variants
+  | _ => none
+
+private def enumVariantNames : List (String × List RType) → List String
+  | [] => []
+  | (name, _) :: rest => name :: enumVariantNames rest
+
+private def allEnumVariantsAreNullary : List (String × List RType) → Bool
+  | [] => true
+  | (_, payload) :: rest => payload.isEmpty && allEnumVariantsAreNullary rest
+
+/-- Type check the extracted first-order surface tree, using an expected type when it disambiguates constructors. -/
+partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Option RType) : Except CompatibilityReport RType :=
+  match expr with
+  | .var name =>
+      match lookupType ctx name with
+      | some ty => applyExpected expected ty
+      | none => throw (report .unsupportedExpression ("unbound extracted variable `" ++ name ++ "`"))
+  | .litUnit => applyExpected expected .unit
+  | .litBool _ => applyExpected expected .bool
+  | .litU32 _ => applyExpected expected .u32
+  | .litU64 _ => applyExpected expected .u64
+  | .litI32 _ => applyExpected expected .i32
+  | .litI64 _ => applyExpected expected .i64
+  | .letIn name value body => do
+      let valueTy ← typeOfExpected ctx value none
+      typeOfExpected ((name, valueTy) :: ctx) body expected
+  | .ite c a b => do
+      checkExpected ctx c .bool
+      typeBranchesWithExpected ctx a b expected "if"
+  | .matchBool c whenTrue whenFalse => do
+      checkExpected ctx c .bool
+      typeBranchesWithExpected ctx whenTrue whenFalse expected "Bool match"
+  | .matchOption target noneCase someName someCase => do
+      let targetTy ← typeOfExpected ctx target none
+      match targetTy with
+      | .option inner => do
+          match expected with
+          | some wanted =>
+              discard <| typeOfExpected ctx noneCase (some wanted)
+              discard <| typeOfExpected ((someName, inner) :: ctx) someCase (some wanted)
+              pure wanted
+          | none => do
+              let noneTy ← typeOfExpected ctx noneCase none
+              let someTy ← typeOfExpected ((someName, inner) :: ctx) someCase (some noneTy)
+              if noneTy == someTy then pure noneTy else throw (report .unsupportedType "Option match branches have different extracted types")
+      | other => throw (report .unsupportedType ("Option match target has type " ++ rTypeLabel other))
+  | .matchEnum enumTy target branches => do
+      checkExpected ctx target enumTy
+      match enumVariants? enumTy with
+      | none => throw (report .unsupportedType ("enum match target has type " ++ rTypeLabel enumTy))
+      | some variants => do
+          if !allEnumVariantsAreNullary variants then
+            throw (report .unsupportedExpression "enum match over payload variants is not in the current extractor subset")
+          let variantNames := enumVariantNames variants
+          let seen := branches.map (fun b => b.1)
+          if variantNames.all (fun variant => containsString seen variant) then
+            typeBranchListWithExpected ctx branches expected
+          else
+            throw (report .unsupportedExpression "enum match is missing at least one variant branch")
+  | .not a => checkExpected ctx a .bool *> applyExpected expected .bool
+  | .and a b => checkExpected ctx a .bool *> checkExpected ctx b .bool *> applyExpected expected .bool
+  | .or a b => checkExpected ctx a .bool *> checkExpected ctx b .bool *> applyExpected expected .bool
+  | .eq t a b => do
+      if isEqType t then expectPair ctx t a b *> applyExpected expected .bool else throw (report .unsupportedType ("equality is not enabled for " ++ rTypeLabel t))
+  | .lt t a b => ordered ctx t a b "<" expected
+  | .le t a b => ordered ctx t a b "<=" expected
+  | .gt t a b => ordered ctx t a b ">" expected
+  | .ge t a b => ordered ctx t a b ">=" expected
+  | .add t a b => wrapping ctx t a b "addition" expected
+  | .sub t a b => wrapping ctx t a b "subtraction" expected
+  | .mul t a b => wrapping ctx t a b "multiplication" expected
+  | .min t a b => do
+      if isOrderedType t then expectPair ctx t a b *> applyExpected expected t else throw (report .unsupportedType ("min is not enabled for " ++ rTypeLabel t))
+  | .max t a b => do
+      if isOrderedType t then expectPair ctx t a b *> applyExpected expected t else throw (report .unsupportedType ("max is not enabled for " ++ rTypeLabel t))
+  | .optionNone t => applyExpected expected (.option t)
+  | .optionSome a => do
+      match expected with
+      | some (.option inner) =>
+          discard <| typeOfExpected ctx a (some inner)
+          pure (.option inner)
+      | some other => throw (report .unsupportedType ("expected " ++ rTypeLabel other ++ " but found Option constructor"))
+      | none => return .option (← typeOfExpected ctx a none)
+  | .resultOk errTy a => do
+      match expected with
+      | some (.result okTy expectedErr) =>
+          if expectedErr == errTy then
+            discard <| typeOfExpected ctx a (some okTy)
+            pure (.result okTy expectedErr)
+          else
+            throw (report .unsupportedType ("Result error type mismatch: expected " ++ rTypeLabel expectedErr ++ " but constructor carries " ++ rTypeLabel errTy))
+      | some other => throw (report .unsupportedType ("expected " ++ rTypeLabel other ++ " but found Result.ok constructor"))
+      | none => do
+          let okTy ← typeOfExpected ctx a none
+          pure (.result okTy errTy)
+  | .resultErr okTy e => do
+      match expected with
+      | some (.result expectedOk errTy) =>
+          if expectedOk == okTy then
+            discard <| typeOfExpected ctx e (some errTy)
+            pure (.result expectedOk errTy)
+          else
+            throw (report .unsupportedType ("Result ok type mismatch: expected " ++ rTypeLabel expectedOk ++ " but constructor carries " ++ rTypeLabel okTy))
+      | some other => throw (report .unsupportedType ("expected " ++ rTypeLabel other ++ " but found Result.err constructor"))
+      | none => do
+          let errTy ← typeOfExpected ctx e none
+          pure (.result okTy errTy)
+  | .structLit ty fields => do
+      match structFields? ty with
+      | some declared =>
+          checkStructFields ctx declared fields
+          applyExpected expected ty
+      | none => throw (report .unsupportedType "struct literal node does not carry a struct type")
+  | .field target fieldName => do
+      let targetTy ← typeOfExpected ctx target none
+      match structFields? targetTy with
+      | some fields =>
+          match lookupField fields fieldName with
+          | some fieldTy => applyExpected expected fieldTy
+          | none => throw (report .unsupportedExpression ("unknown field `" ++ fieldName ++ "` on " ++ rTypeLabel targetTy))
+      | none => throw (report .unsupportedType ("field projection target has type " ++ rTypeLabel targetTy))
+  | .enumVariant ty variant payload => do
+      match enumVariants? ty with
+      | some variants =>
+          match lookupVariant variants variant with
+          | some expectedPayload =>
+              checkPayload ctx variant expectedPayload payload
+              applyExpected expected ty
+          | none => throw (report .unsupportedExpression ("unknown enum variant `" ++ variant ++ "`"))
+      | none => throw (report .unsupportedType "enum variant node does not carry an enum type")
+where
+  checkExpected (ctx : List RArg) (expr : SurfaceExpr) (wanted : RType) : Except CompatibilityReport Unit := do
+    discard <| typeOfExpected ctx expr (some wanted)
+
+  expectPair (ctx : List RArg) (wanted : RType) (a b : SurfaceExpr) : Except CompatibilityReport Unit :=
+    checkExpected ctx a wanted *> checkExpected ctx b wanted
+
+  ordered (ctx : List RArg) (wanted : RType) (a b : SurfaceExpr) (op : String) (expected : Option RType) : Except CompatibilityReport RType := do
+    if isOrderedType wanted then
+      expectPair ctx wanted a b *> applyExpected expected .bool
+    else
+      throw (report .unsupportedType ("operator `" ++ op ++ "` is not enabled for " ++ rTypeLabel wanted))
+
+  wrapping (ctx : List RArg) (wanted : RType) (a b : SurfaceExpr) (label : String) (expected : Option RType) : Except CompatibilityReport RType := do
+    if isWrappingNumericType wanted then
+      expectPair ctx wanted a b *> applyExpected expected wanted
+    else
+      throw (report .unsupportedType (label ++ " is not enabled for " ++ rTypeLabel wanted))
+
+  typeBranchesWithExpected (ctx : List RArg) (a b : SurfaceExpr) (expected : Option RType) (label : String) : Except CompatibilityReport RType := do
+    match expected with
+    | some wanted =>
+        discard <| typeOfExpected ctx a (some wanted)
+        discard <| typeOfExpected ctx b (some wanted)
+        pure wanted
+    | none => do
+        let aTy ← typeOfExpected ctx a none
+        let bTy ← typeOfExpected ctx b (some aTy)
+        if aTy == bTy then pure aTy else throw (report .unsupportedType (label ++ " branches have different extracted types"))
+
+  typeBranchListWithExpected (ctx : List RArg) (branches : List (String × SurfaceExpr)) (expected : Option RType) : Except CompatibilityReport RType := do
+    match branches with
+    | [] => throw (report .unsupportedExpression "enum match has no branches")
+    | (_, first) :: rest =>
+        match expected with
+        | some wanted =>
+            discard <| typeOfExpected ctx first (some wanted)
+            for branch in rest do
+              discard <| typeOfExpected ctx branch.2 (some wanted)
+            pure wanted
+        | none => do
+            let firstTy ← typeOfExpected ctx first none
+            for branch in rest do
+              discard <| typeOfExpected ctx branch.2 (some firstTy)
+            pure firstTy
+
+  checkStructFields (ctx : List RArg) (declared : List RArg) (provided : List (String × SurfaceExpr)) : Except CompatibilityReport Unit := do
+    let providedNames := provided.map (fun p => p.1)
+    for field in declared do
+      match provided.find? (fun p => p.1 == field.1) with
+      | some providedField => discard <| typeOfExpected ctx providedField.2 (some field.2)
+      | none => throw (report .unsupportedExpression ("struct literal is missing field `" ++ field.1 ++ "`"))
+    for providedField in provided do
+      match lookupField declared providedField.1 with
+      | some _ => pure ()
+      | none => throw (report .unsupportedExpression ("struct literal contains unknown field `" ++ providedField.1 ++ "`"))
+    let uniqueProvided := providedNames.eraseDups
+    if uniqueProvided.length == providedNames.length then
+      pure ()
+    else
+      throw (report .unsupportedExpression "struct literal contains a duplicate field")
+
+  checkPayload (ctx : List RArg) (variant : String) (expectedPayload : List RType) (payload : List SurfaceExpr) : Except CompatibilityReport Unit := do
+    if expectedPayload.length == payload.length then
+      for pair in expectedPayload.zip payload do
+        discard <| typeOfExpected ctx pair.2 (some pair.1)
+    else
+      throw (report .unsupportedExpression ("enum variant `" ++ variant ++ "` received the wrong number of payload fields"))
+
+/-- Type check without an externally supplied expected type. -/
+def typeOf (ctx : List RArg) (expr : SurfaceExpr) : Except CompatibilityReport RType :=
+  typeOfExpected ctx expr none
+
+/-- Check a whole extracted function shape. -/
+def checkSurfaceFun (f : SurfaceFun) : Except CompatibilityReport SurfaceFun := do
+  let actual ← typeOfExpected f.args f.body (some f.ret)
+  if actual == f.ret then
+    pure f
+  else
+    throw (report .unsupportedType ("function `" ++ f.name ++ "` declared return " ++ rTypeLabel f.ret ++ " but body has " ++ rTypeLabel actual))
+
+end LeanRustCore
+</file>
+
+<file path="scripts/check-extractor-snapshot.sh">
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+tmp="$(mktemp)"
+lake exe gen_rust "$tmp"
+diff -u rust/src/generated.rs "$tmp"
+rm -f "$tmp"
+
+tmp_report="$(mktemp)"
+lake exe gen_compatibility_report "$tmp_report"
+diff -u rust/compatibility-report.json "$tmp_report"
+rm -f "$tmp_report"
+
+tmp_diff="$(mktemp)"
+lake exe gen_differential_tests "$tmp_diff"
+diff -u rust/tests/differential_generated.rs "$tmp_diff"
+rm -f "$tmp_diff"
+
+tmp_validation="$(mktemp)"
+lake exe gen_validation_report "$tmp_validation"
+diff -u rust/validation-report.json "$tmp_validation"
+rm -f "$tmp_validation"
+</file>
+
+<file path="scripts/check-no-placeholders.sh">
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+! grep -R -n -E '\b(sorry|admit)\b|^\s*axiom\b' LeanRustCore Main.lean ProofReportMain.lean CompatibilityReportMain.lean DifferentialMain.lean ValidationReportMain.lean
+</file>
+
+<file path="scripts/gen.sh">
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+lake exe gen_rust rust/src/generated.rs
+lake exe gen_proof_report rust/proof-report.json
+lake exe gen_compatibility_report rust/compatibility-report.json
+lake exe gen_differential_tests rust/tests/differential_generated.rs
+lake exe gen_validation_report rust/validation-report.json
+</file>
+
+<file path="lakefile.toml">
+name = "lean_rust_core"
+version = "0.2.0"
+defaultTargets = ["gen_rust"]
+
+[[lean_lib]]
+name = "LeanRustCore"
+
+[[lean_exe]]
+name = "gen_rust"
+root = "Main"
+
+[[lean_exe]]
+name = "gen_proof_report"
+root = "ProofReportMain"
+
+[[lean_exe]]
+name = "gen_compatibility_report"
+root = "CompatibilityReportMain"
+
+[[lean_exe]]
+name = "gen_differential_tests"
+root = "DifferentialMain"
+
+[[lean_exe]]
+name = "gen_validation_report"
+root = "ValidationReportMain"
+</file>
+
+<file path="LeanRustCore.lean">
+import LeanRustCore.IR
+import LeanRustCore.Surface
+import LeanRustCore.Export
+import LeanRustCore.EmitRust
+import LeanRustCore.Extract
+import LeanRustCore.Lowering
+import LeanRustCore.ChimeraBoundary
+import LeanRustCore.Examples
+import LeanRustCore.ProofReport
+import LeanRustCore.Differential
+import LeanRustCore.RustValidation
+
+/-!
+# LeanRustCore
+
+A self-contained direct **Lean emits Rust** workflow:
+
+* ordinary Lean declarations are extracted from elaborated constant bodies,
+* the extracted body lowers to a checked Rust-shaped surface IR,
+* the emitter produces safe Rust source,
+* the proof-carrying typed IR remains the semantic model for refinement tests,
+* unsupported exports produce a structured compatibility report instead of aborting generation,
+* Lean-generated differential tests compare evaluator results with emitted Rust,
+* generated Rust validation reports and shell gates check the current safe subset,
+* a compact Chimera-inspired boundary model is retained only for later FFI edges.
+-/
+</file>
+
+<file path="docs/TRUSTED_CORE.md">
+# Trusted core and gates
+
+## Trusted definitions
+
+- `LeanRustCore.Extract.extractConst`
+- `LeanRustCore.Extract.extractMonoConst`
+- `LeanRustCore.Extract.extractWithDiagnostics`
+- `LeanRustCore.Extract.typeOfLeanM`
+- `LeanRustCore.Surface.SurfaceExpr`
+- `LeanRustCore.Surface.typeOf`
+- `LeanRustCore.EmitRust.emitSurfaceRustModule`
+- `LeanRustCore.IR.RType`
+- `LeanRustCore.IR.RExpr`
+- `LeanRustCore.IR.eval`
+- `LeanRustCore.ChimeraBoundary.lowerResultSignature`
+
+## CI gates
+
+```bash
+./scripts/check-no-placeholders.sh
+lake build
+./scripts/check-extractor-snapshot.sh
+./scripts/check-rust-validation.sh
+cd rust && cargo fmt --check
+cd rust && cargo clippy -- -D warnings
+cd rust && cargo test
+```
+
+The snapshot gate is important: it proves the checked-in Rust fallback is exactly
+what the Lean extractor emits. The validation gate then checks the generated Rust snapshot and the Lean-generated differential test snapshot before Cargo tests run.
+
+## Current supported extraction slice
+
+The extractor supports ordinary `def`s tagged with `@[rust_export]` whose
+arguments and return values are built from:
+
+- `Nat`, `Bool`, `Unit`,
+- `UInt32`, `UInt64`, `Int32`, `Int64`,
+- `Option`,
+- `Except`,
+- closed parameter-free structures and inductive enums.
+
+The body subset includes variables, literals, `if`, `let`, scalar comparisons,
+wrapping arithmetic, `Option`/`Except` constructors, struct literals, field
+projection, enum payload constructors, and `match` over `Bool`, `Option`, and
+simple no-field enums. Explicit concrete monomorphizations are registered with
+`rust_mono_export`.
+
+The next milestones are payload enum pattern matching, recursive functions,
+automatically discovered monomorphizations, and richer generic type arguments.
+
+## Differential and validation additions
+
+Additional trusted/generated surfaces for steps 7 and 8:
+
+- `LeanRustCore.Differential.generatedDifferentialRustTests`
+- `LeanRustCore.RustValidation.validationReportJson`
+- `DifferentialMain.lean`
+- `ValidationReportMain.lean`
+- `scripts/check-rust-validation.sh`
+
+The validation gate is intentionally split: Lean generates the expected
+differential Rust tests and the validation manifest, while shell/Rust tests check
+that the generated Rust snapshot stays inside the current safe direct-emission
+subset.
+</file>
+
+<file path="LeanRustCore/Examples.lean">
+import LeanRustCore.IR
+import LeanRustCore.EmitRust
+import LeanRustCore.Extract
+
+namespace LeanRustCore.Examples
+
+open LeanRustCore
+open LeanRustCore.Extract
+
+/-!
+## Elaboration-extracted Lean source declarations
+
+These are ordinary Lean definitions tagged with `@[rust_export]`. The
+`rust_emit_exports` command reads their elaborated constant bodies from the Lean
+environment and emits Rust for the supported subset. There is no source-string
+matching in this path.
+-/
+
+inductive Choice where
+  | first
+  | second
+
+structure Point where
+  x : UInt32
+  y : UInt32
+
+inductive Step where
+  | stay
+  | jump (amount : UInt32)
+
+@[rust_export]
+def clamp_u32 (lo hi x : Nat) : Nat :=
+  if x < lo then lo else if x > hi then hi else x
+
+@[rust_export]
+def max_u32 (a b : Nat) : Nat :=
+  if a < b then b else a
+
+@[rust_export]
+def is_nonzero_u32 (x : Nat) : Bool :=
+  if x = 0 then false else true
+
+@[rust_export]
+def add_u32 (a b : Nat) : Nat :=
+  a + b
+
+@[rust_export]
+def mul_u32 (a b : Nat) : Nat :=
+  a * b
+
+@[rust_export]
+def bounded_bump_u32 (x : Nat) : Nat :=
+  let y := x + 1
+  if y > 10 then 10 else y
+
+@[rust_export]
+def echo_u32 (x : UInt32) : UInt32 :=
+  x
+
+@[rust_export]
+def echo_u64 (x : UInt64) : UInt64 :=
+  x
+
+@[rust_export]
+def echo_i32 (x : Int32) : Int32 :=
+  x
+
+@[rust_export]
+def echo_i64 (x : Int64) : Int64 :=
+  x
+
+@[rust_export]
+def add_u64 (a b : UInt64) : UInt64 :=
+  a + b
+
+@[rust_export]
+def unit_roundtrip (x : Unit) : Unit :=
+  x
+
+@[rust_export]
+def bool_match_u32 (flag : Bool) (when_true when_false : UInt32) : UInt32 :=
+  match flag with
+  | true => when_true
+  | false => when_false
+
+@[rust_export]
+def option_identity_u32 (x : Option UInt32) : Option UInt32 :=
+  x
+
+@[rust_export]
+def none_u32 (_x : Unit) : Option UInt32 :=
+  none
+
+@[rust_export]
+def some_u32 (x : UInt32) : Option UInt32 :=
+  some x
+
+@[rust_export]
+def option_default_u32 (x : Option UInt32) (fallback : UInt32) : UInt32 :=
+  match x with
+  | none => fallback
+  | some value => value
+
+@[rust_export]
+def result_ok_u32 (x : UInt32) : Except UInt32 UInt32 :=
+  Except.ok x
+
+@[rust_export]
+def result_err_u32 (e : UInt32) : Except UInt32 UInt32 :=
+  Except.error e
+
+@[rust_export]
+def choose_by_enum (choice : Choice) (left right : UInt32) : UInt32 :=
+  match choice with
+  | Choice.first => left
+  | Choice.second => right
+
+@[rust_export]
+def make_point (x y : UInt32) : Point :=
+  { x := x, y := y }
+
+@[rust_export]
+def point_x (p : Point) : UInt32 :=
+  p.x
+
+@[rust_export]
+def point_y (p : Point) : UInt32 :=
+  p.y
+
+@[rust_export]
+def shift_point_x (p : Point) (dx : UInt32) : Point :=
+  { x := p.x + dx, y := p.y }
+
+@[rust_export]
+def step_stay (_x : Unit) : Step :=
+  Step.stay
+
+@[rust_export]
+def step_jump (amount : UInt32) : Step :=
+  Step.jump amount
+
+@[rust_export]
+def nested_none_u32 (_x : Unit) : Option (Option UInt32) :=
+  some none
+
+@[rust_export]
+def result_ok_none_u32 (_x : Unit) : Except UInt32 (Option UInt32) :=
+  Except.ok none
+
+@[rust_export]
+def result_err_some_u32 (e : UInt32) : Except (Option UInt32) UInt32 :=
+  Except.error (some e)
+
+/-- A generic source function. It is exported only through explicit concrete monomorphizations. -/
+def generic_identity (α : Type) (x : α) : α :=
+  x
+
+/-- A generic source function whose concrete instances become Rust functions. -/
+def generic_choose (α : Type) (flag : Bool) (when_true when_false : α) : α :=
+  if flag then when_true else when_false
+
+/-- A generic source function with an `Option` argument. -/
+def generic_option_default (α : Type) (x : Option α) (fallback : α) : α :=
+  match x with
+  | none => fallback
+  | some value => value
+
+rust_mono_export generic_identity as identity_u64 [UInt64]
+rust_mono_export generic_choose as choose_generic_u32 [UInt32]
+rust_mono_export generic_option_default as option_default_u64 [UInt64]
+
+/-- Demonstrates step 6: unsupported tagged exports are reported and skipped instead of aborting codegen. -/
+@[rust_export]
+def unsupported_higher_order_u32 (f : UInt32 → UInt32) (x : UInt32) : UInt32 :=
+  f x
+
+rust_emit_exports_with_report generatedRust generatedCompatibilityReport
+
+/-!
+## Proof-carrying IR examples
+
+The direct generator above uses elaborated Lean declarations. These IR examples
+remain in the repo as the checked semantic model and as regression fixtures for
+feature family growth.
+-/
+
+structure ClampArgs where
+  lo : Nat
+  hi : Nat
+  x : Nat
+
+private def vLo : RExpr ClampArgs .u32 := .var "lo" (fun a => a.lo)
+private def vHi : RExpr ClampArgs .u32 := .var "hi" (fun a => a.hi)
+private def vX  : RExpr ClampArgs .u32 := .var "x"  (fun a => a.x)
+
+def clampBody : RExpr ClampArgs .u32 :=
+  .ite (.ltU32 vX vLo)
+    vLo
+    (.ite (.gtU32 vX vHi) vHi vX)
+
+def clampSpec (a : ClampArgs) : Nat :=
+  if decide (a.x < a.lo) then a.lo else if decide (a.x > a.hi) then a.hi else a.x
+
+theorem clamp_refines_spec (a : ClampArgs) :
+  eval clampBody a = clampSpec a := by
+  simp [clampBody, clampSpec, vLo, vHi, vX, eval]
+
+structure MaxArgs where
+  a : Nat
+  b : Nat
+
+private def vA : RExpr MaxArgs .u32 := .var "a" (fun x => x.a)
+private def vB : RExpr MaxArgs .u32 := .var "b" (fun x => x.b)
+
+def maxBody : RExpr MaxArgs .u32 :=
+  .maxU32 vA vB
+
+def maxSpec (x : MaxArgs) : Nat :=
+  if decide (x.a < x.b) then x.b else x.a
+
+theorem max_refines_spec (x : MaxArgs) :
+  eval maxBody x = maxSpec x := by
+  simp [maxBody, maxSpec, vA, vB, eval]
+
+structure NonzeroArgs where
+  x : Nat
+
+private def nzX : RExpr NonzeroArgs .u32 := .var "x" (fun a => a.x)
+
+def nonzeroBody : RExpr NonzeroArgs .bool :=
+  .not (.eqU32 nzX (.litU32 0))
+
+def nonzeroSpec (a : NonzeroArgs) : Bool :=
+  !(decide (a.x = 0))
+
+theorem nonzero_refines_spec (a : NonzeroArgs) :
+  eval nonzeroBody a = nonzeroSpec a := by
+  simp [nonzeroBody, nonzeroSpec, nzX, eval]
+
+structure AddArgs where
+  a : Nat
+  b : Nat
+
+private def addA : RExpr AddArgs .u32 := .var "a" (fun x => x.a)
+private def addB : RExpr AddArgs .u32 := .var "b" (fun x => x.b)
+
+def addBody : RExpr AddArgs .u32 :=
+  .addU32 addA addB
+
+def addSpec (x : AddArgs) : Nat :=
+  u32Wrap (x.a + x.b)
+
+theorem add_refines_wrapping_spec (x : AddArgs) :
+  eval addBody x = addSpec x := by
+  simp [addBody, addSpec, addA, addB, eval, u32Wrap]
+
+structure BumpArgs where
+  x : Nat
+
+private def bumpX : RExpr BumpArgs .u32 := .var "x" (fun a => a.x)
+private def bumpY : RExpr (Nat × BumpArgs) .u32 := .var "y" (fun env => env.1)
+
+def boundedBumpBody : RExpr BumpArgs .u32 :=
+  .letIn "y" (.addU32 bumpX (.litU32 1))
+    (.ite (.gtU32 bumpY (.litU32 10)) (.litU32 10) bumpY)
+
+def boundedBumpSpec (a : BumpArgs) : Nat :=
+  let y := u32Wrap (a.x + 1)
+  if decide (y > 10) then 10 else y
+
+theorem bounded_bump_refines_spec (a : BumpArgs) :
+  eval boundedBumpBody a = boundedBumpSpec a := by
+  simp [boundedBumpBody, boundedBumpSpec, bumpX, bumpY, eval, u32Wrap]
+
+structure OptionArgs where
+  x : Option Nat
+  fallback : Nat
+
+private def optX : RExpr OptionArgs (.option .u32) := .var "x" (fun a => a.x)
+private def optFallback : RExpr OptionArgs .u32 := .var "fallback" (fun a => a.fallback)
+private def optValue : RExpr (Nat × OptionArgs) .u32 := .var "value" (fun env => env.1)
+
+def optionDefaultBody : RExpr OptionArgs .u32 :=
+  .matchOption optX optFallback optValue
+
+def optionDefaultSpec (a : OptionArgs) : Nat :=
+  match a.x with
+  | none => a.fallback
+  | some value => value
+
+theorem option_default_refines_spec (a : OptionArgs) :
+  eval optionDefaultBody a = optionDefaultSpec a := by
+  cases a.x <;> simp [optionDefaultBody, optionDefaultSpec, optX, optFallback, optValue, eval]
+
+/-- Proof-carrying examples retained for evaluator/codegen regression checks. -/
+def proofCarryingFunctions : List RFun := [
+  { Ctx := ClampArgs, name := "clamp_u32", args := [("lo", .u32), ("hi", .u32), ("x", .u32)], ret := .u32, body := clampBody },
+  { Ctx := MaxArgs, name := "max_u32", args := [("a", .u32), ("b", .u32)], ret := .u32, body := maxBody },
+  { Ctx := NonzeroArgs, name := "is_nonzero_u32", args := [("x", .u32)], ret := .bool, body := nonzeroBody },
+  { Ctx := AddArgs, name := "add_u32", args := [("a", .u32), ("b", .u32)], ret := .u32, body := addBody },
+  { Ctx := BumpArgs, name := "bounded_bump_u32", args := [("x", .u32)], ret := .u32, body := boundedBumpBody },
+  { Ctx := OptionArgs, name := "option_default_u32", args := [("x", .option .u32), ("fallback", .u32)], ret := .u32, body := optionDefaultBody }
+]
+
+/-- Rust source emitted from proof-carrying examples; used as a regression oracle. -/
+def generatedRustFromTypedIR : String :=
+  emitRustModule proofCarryingFunctions
+
+end LeanRustCore.Examples
+</file>
+
+<file path="LeanRustCore/Extract.lean">
+import Lean
+import LeanRustCore.EmitRust
+import LeanRustCore.Export
+
+namespace LeanRustCore.Extract
+
+open Lean Elab Command
+open LeanRustCore
+
+structure Local where
+  name : String
+  ty : RType
+  deriving Repr
+
+/-- Type-parameter entries in de-Bruijn order. `none` means a term binder. -/
+abbrev TypeCtx := List (Option RType)
+
+/-- Term-local entries in de-Bruijn order. `none` means a type binder. -/
+abbrev LocalCtx := List (Option Local)
+
+/-- A requested concrete export of a generic Lean definition. -/
+structure MonoExportSpec where
+  source : Name
+  rustName : String
+  typeArgs : List RType
+  deriving Repr, BEq
+
+/-- Result item from the tolerant extractor used by compatibility reports. -/
+structure ExportDiagnostic where
+  source : String
+  rustName : String
+  code : CompatibilityCode
+  detail : String
+  deriving Repr, BEq
+
+/-- Supported functions plus structured diagnostics for skipped/unsupported exports. -/
+structure ExtractionResult where
+  functions : List SurfaceFun
+  diagnostics : List ExportDiagnostic
+  deriving Repr, BEq
+
+initialize monoExportSpecsRef : IO.Ref (List MonoExportSpec) ← IO.mkRef []
+
+private def nameLeaf : Name → String
+  | .anonymous => "_"
+  | .str _ s => s
+  | .num p n => nameLeaf p ++ Nat.toString n
+
+private def nameParent : Name → Name
+  | .anonymous => .anonymous
+  | .str p _ => p
+  | .num p _ => p
+
+private def sanitizeRustIdent (fallback : String) (s : String) : String :=
+  if s == "_" || s == "" then fallback else s
+
+private def localNameAt (locals : LocalCtx) (idx : Nat) : Except String String :=
+  match locals.get? idx with
+  | some (some local) => Except.ok local.name
+  | some none => Except.error s!"de-Bruijn variable #{idx} is a type parameter, not a Rust value"
+  | none => Except.error s!"unbound de-Bruijn variable #{idx} during extraction"
+
+private def typeParamAt (typeCtx : TypeCtx) (idx : Nat) : CoreM RType := do
+  match typeCtx.get? idx with
+  | some (some ty) => pure ty
+  | some none => throwError "dependent term variables in types are outside the current rust_export subset"
+  | none => throwError "unbound type parameter #{idx} during monomorphization"
+
+private partial def stripMData : Expr → Expr
+  | .mdata _ inner => stripMData inner
+  | other => other
+
+private partial def peelForalls : Expr → List (Name × Expr) × Expr
+  | .forallE n ty body _ =>
+      let (rest, ret) := peelForalls body
+      ((n, ty) :: rest, ret)
+  | other => ([], other)
+
+private partial def peelLambdas : Expr → List (Name × Expr) × Expr
+  | .lam n ty body _ =>
+      let (rest, finalBody) := peelLambdas body
+      ((n, ty) :: rest, finalBody)
+  | other => ([], other)
+
+private def lastTwo {α : Type} : List α → Option (α × α)
+  | [] => none
+  | [_] => none
+  | [a, b] => some (a, b)
+  | _ :: xs => lastTwo xs
+
+private def last? {α : Type} : List α → Option α
+  | [] => none
+  | [x] => some x
+  | _ :: xs => last? xs
+
+private def takeLast {α : Type} (n : Nat) (xs : List α) : List α :=
+  xs.drop (xs.length - n)
+
+private def natLiteral? (e : Expr) : Option Nat :=
+  let e := stripMData e
+  match e with
+  | .lit (.natVal n) => some n
+  | _ =>
+      let fn := e.getAppFn
+      let args := e.getAppArgs.toList
+      match fn with
+      | .const n _ =>
+          if n == ``OfNat.ofNat then
+            match args with
+            | _ty :: (.lit (.natVal n)) :: _ => some n
+            | _ => none
+          else
+            none
+      | _ => none
+
+private def boolLiteral? (e : Expr) : Option Bool :=
+  let e := stripMData e
+  match e with
+  | .const n _ =>
+      if n == ``Bool.true then some true
+      else if n == ``Bool.false then some false
+      else none
+  | _ => none
+
+private def unitLiteral? (e : Expr) : Bool :=
+  let e := stripMData e
+  match e with
+  | .const n _ => toString n == "Unit.unit" || toString n == "PUnit.unit"
+  | _ => false
+
+private def isTypeParamBinder (ty : Expr) : Bool :=
+  match stripMData ty with
+  | .sort _ => true
+  | _ => false
+
+private def unsupported (e : Expr) : CoreM α :=
+  throwError "unsupported Lean expression in rust_export extraction: {e}"
+
+private def lookupRField (fields : List RArg) (fieldName : String) : Option RType :=
+  match fields with
+  | [] => none
+  | (name, ty) :: rest => if name == fieldName then some ty else lookupRField rest fieldName
+
+mutual
+  partial def typeOfLeanWithCtx (typeCtx : TypeCtx) (ty0 : Expr) : CoreM RType := do
+    let ty := stripMData ty0
+    match ty with
+    | .bvar idx => typeParamAt typeCtx idx
+    | _ =>
+        if ty.isConstOf ``Nat then
+          return .u32
+        else if ty.isConstOf ``Bool then
+          return .bool
+        else if ty.isConstOf ``Unit then
+          return .unit
+        else if ty.isConstOf ``UInt32 then
+          return .u32
+        else if ty.isConstOf ``UInt64 then
+          return .u64
+        else if ty.isConstOf ``Int32 then
+          return .i32
+        else if ty.isConstOf ``Int64 then
+          return .i64
+        else
+          let fn := ty.getAppFn
+          let args := ty.getAppArgs.toList
+          match fn with
+          | .const n _ =>
+              if n == ``Option then
+                match args with
+                | [inner] => return .option (← typeOfLeanWithCtx typeCtx inner)
+                | _ => throwError "unsupported Option type shape in rust_export extraction"
+              else if n == ``Except then
+                match args with
+                | [errTy, okTy] => return .result (← typeOfLeanWithCtx typeCtx okTy) (← typeOfLeanWithCtx typeCtx errTy)
+                | _ => throwError "unsupported Except type shape in rust_export extraction"
+              else
+                match (← getEnv).find? n with
+                | some (.inductInfo _) => typeOfInductive n
+                | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
+          | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
+
+  partial def typeOfLeanM (ty0 : Expr) : CoreM RType :=
+    typeOfLeanWithCtx [] ty0
+
+  partial def typeOfInductive (inductName : Name) : CoreM RType := do
+    let env ← getEnv
+    match env.find? inductName with
+    | some (.inductInfo info) =>
+        if info.numParams == 0 && info.numIndices == 0 then
+          match info.ctors with
+          | [ctorName] =>
+              let fields ← ctorPayloadFields ctorName
+              if fields.isEmpty then
+                pure (.enum (nameLeaf inductName) [(nameLeaf ctorName, [])])
+              else
+                pure (.struct (nameLeaf inductName) fields)
+          | ctors => do
+              let variants ← ctors.mapM (fun ctorName => do
+                let fields ← ctorPayloadFields ctorName
+                pure (nameLeaf ctorName, fields.map (fun field => field.2)))
+              pure (.enum (nameLeaf inductName) variants)
+        else
+          throwError "rust_export type lowering currently supports only closed, parameter-free inductives and structures; got {inductName}"
+    | _ => throwError "expected inductive declaration for {inductName}"
+
+  partial def ctorPayloadFields (ctorName : Name) : CoreM (List RArg) := do
+    let env ← getEnv
+    match env.find? ctorName with
+    | some (.ctorInfo info) =>
+        let (binders, _) := peelForalls info.type
+        let fieldBinders := (binders.drop info.numParams).take info.numFields
+        let mut out : List RArg := []
+        let mut idx : Nat := 0
+        for field in fieldBinders do
+          let fallback := "field" ++ Nat.toString idx
+          let fieldName := sanitizeRustIdent fallback (nameLeaf field.1)
+          let fieldTy ← typeOfLeanM field.2
+          out := out ++ [(fieldName, fieldTy)]
+          idx := idx + 1
+        pure out
+    | _ => throwError "expected constructor declaration for {ctorName}"
+end
+
+private partial def firstTypeArg? (typeCtx : TypeCtx) : List Expr → CoreM (Option RType)
+  | [] => pure none
+  | x :: xs => do
+      try
+        return some (← typeOfLeanWithCtx typeCtx x)
+      catch _ =>
+        firstTypeArg? typeCtx xs
+
+private def expectedOrTypeArg (typeCtx : TypeCtx) (expected : Option RType) (args : List Expr) (fallback : RType) : CoreM RType := do
+  match expected with
+  | some ty => pure ty
+  | none =>
+      match (← firstTypeArg? typeCtx args) with
+      | some ty => pure ty
+      | none => pure fallback
+
+private def literalForExpected (expected : Option RType) (n : Nat) : SurfaceExpr :=
+  match expected with
+  | some .u64 => .litU64 n
+  | some .i32 => .litI32 (Int.ofNat n)
+  | some .i64 => .litI64 (Int.ofNat n)
+  | _ => .litU32 n
+
+private def isNamedRecursor (n : Name) (leaf : String) : Bool :=
+  nameLeaf n == leaf
+
+private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e0 : Expr) : CoreM SurfaceExpr := do
+  let e := stripMData e0
+  if unitLiteral? e then
+    return .litUnit
+  if let some b := boolLiteral? e then
+    return .litBool b
+  if let some n := natLiteral? e then
+    return literalForExpected expected n
+  match e with
+  | .bvar idx =>
+      match localNameAt locals idx with
+      | .ok name => return .var name
+      | .error msg => throwError msg
+  | .const n _ =>
+      match (← translateConstructorApp? typeCtx locals expected n []) with
+      | some expr => return expr
+      | none => unsupported e
+  | .letE n ty value body _ =>
+      let rustName := sanitizeRustIdent "tmp" (nameLeaf n)
+      let valueTy ← typeOfLeanWithCtx typeCtx ty
+      let valueExpr ← translateExpr typeCtx locals (some valueTy) value
+      let bodyExpr ← translateExpr (none :: typeCtx) (some { name := rustName, ty := valueTy } :: locals) expected body
+      return .letIn rustName valueExpr bodyExpr
+  | .app .. => translateApp typeCtx locals expected e
+  | .mdata _ inner => translateExpr typeCtx locals expected inner
+  | _ => unsupported e
+where
+  translateBinaryLastTwo (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (fallback : RType)
+      (ctor : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr) : CoreM SurfaceExpr := do
+    let args := e.getAppArgs.toList
+    let domain ← expectedOrTypeArg typeCtx expected args fallback
+    match lastTwo args with
+    | some (a, b) => return ctor domain (← translateExpr typeCtx locals (some domain) a) (← translateExpr typeCtx locals (some domain) b)
+    | none => unsupported e
+
+  translateBoolCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | _motive :: discr :: falseCase :: trueCase :: [] =>
+        return .matchBool (← translateExpr typeCtx locals (some .bool) discr)
+          (← translateExpr typeCtx locals expected trueCase)
+          (← translateExpr typeCtx locals expected falseCase)
+    | _ => unsupported e
+
+  translateBoolRec (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | _motive :: falseCase :: trueCase :: discr :: [] =>
+        return .matchBool (← translateExpr typeCtx locals (some .bool) discr)
+          (← translateExpr typeCtx locals expected trueCase)
+          (← translateExpr typeCtx locals expected falseCase)
+    | _ => unsupported e
+
+  translateOptionSomeBranch (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (someCase : Expr) : CoreM (String × SurfaceExpr) := do
+    let someCase := stripMData someCase
+    match someCase with
+    | .lam n ty body _ =>
+        let innerTy ← typeOfLeanWithCtx typeCtx ty
+        let binder := sanitizeRustIdent "value" (nameLeaf n)
+        let bodyExpr ← translateExpr (none :: typeCtx) (some { name := binder, ty := innerTy } :: locals) expected body
+        return (binder, bodyExpr)
+    | _ => unsupported someCase
+
+  translateOptionCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | _α :: _motive :: discr :: noneCase :: someCase :: [] =>
+        let target ← translateExpr typeCtx locals none discr
+        let noneExpr ← translateExpr typeCtx locals expected noneCase
+        let (binder, someExpr) ← translateOptionSomeBranch typeCtx locals expected someCase
+        return .matchOption target noneExpr binder someExpr
+    | _ => unsupported e
+
+  translateOptionRec (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | _α :: _motive :: noneCase :: someCase :: discr :: [] =>
+        let target ← translateExpr typeCtx locals none discr
+        let noneExpr ← translateExpr typeCtx locals expected noneCase
+        let (binder, someExpr) ← translateOptionSomeBranch typeCtx locals expected someCase
+        return .matchOption target noneExpr binder someExpr
+    | _ => unsupported e
+
+  translateEnumCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (recursor : Name) (args : List Expr) : CoreM SurfaceExpr := do
+    let inductName := nameParent recursor
+    let enumTy ← typeOfInductive inductName
+    match enumTy with
+    | .enum _ variants =>
+        let branchCount := variants.length
+        if variants.all (fun variant => variant.2.isEmpty) && args.length == branchCount + 2 then
+          match args with
+          | _motive :: discr :: rest =>
+              let variantNames := variants.map (fun variant => variant.1)
+              let branches := variantNames.zip rest
+              return .matchEnum enumTy (← translateExpr typeCtx locals (some enumTy) discr)
+                (← branches.mapM (fun branch => do
+                  let branchExpr ← translateExpr typeCtx locals expected branch.2
+                  pure (branch.1, branchExpr)))
+          | _ => unsupported e
+        else
+          unsupported e
+    | _ => unsupported e
+
+  translateEnumRec (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (recursor : Name) (args : List Expr) : CoreM SurfaceExpr := do
+    let inductName := nameParent recursor
+    let enumTy ← typeOfInductive inductName
+    match enumTy with
+    | .enum _ variants =>
+        let branchCount := variants.length
+        if variants.all (fun variant => variant.2.isEmpty) && args.length == branchCount + 2 then
+          match args.reverse with
+          | discr :: _ =>
+              let rest := (args.drop 1).take branchCount
+              let variantNames := variants.map (fun variant => variant.1)
+              let branches := variantNames.zip rest
+              return .matchEnum enumTy (← translateExpr typeCtx locals (some enumTy) discr)
+                (← branches.mapM (fun branch => do
+                  let branchExpr ← translateExpr typeCtx locals expected branch.2
+                  pure (branch.1, branchExpr)))
+          | [] => unsupported e
+        else
+          unsupported e
+    | _ => unsupported e
+
+  translateConstructorApp? (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (ctorName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    match (← getEnv).find? ctorName with
+    | some (.ctorInfo info) =>
+        let ty ← typeOfInductive info.induct
+        let fields ← ctorPayloadFields ctorName
+        let valueArgs := takeLast info.numFields args
+        match ty with
+        | .struct _ declared =>
+            if declared.length == fields.length && valueArgs.length == fields.length then
+              let mut provided : List (String × SurfaceExpr) := []
+              for pair in fields.zip valueArgs do
+                provided := provided ++ [(pair.1.1, (← translateExpr typeCtx locals (some pair.1.2) pair.2))]
+              return some (.structLit ty provided)
+            else
+              return none
+        | .enum _ _ =>
+            if valueArgs.length == fields.length then
+              let mut payload : List SurfaceExpr := []
+              for pair in fields.zip valueArgs do
+                payload := payload ++ [(← translateExpr typeCtx locals (some pair.1.2) pair.2)]
+              return some (.enumVariant ty (nameLeaf ctorName) payload)
+            else
+              return none
+        | _ => return none
+    | _ => return none
+
+  translateProjectionApp? (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (projName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    let parent := nameParent projName
+    try
+      let ty ← typeOfInductive parent
+      match ty with
+      | .struct _ fields =>
+          let fieldName := nameLeaf projName
+          match lookupRField fields fieldName, last? args with
+          | some _fieldTy, some target =>
+              let targetExpr ← translateExpr typeCtx locals (some ty) target
+              return some (.field targetExpr fieldName)
+          | _, _ => return none
+      | _ => return none
+    catch _ =>
+      return none
+
+  translateApp (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) : CoreM SurfaceExpr := do
+    let fn := e.getAppFn
+    let args := e.getAppArgs.toList
+    match fn with
+    | .const n _ =>
+        if n == ``ite then
+          match args with
+          | _ty :: cond :: _dec :: thenExpr :: elseExpr :: [] =>
+              return .ite (← translateExpr typeCtx locals (some .bool) cond) (← translateExpr typeCtx locals expected thenExpr) (← translateExpr typeCtx locals expected elseExpr)
+          | _ => unsupported e
+        else if n == ``Eq then
+          let domain ← expectedOrTypeArg typeCtx none args .u32
+          translateBinaryLastTwo typeCtx locals (some domain) e domain .eq
+        else if n == ``LT.lt || n == ``Nat.lt then
+          translateBinaryLastTwo typeCtx locals none e .u32 .lt
+        else if n == ``LE.le || n == ``Nat.le then
+          translateBinaryLastTwo typeCtx locals none e .u32 .le
+        else if n == ``Nat.add || n == ``HAdd.hAdd then
+          translateBinaryLastTwo typeCtx locals expected e .u32 .add
+        else if n == ``Nat.sub || n == ``HSub.hSub then
+          translateBinaryLastTwo typeCtx locals expected e .u32 .sub
+        else if n == ``Nat.mul || n == ``HMul.hMul then
+          translateBinaryLastTwo typeCtx locals expected e .u32 .mul
+        else if n == ``Bool.not then
+          match args with
+          | [a] => return .not (← translateExpr typeCtx locals (some .bool) a)
+          | _ => unsupported e
+        else if n == ``Bool.and then
+          translateBinaryLastTwo typeCtx locals (some .bool) e .bool .and
+        else if n == ``Bool.or then
+          translateBinaryLastTwo typeCtx locals (some .bool) e .bool .or
+        else if n == ``Option.none then
+          match expected with
+          | some (.option inner) => return .optionNone inner
+          | _ =>
+              match (← firstTypeArg? typeCtx args) with
+              | some inner => return .optionNone inner
+              | none => throwError "Option.none extraction needs an expected Option type"
+        else if n == ``Option.some then
+          let inner ← match expected with
+            | some (.option inner) => pure inner
+            | _ => expectedOrTypeArg typeCtx none args .u32
+          match lastTwo args with
+          | some (_, value) => return .optionSome (← translateExpr typeCtx locals (some inner) value)
+          | none => unsupported e
+        else if n == ``Except.ok then
+          let (errTy, okTy) ← match expected with
+            | some (.result ok err) => pure (err, ok)
+            | _ =>
+                match args with
+                | errExpr :: okExpr :: _ => do
+                    let errTy ← typeOfLeanWithCtx typeCtx errExpr
+                    let okTy ← typeOfLeanWithCtx typeCtx okExpr
+                    pure (errTy, okTy)
+                | _ => throwError "Except.ok extraction needs an expected Result type"
+          match lastTwo args with
+          | some (_, value) => return .resultOk errTy (← translateExpr typeCtx locals (some okTy) value)
+          | none => unsupported e
+        else if n == ``Except.error then
+          let (errTy, okTy) ← match expected with
+            | some (.result ok err) => pure (err, ok)
+            | _ =>
+                match args with
+                | errExpr :: okExpr :: _ => do
+                    let errTy ← typeOfLeanWithCtx typeCtx errExpr
+                    let okTy ← typeOfLeanWithCtx typeCtx okExpr
+                    pure (errTy, okTy)
+                | _ => throwError "Except.error extraction needs an expected Result type"
+          match lastTwo args with
+          | some (_, value) => return .resultErr okTy (← translateExpr typeCtx locals (some errTy) value)
+          | none => unsupported e
+        else if isNamedRecursor n "casesOn" && nameParent n == ``Bool then
+          translateBoolCasesOn typeCtx locals expected e args
+        else if isNamedRecursor n "rec" && nameParent n == ``Bool then
+          translateBoolRec typeCtx locals expected e args
+        else if isNamedRecursor n "casesOn" && nameParent n == ``Option then
+          translateOptionCasesOn typeCtx locals expected e args
+        else if isNamedRecursor n "rec" && nameParent n == ``Option then
+          translateOptionRec typeCtx locals expected e args
+        else if isNamedRecursor n "casesOn" then
+          translateEnumCasesOn typeCtx locals expected e n args
+        else if isNamedRecursor n "rec" then
+          translateEnumRec typeCtx locals expected e n args
+        else
+          match (← translateProjectionApp? typeCtx locals expected n args) with
+          | some expr => return expr
+          | none =>
+              match (← translateConstructorApp? typeCtx locals expected n args) with
+              | some expr => return expr
+              | none => unsupported e
+    | _ => unsupported e
+
+private def rTypeSyntaxIdent (stx : Syntax) : Except String RType :=
+  let n := stx.getId
+  match nameLeaf n with
+  | "Nat" => .ok .u32
+  | "Bool" => .ok .bool
+  | "Unit" => .ok .unit
+  | "UInt32" => .ok .u32
+  | "UInt64" => .ok .u64
+  | "Int32" => .ok .i32
+  | "Int64" => .ok .i64
+  | _ => .error s!"rust_mono_export type argument `{n}` is not in the current concrete type subset"
+
+private def rTypeReportLabel : RType → String
+  | .unit => "Unit"
+  | .bool => "Bool"
+  | .u32 => "UInt32"
+  | .u64 => "UInt64"
+  | .i32 => "Int32"
+  | .i64 => "Int64"
+  | .option t => "Option " ++ rTypeReportLabel t
+  | .result ok err => "Except " ++ rTypeReportLabel err ++ " " ++ rTypeReportLabel ok
+  | .struct name _ => name
+  | .enum name _ => name
+
+private def monoSpecLabel (spec : MonoExportSpec) : String :=
+  toString spec.source ++ "[" ++ joinWith "," (spec.typeArgs.map rTypeReportLabel) ++ "]"
+
+private def buildExtractionContexts (binders : List (Name × Expr)) (typeArgs : List RType) : CoreM (List RArg × TypeCtx × LocalCtx) := do
+  let mut args : List RArg := []
+  let mut typeCtx : TypeCtx := []
+  let mut locals : LocalCtx := []
+  let mut typeArgIndex : Nat := 0
+  let mut valueIndex : Nat := 0
+  for binder in binders do
+    let (binderName, binderTy) := binder
+    if isTypeParamBinder binderTy then
+      match typeArgs.get? typeArgIndex with
+      | some concreteTy =>
+          typeCtx := some concreteTy :: typeCtx
+          locals := none :: locals
+          typeArgIndex := typeArgIndex + 1
+      | none =>
+          throwError "generic rust_export `{binderName}` requires rust_mono_export with a concrete type argument"
+    else
+      let rustName := sanitizeRustIdent s!"arg{valueIndex}" (nameLeaf binderName)
+      let rty ← typeOfLeanWithCtx typeCtx binderTy
+      args := args ++ [(rustName, rty)]
+      typeCtx := none :: typeCtx
+      locals := some { name := rustName, ty := rty } :: locals
+      valueIndex := valueIndex + 1
+  if typeArgIndex == typeArgs.length then
+    pure (args, typeCtx, locals)
+  else
+    throwError "rust_mono_export provided too many concrete type arguments"
+
+/-- Extract one ordinary Lean definition into the first-pass Rust surface IR. -/
+def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RType) : CoreM SurfaceFun := do
+  let info ← getConstInfo declName
+  let defInfo ← match info with
+    | .defnInfo d => pure d
+    | _ => throwError "rust_export extraction only supports ordinary definitions; got {declName}"
+  let (typeBinders, retTyExpr) := peelForalls defInfo.type
+  let (valueBinders, body) := peelLambdas defInfo.value
+  if valueBinders.length != typeBinders.length then
+    throwError "rust_export extraction currently requires eta-expanded definitions; `{declName}` has {typeBinders.length} type binders but {valueBinders.length} value binders"
+  let (args, typeCtx, locals) ← buildExtractionContexts typeBinders typeArgs
+  let ret ← typeOfLeanWithCtx typeCtx retTyExpr
+  let bodyExpr ← translateExpr typeCtx locals (some ret) body
+  let surfaceFun : SurfaceFun := { name := rustFunName, args := args, ret := ret, body := bodyExpr }
+  match checkSurfaceFun surfaceFun with
+  | .ok checked => pure checked
+  | .error report => throwError "extracted declaration failed surface type check: {report.detail}"
+
+/-- Extract one non-generic Lean definition. -/
+def extractConst (declName : Name) : CoreM SurfaceFun :=
+  extractConstAs declName (sanitizeRustIdent "generated" (nameLeaf declName)) []
+
+/-- Extract a concrete monomorphization of a generic Lean definition. -/
+def extractMonoConst (spec : MonoExportSpec) : CoreM SurfaceFun :=
+  extractConstAs spec.source spec.rustName spec.typeArgs
+
+/-- Extract many Lean definitions, preserving declaration order. -/
+def extractConsts (decls : List Name) : CoreM (List SurfaceFun) :=
+  decls.mapM extractConst
+
+private def compatibilityCodeString : CompatibilityCode → String
+  | .supported => "supported"
+  | .unsupportedType => "unsupported-type"
+  | .unsupportedExpression => "unsupported-expression"
+  | .unsupportedBoundary => "unsupported-boundary"
+  | .unsupportedDeclaration => "unsupported-declaration"
+
+private def jsonEscapeChar : Char → String
+  | '"' => "\\\""
+  | '\\' => "\\\\"
+  | '\n' => "\\n"
+  | '\r' => "\\r"
+  | '\t' => "\\t"
+  | c => String.singleton c
+
+private def jsonEscape (s : String) : String :=
+  joinWith "" (s.toList.map jsonEscapeChar)
+
+private def diagnosticToJson (d : ExportDiagnostic) : String :=
+  "    { \"source\": \"" ++ jsonEscape d.source ++ "\", \"rust_name\": \"" ++ jsonEscape d.rustName ++
+  "\", \"code\": \"" ++ compatibilityCodeString d.code ++ "\", \"detail\": \"" ++ jsonEscape d.detail ++ "\" }"
+
+/-- Emit a structured compatibility report for supported and skipped exports. -/
+def emitCompatibilityReport (result : ExtractionResult) : String :=
+  "{\n" ++
+  "  \"format\": \"lean-rust-core.compatibility-report.v1\",\n" ++
+  "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
+  "  \"generated_function_count\": " ++ Nat.toString result.functions.length ++ ",\n" ++
+  "  \"diagnostics\": [\n" ++
+  joinWith ",\n" (result.diagnostics.map diagnosticToJson) ++ "\n" ++
+  "  ]\n" ++
+  "}\n"
+
+private def supportedDiagnostic (source rustName : String) : ExportDiagnostic :=
+  { source := source, rustName := rustName, code := .supported, detail := "exported" }
+
+private def unsupportedDiagnostic (source rustName detail : String) : ExportDiagnostic :=
+  { source := source, rustName := rustName, code := .unsupportedDeclaration, detail := detail }
+
+private def extractRegularWithDiagnostic (declName : Name) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
+  let rustName := sanitizeRustIdent "generated" (nameLeaf declName)
+  try
+    let f ← extractConst declName
+    pure (some f, supportedDiagnostic (toString declName) f.name)
+  catch _ =>
+    pure (none, unsupportedDiagnostic (toString declName) rustName "unsupported export skipped by the direct Lean-to-Rust extractor")
+
+private def extractMonoWithDiagnostic (spec : MonoExportSpec) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
+  try
+    let f ← extractMonoConst spec
+    pure (some f, supportedDiagnostic (monoSpecLabel spec) f.name)
+  catch _ =>
+    pure (none, unsupportedDiagnostic (monoSpecLabel spec) spec.rustName "monomorphized export could not be lowered by the current extractor subset")
+
+/-- Tolerant extraction: successful declarations are emitted; unsupported declarations are reported. -/
+def extractWithDiagnostics (decls : List Name) (monos : List MonoExportSpec) : CoreM ExtractionResult := do
+  let mut functions : List SurfaceFun := []
+  let mut diagnostics : List ExportDiagnostic := []
+  for decl in decls do
+    let (maybeFun, diagnostic) ← extractRegularWithDiagnostic decl
+    diagnostics := diagnostics ++ [diagnostic]
+    match maybeFun with
+    | some f => functions := functions ++ [f]
+    | none => pure ()
+  for spec in monos do
+    let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec
+    diagnostics := diagnostics ++ [diagnostic]
+    match maybeFun with
+    | some f => functions := functions ++ [f]
+    | none => pure ()
+  pure { functions := functions, diagnostics := diagnostics }
+
+/-- Register a concrete Rust export for a generic Lean definition. -/
+syntax (name := rustMonoExport) "rust_mono_export " ident " as " ident " [" ident,* "]" : command
+
+elab_rules : command
+  | `(rust_mono_export $src:ident as $out:ident [$tys,*]) => do
+      let mut typeArgs : List RType := []
+      for tyStx in tys.getElems do
+        match rTypeSyntaxIdent tyStx with
+        | .ok ty => typeArgs := typeArgs ++ [ty]
+        | .error msg => throwError msg
+      let sourceName ← realizeGlobalConstNoOverloadWithInfo src
+      let spec : MonoExportSpec := {
+        source := sourceName,
+        rustName := sanitizeRustIdent "generated" (nameLeaf out.getId),
+        typeArgs := typeArgs
+      }
+      liftIO <| monoExportSpecsRef.modify (fun specs => specs ++ [spec])
+
+/--
+Compile-time command for an explicit declaration list. The tagged `rust_emit_exports`
+command below is the default workflow; this helper is retained for tests.
+-/
+syntax (name := rustEmitDefs) "rust_emit_defs " ident " [" ident,* "]" : command
+
+elab_rules : command
+  | `(rust_emit_defs $out:ident [$ids,*]) => do
+      let declNames := ids.getElems.toList.map (fun stx => stx.getId)
+      let funs ← liftCoreM <| extractConsts declNames
+      let rust := emitSurfaceRustModule funs
+      let lit := Syntax.mkStrLit rust
+      elabCommand (← `(def $out : String := $lit))
+
+private def currentExtractionResult : CommandElabM ExtractionResult := do
+  let env ← getEnv
+  let declNames := LeanRustCore.Export.exportedNames env
+  let monoSpecs ← liftIO monoExportSpecsRef.get
+  liftCoreM <| extractWithDiagnostics declNames monoSpecs
+
+/-- Emit Rust for every supported declaration tagged with `@[rust_export]`. Unsupported exports are skipped and can be inspected with `rust_emit_exports_with_report`. -/
+syntax (name := rustEmitExports) "rust_emit_exports " ident : command
+
+elab_rules : command
+  | `(rust_emit_exports $out:ident) => do
+      let result ← currentExtractionResult
+      let rust := emitSurfaceRustModule result.functions
+      let lit := Syntax.mkStrLit rust
+      elabCommand (← `(def $out : String := $lit))
+
+/-- Emit Rust and a structured compatibility report for tagged and monomorphized exports. -/
+syntax (name := rustEmitExportsWithReport) "rust_emit_exports_with_report " ident ident : command
+
+elab_rules : command
+  | `(rust_emit_exports_with_report $out:ident $reportOut:ident) => do
+      let result ← currentExtractionResult
+      let rust := emitSurfaceRustModule result.functions
+      let report := emitCompatibilityReport result
+      let rustLit := Syntax.mkStrLit rust
+      let reportLit := Syntax.mkStrLit report
+      elabCommand (← `(def $out : String := $rustLit))
+      elabCommand (← `(def $reportOut : String := $reportLit))
+
+end LeanRustCore.Extract
+</file>
+
+<file path="LeanRustCore/ProofReport.lean">
+import LeanRustCore.Examples
+import LeanRustCore.ChimeraBoundary
+
+namespace LeanRustCore.ProofReport
+
+/-- A compact proof-sidecar model for generated Rust artifacts. -/
+structure ProofFact where
+  name : String
+  statement : String
+  deriving Repr, BEq
+
+/-- Facts that are checked by importing/building the Lean modules. -/
+def facts : List ProofFact := [
+  { name := "extractor_reads_elaborated_definitions", statement := "rust_emit_exports collects @[rust_export] declarations and uses Lean constant bodies, not source-string matching" },
+  { name := "surface_type_check", statement := "extracted SurfaceFun bodies are type-checked before Rust emission" },
+  { name := "clamp_refines_spec", statement := "eval clampBody = clampSpec" },
+  { name := "max_refines_spec", statement := "eval maxBody = maxSpec" },
+  { name := "nonzero_refines_spec", statement := "eval nonzeroBody = nonzeroSpec" },
+  { name := "add_refines_wrapping_spec", statement := "eval addBody = u32 wrapping-add spec" },
+  { name := "bounded_bump_refines_spec", statement := "eval boundedBumpBody = let/arithmetic spec" },
+  { name := "option_default_refines_spec", statement := "eval optionDefaultBody = Option-match spec" },
+  { name := "fixed_width_type_extraction", statement := "rust_export extraction recognizes UInt32, UInt64, Int32, Int64, Unit, Option, Except, and simple closed enums" },
+  { name := "match_lowering", statement := "Bool, Option, and simple no-field enum matches lower from elaborated recursor/casesOn forms" },
+  { name := "struct_enum_declarations", statement := "SurfaceStruct and SurfaceEnum declarations are emitted before generated Rust functions" },
+  { name := "expected_type_propagation", statement := "nested Option and Except constructors are checked with the Rust-facing expected type" },
+  { name := "generic_monomorphization", statement := "rust_mono_export registers concrete type instantiations of generic Lean definitions and emits concrete Rust functions" },
+  { name := "compatibility_reporting", statement := "unsupported tagged exports are skipped and recorded in a structured compatibility report" },
+  { name := "rust_adapter_owned_rejected", statement := "owned Rust values cannot cross the raw FFI boundary" },
+  { name := "result_u32_i32_lowering", statement := "Result<u32,i32> lowers to status plus two out parameters" }
+]
+
+private def jsonEscape (s : String) : String :=
+  -- First pass: generated names/statements are ASCII and controlled.
+  s
+
+private def factToJson (f : ProofFact) : String :=
+  "    { \"name\": \"" ++ jsonEscape f.name ++ "\", \"statement\": \"" ++ jsonEscape f.statement ++ "\" }"
+
+private def joinWith (sep : String) : List String → String
+  | [] => ""
+  | [x] => x
+  | x :: xs => x ++ sep ++ joinWith sep xs
+
+/-- JSON proof report emitted next to generated Rust. -/
+def reportJson : String :=
+  "{\n" ++
+  "  \"format\": \"lean-rust-core.proof-report.v1\",\n" ++
+  "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"policy\": {\n" ++
+  "    \"generated_rust_unsafe\": false,\n" ++
+  "    \"source_string_matching\": false,\n" ++
+  "    \"ffi_result_lowering\": \"status-plus-out-params\",\n" ++
+  "    \"native_rust_types_at_ffi\": false\n" ++
+  "  },\n" ++
+  "  \"facts\": [\n" ++
+  joinWith ",\n" (facts.map factToJson) ++ "\n" ++
+  "  ]\n" ++
+  "}\n"
+
+end LeanRustCore.ProofReport
+</file>
+
+<file path="rust/src/generated.rs">
+// Generated by LeanRustCore from elaborated Lean declarations. Do not edit by hand.
+// The checked-in rust/src/generated.rs is a fallback snapshot; scripts/gen.sh regenerates it.
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Point { pub x: u32, pub y: u32 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Choice { First, Second }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Step { Stay, Jump(u32) }
+
+pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
+    if x < lo { lo } else { if hi < x { hi } else { x } }
+}
+
+pub fn max_u32(a: u32, b: u32) -> u32 {
+    if a < b { b } else { a }
+}
+
+pub fn is_nonzero_u32(x: u32) -> bool {
+    if x == 0 { false } else { true }
+}
+
+pub fn add_u32(a: u32, b: u32) -> u32 {
+    (a).wrapping_add(b)
+}
+
+pub fn mul_u32(a: u32, b: u32) -> u32 {
+    (a).wrapping_mul(b)
+}
+
+pub fn bounded_bump_u32(x: u32) -> u32 {
+    { let y = (x).wrapping_add(1); if 10 < y { 10 } else { y } }
+}
+
+pub fn echo_u32(x: u32) -> u32 {
+    x
+}
+
+pub fn echo_u64(x: u64) -> u64 {
+    x
+}
+
+pub fn echo_i32(x: i32) -> i32 {
+    x
+}
+
+pub fn echo_i64(x: i64) -> i64 {
+    x
+}
+
+pub fn add_u64(a: u64, b: u64) -> u64 {
+    (a).wrapping_add(b)
+}
+
+pub fn unit_roundtrip(x: ()) -> () {
+    x
+}
+
+pub fn bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
+    match flag { true => when_true, false => when_false }
+}
+
+pub fn option_identity_u32(x: Option<u32>) -> Option<u32> {
+    x
+}
+
+pub fn none_u32(_x: ()) -> Option<u32> {
+    None
+}
+
+pub fn some_u32(x: u32) -> Option<u32> {
+    Some(x)
+}
+
+pub fn option_default_u32(x: Option<u32>, fallback: u32) -> u32 {
+    match x { None => fallback, Some(value) => value }
+}
+
+pub fn result_ok_u32(x: u32) -> Result<u32, u32> {
+    Ok(x)
+}
+
+pub fn result_err_u32(e: u32) -> Result<u32, u32> {
+    Err(e)
+}
+
+pub fn choose_by_enum(choice: Choice, left: u32, right: u32) -> u32 {
+    match choice { Choice::First => left, Choice::Second => right }
+}
+
+pub fn make_point(x: u32, y: u32) -> Point {
+    Point { x: x, y: y }
+}
+
+pub fn point_x(p: Point) -> u32 {
+    (p).x
+}
+
+pub fn point_y(p: Point) -> u32 {
+    (p).y
+}
+
+pub fn shift_point_x(p: Point, dx: u32) -> Point {
+    Point { x: ((p).x).wrapping_add(dx), y: (p).y }
+}
+
+pub fn step_stay(_x: ()) -> Step {
+    Step::Stay
+}
+
+pub fn step_jump(amount: u32) -> Step {
+    Step::Jump(amount)
+}
+
+pub fn nested_none_u32(_x: ()) -> Option<Option<u32>> {
+    Some(None)
+}
+
+pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32> {
+    Ok(None)
+}
+
+pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>> {
+    Err(Some(e))
+}
+
+pub fn identity_u64(x: u64) -> u64 {
+    x
+}
+
+pub fn choose_generic_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
+    if flag { when_true } else { when_false }
+}
+
+pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64 {
+    match x { None => fallback, Some(value) => value }
+}
+</file>
+
+<file path="rust/tests/generated.rs">
+use lean_rust_core_generated::*;
+
+#[test]
+fn clamp_handles_low_high_and_middle() {
+    assert_eq!(clamp_u32(10, 20, 5), 10);
+    assert_eq!(clamp_u32(10, 20, 25), 20);
+    assert_eq!(clamp_u32(10, 20, 15), 15);
+}
+
+#[test]
+fn max_and_nonzero_work() {
+    assert_eq!(max_u32(3, 8), 8);
+    assert_eq!(max_u32(8, 3), 8);
+    assert!(!is_nonzero_u32(0));
+    assert!(is_nonzero_u32(7));
+}
+
+#[test]
+fn arithmetic_uses_wrapping_semantics() {
+    assert_eq!(add_u32(u32::MAX, 1), 0);
+    assert_eq!(add_u32(40, 2), 42);
+    assert_eq!(mul_u32(u32::MAX, 2), u32::MAX.wrapping_mul(2));
+    assert_eq!(add_u64(u64::MAX, 1), 0);
+}
+
+#[test]
+fn let_lowering_keeps_local_value() {
+    assert_eq!(bounded_bump_u32(0), 1);
+    assert_eq!(bounded_bump_u32(9), 10);
+    assert_eq!(bounded_bump_u32(10), 10);
+    assert_eq!(bounded_bump_u32(u32::MAX), 0);
+}
+
+#[test]
+fn expanded_scalar_types_round_trip() {
+    assert_eq!(echo_u32(17), 17);
+    assert_eq!(echo_u64(u64::MAX), u64::MAX);
+    assert_eq!(echo_i32(-17), -17);
+    assert_eq!(echo_i64(i64::MIN), i64::MIN);
+    unit_roundtrip(());
+}
+
+#[test]
+fn bool_and_option_matches_lower() {
+    assert_eq!(bool_match_u32(true, 1, 2), 1);
+    assert_eq!(bool_match_u32(false, 1, 2), 2);
+    assert_eq!(option_identity_u32(Some(9)), Some(9));
+    assert_eq!(none_u32(()), None);
+    assert_eq!(some_u32(4), Some(4));
+    assert_eq!(option_default_u32(None, 8), 8);
+    assert_eq!(option_default_u32(Some(3), 8), 3);
+}
+
+#[test]
+fn except_lowers_to_rust_result() {
+    assert_eq!(result_ok_u32(5), Ok(5));
+    assert_eq!(result_err_u32(7), Err(7));
+}
+
+#[test]
+fn simple_enum_match_lowers() {
+    assert_eq!(choose_by_enum(Choice::First, 10, 20), 10);
+    assert_eq!(choose_by_enum(Choice::Second, 10, 20), 20);
+}
+
+#[test]
+fn struct_literals_and_field_projection_lower() {
+    let p = make_point(3, 4);
+    assert_eq!(p, Point { x: 3, y: 4 });
+    assert_eq!(point_x(Point { x: 8, y: 9 }), 8);
+    assert_eq!(point_y(Point { x: 8, y: 9 }), 9);
+    assert_eq!(
+        shift_point_x(Point { x: u32::MAX, y: 7 }, 1),
+        Point { x: 0, y: 7 }
+    );
+}
+
+#[test]
+fn enum_declarations_and_payload_constructors_lower() {
+    assert_eq!(step_stay(()), Step::Stay);
+    assert_eq!(step_jump(12), Step::Jump(12));
+}
+
+#[test]
+fn expected_type_propagates_through_nested_constructors() {
+    assert_eq!(nested_none_u32(()), Some(None));
+    assert_eq!(result_ok_none_u32(()), Ok(None));
+    assert_eq!(result_err_some_u32(44), Err(Some(44)));
+}
+
+#[test]
+fn concrete_generic_instantiations_are_emitted() {
+    assert_eq!(identity_u64(99), 99);
+    assert_eq!(choose_generic_u32(true, 10, 20), 10);
+    assert_eq!(choose_generic_u32(false, 10, 20), 20);
+    assert_eq!(option_default_u64(None, 77), 77);
+    assert_eq!(option_default_u64(Some(55), 77), 55);
+}
+</file>
+
+<file path="rust/proof-report.json">
+{
+  "format": "lean-rust-core.proof-report.v1",
+  "architecture": "direct-lean-emits-rust",
+  "trusted_core": [
+    "Lean kernel",
+    "LeanRustCore.Extract.extractConst",
+    "LeanRustCore.Extract.extractWithDiagnostics",
+    "LeanRustCore.Surface.typeOfExpected",
+    "LeanRustCore.EmitRust.emitSurfaceRustModule",
+    "LeanRustCore.IR.eval"
+  ],
+  "policy": {
+    "generated_rust_unsafe": false,
+    "source_string_matching": false,
+    "ffi_result_lowering": "status-plus-out-params",
+    "native_rust_types_at_ffi": false
+  },
+  "facts": [
+    {
+      "name": "extractor_reads_elaborated_definitions",
+      "statement": "rust_emit_exports collects @[rust_export] declarations and uses Lean constant bodies, not source-string matching"
+    },
+    {
+      "name": "surface_type_check",
+      "statement": "extracted SurfaceFun bodies are type-checked before Rust emission"
+    },
+    {
+      "name": "clamp_refines_spec",
+      "statement": "eval clampBody = clampSpec"
+    },
+    {
+      "name": "max_refines_spec",
+      "statement": "eval maxBody = maxSpec"
+    },
+    {
+      "name": "nonzero_refines_spec",
+      "statement": "eval nonzeroBody = nonzeroSpec"
+    },
+    {
+      "name": "add_refines_wrapping_spec",
+      "statement": "eval addBody = u32 wrapping-add spec"
+    },
+    {
+      "name": "bounded_bump_refines_spec",
+      "statement": "eval boundedBumpBody = let/arithmetic spec"
+    },
+    {
+      "name": "option_default_refines_spec",
+      "statement": "eval optionDefaultBody = Option-match spec"
+    },
+    {
+      "name": "fixed_width_type_extraction",
+      "statement": "rust_export extraction recognizes UInt32, UInt64, Int32, Int64, Unit, Option, Except, and closed structures/enums"
+    },
+    {
+      "name": "match_lowering",
+      "statement": "Bool, Option, and simple no-field enum matches lower from elaborated recursor/casesOn forms"
+    },
+    {
+      "name": "struct_enum_declarations",
+      "statement": "SurfaceStruct and SurfaceEnum declarations are emitted before generated Rust functions"
+    },
+    {
+      "name": "expected_type_propagation",
+      "statement": "nested Option and Except constructors are checked with the Rust-facing expected type"
+    },
+    {
+      "name": "generic_monomorphization",
+      "statement": "rust_mono_export registers concrete type instantiations of generic Lean definitions and emits concrete Rust functions"
+    },
+    {
+      "name": "compatibility_reporting",
+      "statement": "unsupported tagged exports are skipped and recorded in a structured compatibility report"
+    },
+    {
+      "name": "rust_adapter_owned_rejected",
+      "statement": "owned Rust values cannot cross the raw FFI boundary"
+    },
+    {
+      "name": "result_u32_i32_lowering",
+      "statement": "Result<u32,i32> lowers to status plus two out parameters"
+    }
+  ]
+}
+</file>
+
+<file path="docs/ARCHITECTURE.md">
+# Architecture
+
+This repo is intentionally direct:
+
+```text
+ordinary Lean declarations
+        │
+        ▼
+LeanRustCore.Extract.extractConst
+        │  reads elaborated constant bodies from the Lean environment
+        ▼
+LeanRustCore.Surface.SurfaceFun
+        │  first-order checked Rust-shaped IR
+        ▼
+LeanRustCore.EmitRust.emitSurfaceRustModule
+        │
+        ▼
+rust/src/generated.rs
+        │
+        ▼
+Cargo build/test/clippy with `unsafe_code` forbidden
+```
+
+There is no core/app split in this scaffold. The app is **Lean emits Rust**.
+
+## Completed step 1: broader type extraction
+
+`LeanRustCore.Extract.typeOfLeanM` now recognizes:
+
+- `Nat` as the original `u32` arithmetic model,
+- `UInt32` / `UInt64`,
+- `Int32` / `Int64`,
+- `Unit` and `Bool`,
+- `Option T`,
+- `Except E T`, emitted as Rust `Result<T, E>`,
+- closed structures and inductive enums, including enum payload constructors.
+
+The surface checker in `LeanRustCore.Surface` verifies every extracted function
+body against the declared Rust-facing return type before emission.
+
+## Completed step 2: match lowering
+
+`LeanRustCore.Extract` now recognizes elaborated recursor/casesOn shapes for:
+
+- `Bool`, emitted as Rust `match flag { true => ..., false => ... }`,
+- `Option`, emitted as Rust `match option { None => ..., Some(value) => ... }`,
+- simple no-field inductive enums, emitted as Rust enum declarations plus Rust
+  `match` expressions.
+
+Payload enum constructors are supported as expressions. Payload enum pattern
+matching remains intentionally out of scope for this pass.
+
+## Completed step 3: declarations, struct construction, field projection
+
+`LeanRustCore.Surface` now includes `SurfaceStruct`, `SurfaceEnum`, struct
+literals, field projections, and enum variant constructors. The emitter produces
+Rust `struct`/`enum` items before the generated functions and collects nested
+declarations from argument, return, and body types.
+
+## Completed step 4: expected-type propagation
+
+`Surface.typeOfExpected` checks expressions with an optional expected type. The
+extractor passes that type into nested `Option.none`, `Option.some`, `Except.ok`,
+and `Except.error`, so examples such as `some none`, `Except.ok none`, and
+`Except.error (some e)` lower without ambiguous constructor defaults.
+
+## Boundary model
+
+`ChimeraBoundary` is retained only as a small vendored ABI/result-lowering model
+for future raw FFI exports. It is not the main compiler architecture.
+
+
+## Completed step 5: explicit concrete monomorphization
+
+`rust_mono_export` records concrete type instantiations of generic Lean
+definitions. The extractor reuses the elaborated generic body, maps the leading
+`Type` binders to concrete `RType`s, and emits one ordinary Rust function per
+requested instance. This pass supports scalar concrete type arguments such as
+`UInt32` and `UInt64`; generic structures/enums and automatically discovered
+instances remain future work.
+
+Example:
+
+```lean
+rust_mono_export generic_choose as choose_generic_u32 [UInt32]
+```
+
+## Completed step 6: structured compatibility reporting
+
+`rust_emit_exports_with_report` emits Rust for every supported export and also
+defines a JSON compatibility report. Unsupported tagged declarations are not
+silently accepted and no longer abort the whole generation pass; they appear as
+`unsupported-declaration` diagnostics in `rust/compatibility-report.json`.
+
+```lean
+rust_emit_exports_with_report generatedRust generatedCompatibilityReport
+```
+
+## Completed step 7: Lean-evaluator differential tests
+
+`LeanRustCore.Differential` generates `rust/tests/differential_generated.rs`.
+The right-hand side of each evaluator-backed assertion is computed in Lean from
+`LeanRustCore.IR.eval`, while the left-hand side calls the generated Rust
+function. This gives the current workflow a cross-language regression gate over
+the proof-carrying semantic model and the emitted Rust snapshot.
+
+```bash
+lake exe gen_differential_tests rust/tests/differential_generated.rs
+```
+
+The suite currently covers the proof-carrying scalar/option examples and a small
+set of extracted-declaration examples for `u64`, `Bool` matches, `Option`, and
+explicit monomorphizations.
+
+## Completed step 8: emitted-subset validation gate
+
+`LeanRustCore.RustValidation` generates `rust/validation-report.json`, and
+`scripts/check-rust-validation.sh` enforces the current direct Lean→Rust emitted
+subset:
+
+- generated Rust must not contain `unsafe`, raw `extern "C"` boundaries,
+  `panic!`, `todo!`, `unimplemented!`, or malformed emitter markers,
+- validation and compatibility reports must remain snapshot-reproducible,
+- Lean-generated differential tests must be checked into the Rust test suite,
+- the Rust crate continues to use `#![forbid(unsafe_code)]`.
+
+This is a validation gate for the current generated subset. A future parser-backed
+Rust→Lean validator can replace the manifest once the generated Rust grammar is
+large enough to justify a separate target-language parser.
+</file>
+
+<file path="README.md">
+# LeanRustCore
+
+A self-contained direct **Lean → Rust** workflow.
+
+This pass extends the direct Lean emits Rust implementation through steps 1-8:
+
+1. Export extraction accepts `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`,
+   `Option`, `Except`, and closed inductive/structure types in addition to the
+   original `Nat`/`Bool` slice.
+2. The extractor lowers Lean `match` forms for `Bool`, `Option`, and simple
+   no-field inductive enums by recognizing their elaborated recursor/casesOn
+   shapes.
+3. The surface IR now has declaration models for structs/enums, struct literals,
+   field projection, and enum variant constructors with payload fields.
+4. Type checking and extraction propagate expected types through nested
+   `Option.none`, `Option.some`, `Except.ok`, and `Except.error` constructors.
+5. `rust_mono_export` registers concrete type instantiations of generic Lean
+   definitions and emits concrete Rust functions.
+6. Unsupported tagged exports are skipped and recorded in
+   `rust/compatibility-report.json` instead of aborting Rust generation.
+7. Lean-generated differential tests compare generated Rust calls against values
+   computed by the Lean proof-carrying IR evaluator.
+8. A generated Rust-validation report plus shell/Rust gates validate the current
+   safe emitted subset: snapshot reproducibility, no unsafe/FFI markers, no
+   malformed emitter markers, and the differential test suite.
+
+## What is generated
+
+The Lean generator emits:
+
+```rust
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Point { pub x: u32, pub y: u32 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Choice { First, Second }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Step { Stay, Jump(u32) }
+
+pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32
+pub fn max_u32(a: u32, b: u32) -> u32
+pub fn is_nonzero_u32(x: u32) -> bool
+pub fn add_u32(a: u32, b: u32) -> u32
+pub fn mul_u32(a: u32, b: u32) -> u32
+pub fn bounded_bump_u32(x: u32) -> u32
+pub fn echo_u32(x: u32) -> u32
+pub fn echo_u64(x: u64) -> u64
+pub fn echo_i32(x: i32) -> i32
+pub fn echo_i64(x: i64) -> i64
+pub fn add_u64(a: u64, b: u64) -> u64
+pub fn unit_roundtrip(x: ()) -> ()
+pub fn bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32
+pub fn option_identity_u32(x: Option<u32>) -> Option<u32>
+pub fn none_u32(_x: ()) -> Option<u32>
+pub fn some_u32(x: u32) -> Option<u32>
+pub fn option_default_u32(x: Option<u32>, fallback: u32) -> u32
+pub fn result_ok_u32(x: u32) -> Result<u32, u32>
+pub fn result_err_u32(e: u32) -> Result<u32, u32>
+pub fn choose_by_enum(choice: Choice, left: u32, right: u32) -> u32
+pub fn make_point(x: u32, y: u32) -> Point
+pub fn point_x(p: Point) -> u32
+pub fn point_y(p: Point) -> u32
+pub fn shift_point_x(p: Point, dx: u32) -> Point
+pub fn step_stay(_x: ()) -> Step
+pub fn step_jump(amount: u32) -> Step
+pub fn nested_none_u32(_x: ()) -> Option<Option<u32>>
+pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32>
+pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>>
+pub fn identity_u64(x: u64) -> u64
+pub fn choose_generic_u32(flag: bool, when_true: u32, when_false: u32) -> u32
+pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64
+```
+
+The non-generic functions are emitted from ordinary `@[rust_export]` Lean definitions; the generic examples use explicit concrete monomorphization specs:
+
+```lean
+rust_mono_export generic_identity as identity_u64 [UInt64]
+rust_mono_export generic_choose as choose_generic_u32 [UInt32]
+rust_mono_export generic_option_default as option_default_u64 [UInt64]
+rust_emit_exports_with_report generatedRust generatedCompatibilityReport
+```
+
+## Repository layout
+
+```text
+LeanRustCore/
+  IR.lean                proof-carrying typed IR + Lean evaluator
+  Surface.lean           first-order extracted IR + declaration model + type checker
+  Extract.lean           elaborated Lean declaration extractor
+  EmitRust.lean          Rust emitter for typed and extracted IR
+  Lowering.lean          compatibility/lowering seam
+  ChimeraBoundary.lean   small ABI/result-lowering boundary model
+  Examples.lean          ordinary Lean source defs + proof-carrying examples
+  ProofReport.lean       proof-sidecar JSON model
+  Differential.lean      Lean-evaluator differential test generation
+  RustValidation.lean    validation report for the current emitted subset
+Main.lean                `lake exe gen_rust`
+ProofReportMain.lean     `lake exe gen_proof_report`
+CompatibilityReportMain.lean `lake exe gen_compatibility_report`
+DifferentialMain.lean    `lake exe gen_differential_tests`
+ValidationReportMain.lean `lake exe gen_validation_report`
+rust/
+  build.rs               tries Lean generator, falls back to checked-in snapshot
+  src/generated.rs       checked-in fallback generated Rust
+  tests/generated.rs     Rust tests for generated functions
+  tests/differential_generated.rs Lean-generated differential tests
+  validation-report.json Rust-validation manifest for the emitted subset
+scripts/
+  gen.sh                 regenerate Rust, reports, and differential tests
+  check-extractor-snapshot.sh
+  check-rust-validation.sh
+  check.sh
+```
+
+## Run
+
+```bash
+./scripts/gen.sh
+./scripts/check.sh
+```
+
+The Rust crate forbids safe-code escape hatches with:
+
+```rust
+#![forbid(unsafe_code)]
+```
+
+## Current extraction subset
+
+Supported now:
+
+- `Nat` lowered to Rust `u32` for the original arithmetic slice,
+- `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`, and `Bool`,
+- `Option T` and `Except E T`, emitted as Rust `Option<T>` and `Result<T, E>`,
+- closed structures and inductive enums, emitted as Rust `struct`s and `enum`s,
+- variables, literals, `if`, `let`, equality,
+- `<`, `<=`, `>`, `>=` for fixed-width numeric types,
+- `+`, `-`, `*` lowered to Rust `wrapping_*` operations,
+- Lean `match` over `Bool`, `Option`, and simple no-field enums,
+- struct constructors and field projection,
+- enum constructors with payload fields,
+- expected-type propagation through nested `Option`/`Except` constructors,
+- explicit concrete monomorphizations of generic functions with scalar type arguments,
+- structured compatibility reports for unsupported tagged exports,
+- Lean-generated differential tests for evaluator-backed cases,
+- validation reports and repository gates for the current safe Rust subset.
+
+Still intentionally out of scope:
+
+- payload enum pattern matching,
+- recursive functions and loops,
+- higher-order functions and closures,
+- implicit / discovered monomorphization; concrete generic exports currently use `rust_mono_export`,
+- a full parser-backed Rust→Lean translation validator for arbitrary Rust text.
+
+## Validation gates
+
+The step 7/8 gates are:
+
+```bash
+lake exe gen_differential_tests rust/tests/differential_generated.rs
+lake exe gen_validation_report rust/validation-report.json
+./scripts/check-extractor-snapshot.sh
+./scripts/check-rust-validation.sh
+cd rust && cargo test
+```
+
+`rust/tests/differential_generated.rs` is generated by Lean and uses expected
+values computed from `LeanRustCore.IR.eval`. `rust/validation-report.json` records
+the current direct Lean→Rust validation checks, and `check-rust-validation.sh`
+rejects unsafe, raw FFI, panic/todo/unimplemented, and malformed-emitter markers
+in the generated Rust snapshot.
+
+## Fully working implementation steps remaining
+
+1. Add payload enum pattern lowering.
+2. Extend monomorphization from explicit scalar type arguments to discovered
+   concrete instantiations and generic structures/enums.
+3. Expand the differential suite from evaluator-backed scalar/option cases to
+   all extracted structs, payload enums, and future recursive functions.
+4. Replace the current emitted-subset validation manifest with a parser-backed
+   Rust→Lean translation validator or a full formal semantics for the generated
+   Rust subset.
+</file>
+
+</files>

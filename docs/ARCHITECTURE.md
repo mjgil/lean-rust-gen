@@ -99,18 +99,20 @@ rust_emit_exports_with_report generatedRust generatedCompatibilityReport
 ## Completed step 7: Lean-evaluator differential tests
 
 `LeanRustCore.Differential` generates `rust/tests/differential_generated.rs`.
-The right-hand side of each evaluator-backed assertion is computed in Lean from
-`LeanRustCore.IR.eval`, while the left-hand side calls the generated Rust
-function. This gives the current workflow a cross-language regression gate over
-the proof-carrying semantic model and the emitted Rust snapshot.
+The right-hand side of each proof-carrying assertion is computed in Lean from
+`LeanRustCore.IR.eval`, and the expanded extracted-declaration assertions are
+computed from `LeanRustCore.Surface.evalSurfaceFun`. The left-hand side calls
+the generated Rust function, giving the workflow a cross-language regression
+gate over both semantic models and the emitted Rust snapshot.
 
 ```bash
 lake exe gen_differential_tests rust/tests/differential_generated.rs
 ```
 
-The suite currently covers the proof-carrying scalar/option examples and a small
-set of extracted-declaration examples for `u64`, `Bool` matches, `Option`,
-payload enum matches, first-order calls, and explicit monomorphizations.
+The suite currently covers the proof-carrying scalar/option examples plus
+SurfaceExpr-backed extracted-declaration examples for `u64`, `Bool` matches,
+`Option`, `Result`, structs, field projections, no-payload and payload enums,
+first-order calls, nested constructors, and explicit monomorphizations.
 
 ## Completed step 8: emitted-subset validation gate
 
@@ -138,3 +140,16 @@ and the emitter renders Rust patterns such as `Step::Jump(amount) => ...`.
 functions. The extractor checks the callee signature, translates each argument
 with the expected parameter type, and the emitter keeps generated functions in a
 stable dependency-aware order.
+
+## Newly completed: SurfaceExpr evaluator and expanded differential coverage
+
+`LeanRustCore.Surface` now defines `SurfaceValue`, `SurfaceEnv`,
+`evalSurfaceExpr`, and `evalSurfaceFun`. The evaluator covers every currently
+extracted expression family: scalar values, `let`, `if`, Bool/Option/enum
+matches, wrapping arithmetic, structs, fields, enum payload constructors,
+`Option`, `Result`, and first-order calls.
+
+`LeanRustCore.Differential` now uses that evaluator for the extracted surface
+fixtures instead of hard-coded expected values. The differential test suite
+covers structs, enums, `Result`, monomorphized exports, payload matches, and
+call chains against the generated Rust crate.

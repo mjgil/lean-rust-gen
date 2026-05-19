@@ -8,6 +8,7 @@ fn validation_report_records_current_subset_gates() {
     assert!(report.contains("safe-rust-subset-gate"));
     assert!(report.contains("payload-enum-match-lowering"));
     assert!(report.contains("first-order-call-lowering"));
+    assert!(report.contains("surface-evaluator-extracted-subset-tests"));
     assert!(!report.contains("\"status\": \"failed\""));
 }
 
