@@ -16,6 +16,10 @@ environment and emits Rust for the supported subset. There is no source-string
 matching in this path.
 -/
 
+inductive Choice where
+  | first
+  | second
+
 @[rust_export]
 def clamp_u32 (lo hi x : Nat) : Nat :=
   if x < lo then lo else if x > hi then hi else x
@@ -40,6 +44,68 @@ def mul_u32 (a b : Nat) : Nat :=
 def bounded_bump_u32 (x : Nat) : Nat :=
   let y := x + 1
   if y > 10 then 10 else y
+
+@[rust_export]
+def echo_u32 (x : UInt32) : UInt32 :=
+  x
+
+@[rust_export]
+def echo_u64 (x : UInt64) : UInt64 :=
+  x
+
+@[rust_export]
+def echo_i32 (x : Int32) : Int32 :=
+  x
+
+@[rust_export]
+def echo_i64 (x : Int64) : Int64 :=
+  x
+
+@[rust_export]
+def add_u64 (a b : UInt64) : UInt64 :=
+  a + b
+
+@[rust_export]
+def unit_roundtrip (x : Unit) : Unit :=
+  x
+
+@[rust_export]
+def bool_match_u32 (flag : Bool) (when_true when_false : UInt32) : UInt32 :=
+  match flag with
+  | true => when_true
+  | false => when_false
+
+@[rust_export]
+def option_identity_u32 (x : Option UInt32) : Option UInt32 :=
+  x
+
+@[rust_export]
+def none_u32 (_x : Unit) : Option UInt32 :=
+  none
+
+@[rust_export]
+def some_u32 (x : UInt32) : Option UInt32 :=
+  some x
+
+@[rust_export]
+def option_default_u32 (x : Option UInt32) (fallback : UInt32) : UInt32 :=
+  match x with
+  | none => fallback
+  | some value => value
+
+@[rust_export]
+def result_ok_u32 (x : UInt32) : Except UInt32 UInt32 :=
+  Except.ok x
+
+@[rust_export]
+def result_err_u32 (e : UInt32) : Except UInt32 UInt32 :=
+  Except.error e
+
+@[rust_export]
+def choose_by_enum (choice : Choice) (left right : UInt32) : UInt32 :=
+  match choice with
+  | Choice.first => left
+  | Choice.second => right
 
 rust_emit_exports generatedRust
 
@@ -139,13 +205,34 @@ theorem bounded_bump_refines_spec (a : BumpArgs) :
   eval boundedBumpBody a = boundedBumpSpec a := by
   simp [boundedBumpBody, boundedBumpSpec, bumpX, bumpY, eval, u32Wrap]
 
+structure OptionArgs where
+  x : Option Nat
+  fallback : Nat
+
+private def optX : RExpr OptionArgs (.option .u32) := .var "x" (fun a => a.x)
+private def optFallback : RExpr OptionArgs .u32 := .var "fallback" (fun a => a.fallback)
+private def optValue : RExpr (Nat × OptionArgs) .u32 := .var "value" (fun env => env.1)
+
+def optionDefaultBody : RExpr OptionArgs .u32 :=
+  .matchOption optX optFallback optValue
+
+def optionDefaultSpec (a : OptionArgs) : Nat :=
+  match a.x with
+  | none => a.fallback
+  | some value => value
+
+theorem option_default_refines_spec (a : OptionArgs) :
+  eval optionDefaultBody a = optionDefaultSpec a := by
+  cases a.x <;> simp [optionDefaultBody, optionDefaultSpec, optX, optFallback, optValue, eval]
+
 /-- Proof-carrying examples retained for evaluator/codegen regression checks. -/
 def proofCarryingFunctions : List RFun := [
   { Ctx := ClampArgs, name := "clamp_u32", args := [("lo", .u32), ("hi", .u32), ("x", .u32)], ret := .u32, body := clampBody },
   { Ctx := MaxArgs, name := "max_u32", args := [("a", .u32), ("b", .u32)], ret := .u32, body := maxBody },
   { Ctx := NonzeroArgs, name := "is_nonzero_u32", args := [("x", .u32)], ret := .bool, body := nonzeroBody },
   { Ctx := AddArgs, name := "add_u32", args := [("a", .u32), ("b", .u32)], ret := .u32, body := addBody },
-  { Ctx := BumpArgs, name := "bounded_bump_u32", args := [("x", .u32)], ret := .u32, body := boundedBumpBody }
+  { Ctx := BumpArgs, name := "bounded_bump_u32", args := [("x", .u32)], ret := .u32, body := boundedBumpBody },
+  { Ctx := OptionArgs, name := "option_default_u32", args := [("x", .option .u32), ("fallback", .u32)], ret := .u32, body := optionDefaultBody }
 ]
 
 /-- Rust source emitted from proof-carrying examples; used as a regression oracle. -/

@@ -14,9 +14,10 @@ inductive SourceItem where
 
 /-- Current supported runtime types for direct safe Rust emission. -/
 def supportedRustType : RType → Bool
-  | .unit | .bool | .u32 | .u64 => true
+  | .unit | .bool | .u32 | .u64 | .i32 | .i64 => true
   | .option t => supportedRustType t
   | .result ok err => supportedRustType ok && supportedRustType err
+  | .enum _ _ => true
 
 /-- Check all function argument and return types are in the supported subset. -/
 def checkFunctionShape (name : String) (args : List RArg) (ret : RType) : CompatibilityReport :=

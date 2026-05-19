@@ -3,6 +3,7 @@
 ## Trusted definitions
 
 - `LeanRustCore.Extract.extractConst`
+- `LeanRustCore.Extract.typeOfLeanM`
 - `LeanRustCore.Surface.SurfaceExpr`
 - `LeanRustCore.Surface.typeOf`
 - `LeanRustCore.EmitRust.emitSurfaceRustModule`
@@ -25,9 +26,20 @@ cd rust && cargo test
 The snapshot gate is important: it proves the checked-in Rust fallback is exactly
 what the Lean extractor emits.
 
-## Current limitations
+## Current supported extraction slice
 
-The extractor supports a deliberately small Lean subset: ordinary `def`s whose
-arguments and return values are `Nat`/`Bool`, plus `if`, `let`, Nat comparisons,
-Nat arithmetic, Bool literals, and simple equality. The next milestones are
-structs/enums, pattern matching, `Option`, `Except`, and monomorphized generics.
+The extractor supports ordinary `def`s tagged with `@[rust_export]` whose
+arguments and return values are built from:
+
+- `Nat`, `Bool`, `Unit`,
+- `UInt32`, `UInt64`, `Int32`, `Int64`,
+- `Option`,
+- `Except`,
+- closed parameter-free inductive enums.
+
+The body subset includes variables, literals, `if`, `let`, scalar comparisons,
+wrapping arithmetic, `Option`/`Except` constructors, and `match` over `Bool`,
+`Option`, and simple no-field enums.
+
+The next milestones are structs, field access, enum payload variants, recursive
+functions, and monomorphized generics.

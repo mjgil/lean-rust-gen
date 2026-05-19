@@ -5,18 +5,21 @@ namespace LeanRustCore
 /--
 A deliberately small Rust-shaped type universe.
 
-`u32`/`u64` are modeled with mathematical `Nat` values in Lean. Operations whose
-Rust meaning depends on overflow are explicit: the arithmetic nodes below use
-Rust's `wrapping_*` behavior and the Lean evaluator mirrors that behavior with
-modular arithmetic.
+Integer operations whose Rust meaning depends on overflow are explicit. Unsigned
+wrapping arithmetic is modeled with modular arithmetic; signed fixed-width values
+are represented mathematically for the current extractor slice and are emitted
+only through operations whose Rust behavior is explicit.
 -/
 inductive RType where
   | unit
   | bool
   | u32
   | u64
+  | i32
+  | i64
   | option : RType → RType
   | result : RType → RType → RType
+  | enum : String → List String → RType
   deriving Repr, BEq, DecidableEq
 
 /-- Denotational meaning of an IR type inside Lean. -/
@@ -25,18 +28,31 @@ def Denote : RType → Type
   | .bool => Bool
   | .u32 => Nat
   | .u64 => Nat
+  | .i32 => Int
+  | .i64 => Int
   | .option t => Option (Denote t)
   | .result ok err => Except (Denote err) (Denote ok)
+  | .enum _ _ => Nat
 
 /-- The modulus used by Rust `u32::wrapping_*` operations. -/
 def u32Modulus : Nat := 4294967296
 
+/-- The modulus used by Rust `u64::wrapping_*` operations. -/
+def u64Modulus : Nat := 18446744073709551616
+
 /-- Normalize a mathematical natural number to the `u32` wrapping domain. -/
 def u32Wrap (n : Nat) : Nat := n % u32Modulus
+
+/-- Normalize a mathematical natural number to the `u64` wrapping domain. -/
+def u64Wrap (n : Nat) : Nat := n % u64Modulus
 
 /-- Wrapping subtraction over the first-pass `u32` model. -/
 def u32WrappingSub (a b : Nat) : Nat :=
   (u32Wrap a + u32Modulus - u32Wrap b) % u32Modulus
+
+/-- Wrapping subtraction over the first-pass `u64` model. -/
+def u64WrappingSub (a b : Nat) : Nat :=
+  (u64Wrap a + u64Modulus - u64Wrap b) % u64Modulus
 
 /--
 A typed expression tree. Variables carry both a printed Rust name and a Lean
@@ -48,8 +64,12 @@ inductive RExpr (ctx : Type) : RType → Type where
   | litBool : Bool → RExpr ctx .bool
   | litU32 : Nat → RExpr ctx .u32
   | litU64 : Nat → RExpr ctx .u64
+  | litI32 : Int → RExpr ctx .i32
+  | litI64 : Int → RExpr ctx .i64
   | letIn {a b : RType} : String → RExpr ctx a → RExpr (Denote a × ctx) b → RExpr ctx b
   | ite {t : RType} : RExpr ctx .bool → RExpr ctx t → RExpr ctx t → RExpr ctx t
+  | matchBool {t : RType} : RExpr ctx .bool → RExpr ctx t → RExpr ctx t → RExpr ctx t
+  | matchOption {a b : RType} : RExpr ctx (.option a) → RExpr ctx b → RExpr (Denote a × ctx) b → RExpr ctx b
   | not : RExpr ctx .bool → RExpr ctx .bool
   | and : RExpr ctx .bool → RExpr ctx .bool → RExpr ctx .bool
   | or : RExpr ctx .bool → RExpr ctx .bool → RExpr ctx .bool
@@ -74,9 +94,16 @@ def eval {ctx : Type} : {t : RType} → RExpr ctx t → ctx → Denote t
   | _, .litUnit, _ => ()
   | _, .litBool b, _ => b
   | _, .litU32 n, _ => u32Wrap n
-  | _, .litU64 n, _ => n
+  | _, .litU64 n, _ => u64Wrap n
+  | _, .litI32 n, _ => n
+  | _, .litI64 n, _ => n
   | _, .letIn _ value body, env => eval body (eval value env, env)
   | _, .ite c a b, env => if eval c env then eval a env else eval b env
+  | _, .matchBool c whenTrue whenFalse, env => if eval c env then eval whenTrue env else eval whenFalse env
+  | _, .matchOption target noneCase someCase, env =>
+      match eval target env with
+      | none => eval noneCase env
+      | some value => eval someCase (value, env)
   | _, .not a, env => !(eval a env)
   | _, .and a b, env => (eval a env) && (eval b env)
   | _, .or a b, env => (eval a env) || (eval b env)

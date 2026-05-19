@@ -1,6 +1,6 @@
 # Architecture
 
-This repo is intentionally back to the direct app shape:
+This repo is intentionally direct:
 
 ```text
 ordinary Lean declarations
@@ -23,33 +23,32 @@ Cargo build/test/clippy with `unsafe_code` forbidden
 
 There is no core/app split in this scaffold. The app is **Lean emits Rust**.
 
-## Implemented step 1: declaration extraction
+## Completed step 1: broader type extraction
 
-`LeanRustCore.Export` defines the `@[rust_export]` tag attribute, and
-`LeanRustCore.Extract` provides `extractConst`, which inspects ordinary Lean
-constant bodies after elaboration. The example declarations are ordinary Lean
-`def`s tagged with `@[rust_export]`; the command:
+`LeanRustCore.Extract.typeOfLeanM` now recognizes:
 
-```lean
-rust_emit_exports generatedRust
-```
+- `Nat` as the original `u32` arithmetic model,
+- `UInt32` / `UInt64`,
+- `Int32` / `Int64`,
+- `Unit` and `Bool`,
+- `Option T`,
+- `Except E T`, emitted as Rust `Result<T, E>`,
+- closed parameter-free inductive enums.
 
-collects the tagged declarations visible in the current environment, lowers
-them into checked `SurfaceFun`s, and emits the Rust module string. This replaces
-the prior exact source-string recognizer.
+The surface checker in `LeanRustCore.Surface` verifies every extracted function
+body against the declared Rust-facing return type before emission.
 
-## Implemented part of step 2: grow the IR
+## Completed step 2: match lowering
 
-The typed IR and extracted surface IR now support:
+`LeanRustCore.Extract` now recognizes elaborated recursor/casesOn shapes for:
 
-- `let` bindings,
-- `<=` and `>=`,
-- explicit wrapping `u32` addition, subtraction, and multiplication,
-- type checking of extracted first-order expressions before codegen.
+- `Bool`, emitted as Rust `match flag { true => ..., false => ... }`,
+- `Option`, emitted as Rust `match option { None => ..., Some(value) => ... }`,
+- simple no-field inductive enums, emitted as Rust enum declarations plus Rust
+  `match` expressions.
 
-The overflow policy is explicit: generated arithmetic uses Rust
-`wrapping_add`, `wrapping_sub`, and `wrapping_mul`; the Lean evaluator mirrors
-that policy with modular arithmetic.
+The enum support is intentionally narrow: the inductive must be closed,
+parameter-free, and its constructors must not carry payload fields.
 
 ## Boundary model
 
