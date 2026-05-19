@@ -1,0 +1,12 @@
+[package]
+name = "lean-rust-core-generated"
+version = "0.2.0"
+edition = "2021"
+build = "build.rs"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "lean_rust_core_generated"
+path = "src/lib.rs"
+
+[dependencies]

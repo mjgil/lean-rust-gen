@@ -1,0 +1,14 @@
+name = "lean_rust_core"
+version = "0.2.0"
+defaultTargets = ["gen_rust"]
+
+[[lean_lib]]
+name = "LeanRustCore"
+
+[[lean_exe]]
+name = "gen_rust"
+root = "Main"
+
+[[lean_exe]]
+name = "gen_proof_report"
+root = "ProofReportMain"

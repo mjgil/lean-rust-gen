@@ -1,0 +1,7 @@
+/.lake/
+/target/
+/rust/target/
+*.olean
+*.ilean
+*.c
+.DS_Store
