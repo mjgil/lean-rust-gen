@@ -1,10 +1,12 @@
 import LeanRustCore.Differential
 import LeanRustCore.RustHygiene
+import LeanRustCore.Toolchain
 
 namespace LeanRustCore.RustValidation
 
 open LeanRustCore
 open LeanRustCore.Differential
+open LeanRustCore.Toolchain
 
 /-!
 Step 8 validation manifest for the current generated Rust subset.
@@ -59,7 +61,13 @@ def requiredFunctionNames : List String := [
   "result_err_some_u32",
   "identity_u64",
   "choose_generic_u32",
-  "option_default_u64"
+  "option_default_u64",
+  "generic_identity__u32",
+  "generic_choose__point",
+  "generic_option_default__step",
+  "auto_identity_u32",
+  "auto_choose_point",
+  "auto_option_default_step"
 ]
 
 /-- Declarations that should exist before generated functions. -/
@@ -79,7 +87,7 @@ def checks : List ValidationCheck := [
   {
     name := "snapshot-reproducibility",
     status := "passed",
-    detail := "scripts/check-extractor-snapshot.sh diffs generated.rs, differential tests, compatibility report, and validation report against Lean output"
+    detail := "scripts/check-extractor-snapshot.sh diffs generated.rs, differential tests, compatibility report, validation report, and build metadata against Lean output"
   },
   {
     name := "lean-evaluator-differential-tests",
@@ -117,6 +125,21 @@ def checks : List ValidationCheck := [
     detail := rustHygieneSummary
   },
   {
+    name := "exact-toolchain-pins",
+    status := "passed",
+    detail := "Lean toolchain " ++ leanToolchain ++ " and Rust toolchain " ++ rustToolchain ++ " are pinned and checked by scripts/check-toolchain-pins.sh"
+  },
+  {
+    name := "release-fallback-ban",
+    status := "passed",
+    detail := "rust/build.rs refuses checked-in generated.rs fallback for CI or release builds; local development fallback requires LEAN_RUST_CORE_ALLOW_FALLBACK=1"
+  },
+  {
+    name := "automatic-monomorphization",
+    status := "passed",
+    detail := "generic calls discovered inside concrete exported declarations enqueue and emit concrete monomorphized Rust functions before their callers"
+  },
+  {
     name := "syn-parser-backed-validation",
     status := "passed",
     detail := "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset by AST instead of relying only on text grep"
@@ -150,6 +173,8 @@ def validationReportJson : String :=
   "{\n" ++
   "  \"format\": \"lean-rust-core.rust-validation.v1\",\n" ++
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
+  "  \"lean_toolchain\": " ++ jsonString leanToolchain ++ ",\n" ++
+  "  \"rust_toolchain\": " ++ jsonString rustToolchain ++ ",\n" ++
   "  \"generated_function_count\": " ++ Nat.toString requiredFunctionNames.length ++ ",\n" ++
   "  \"generated_type_count\": " ++ Nat.toString requiredTypeNames.length ++ ",\n" ++
   "  \"differential_assertion_count\": " ++ Nat.toString (evaluatorAssertions.length + extractedDeclarationAssertions.length) ++ ",\n" ++

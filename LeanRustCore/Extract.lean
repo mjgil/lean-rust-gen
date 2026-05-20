@@ -40,6 +40,7 @@ structure ExtractionResult where
   deriving Repr, BEq
 
 initialize monoExportSpecsRef : IO.Ref (List MonoExportSpec) ← IO.mkRef []
+initialize autoMonoExportSpecsRef : IO.Ref (List MonoExportSpec) ← IO.mkRef []
 
 private def nameLeaf : Name → String
   | .anonymous => "_"
@@ -226,7 +227,7 @@ mutual
     | _ => throwError "expected constructor declaration for {ctorName}"
 end
 
-/-- Signature lookup for first-order calls to other tagged Lean declarations. Generic calls are intentionally left to explicit monomorphization. -/
+/-- Signature lookup for first-order calls to other tagged non-generic Lean declarations. Generic calls are handled by automatic/explicit monomorphization below. -/
 private def callSignature? (declName : Name) : CoreM (Option (List RType × RType)) := do
   let env ← getEnv
   if !containsName (LeanRustCore.Export.exportedNames env) declName then
@@ -254,6 +255,54 @@ private partial def firstTypeArg? (typeCtx : TypeCtx) : List Expr → CoreM (Opt
         return some (← typeOfLeanWithCtx typeCtx x)
       catch _ =>
         firstTypeArg? typeCtx xs
+
+
+private def lowerMonoChar : Char → Char
+  | 'A' => 'a' | 'B' => 'b' | 'C' => 'c' | 'D' => 'd' | 'E' => 'e' | 'F' => 'f'
+  | 'G' => 'g' | 'H' => 'h' | 'I' => 'i' | 'J' => 'j' | 'K' => 'k' | 'L' => 'l'
+  | 'M' => 'm' | 'N' => 'n' | 'O' => 'o' | 'P' => 'p' | 'Q' => 'q' | 'R' => 'r'
+  | 'S' => 's' | 'T' => 't' | 'U' => 'u' | 'V' => 'v' | 'W' => 'w' | 'X' => 'x'
+  | 'Y' => 'y' | 'Z' => 'z'
+  | c => c
+
+private def lowerMonoString (s : String) : String :=
+  String.mk (s.toList.map lowerMonoChar)
+
+private partial def rTypeMonoSuffix : RType → String
+  | .unit => "unit"
+  | .bool => "bool"
+  | .u32 => "u32"
+  | .u64 => "u64"
+  | .i32 => "i32"
+  | .i64 => "i64"
+  | .option t => "option_" ++ rTypeMonoSuffix t
+  | .result ok err => "result_" ++ rTypeMonoSuffix ok ++ "_" ++ rTypeMonoSuffix err
+  | .struct name _ => sanitizeRustIdent "struct" (lowerMonoString name)
+  | .enum name _ => sanitizeRustIdent "enum" (lowerMonoString name)
+
+private def autoMonoRustName (source : Name) (typeArgs : List RType) : String :=
+  sanitizeRustIdent "generated" (nameLeaf source ++ "__" ++ joinWith "_" (typeArgs.map rTypeMonoSuffix))
+
+private def sameMonoKey (source : Name) (typeArgs : List RType) (spec : MonoExportSpec) : Bool :=
+  spec.source == source && spec.typeArgs == typeArgs
+
+private def findMonoSpecByKey (source : Name) (typeArgs : List RType) : List MonoExportSpec → Option MonoExportSpec
+  | [] => none
+  | spec :: rest => if sameMonoKey source typeArgs spec then some spec else findMonoSpecByKey source typeArgs rest
+
+private def registerAutoMonoSpec (source : Name) (typeArgs : List RType) : CoreM String := do
+  let explicitSpecs ← liftIO monoExportSpecsRef.get
+  match findMonoSpecByKey source typeArgs explicitSpecs with
+  | some spec => pure spec.rustName
+  | none => do
+      let autoSpecs ← liftIO autoMonoExportSpecsRef.get
+      match findMonoSpecByKey source typeArgs autoSpecs with
+      | some spec => pure spec.rustName
+      | none => do
+          let rustName := autoMonoRustName source typeArgs
+          let spec : MonoExportSpec := { source := source, rustName := rustName, typeArgs := typeArgs }
+          liftIO <| autoMonoExportSpecsRef.modify (fun specs => specs ++ [spec])
+          pure rustName
 
 private def expectedOrTypeArg (typeCtx : TypeCtx) (expected : Option RType) (args : List Expr) (fallback : RType) : CoreM RType := do
   match expected with
@@ -448,15 +497,58 @@ where
     catch _ =>
       return none
 
+  instantiateGenericCall? (callerTypeCtx : TypeCtx) (calledName : Name) (args : List Expr) : CoreM (Option (String × List RType × RType × List Expr)) := do
+    let info ← getConstInfo calledName
+    match info with
+    | .defnInfo defInfo =>
+        let (binders, retTyExpr) := peelForalls defInfo.type
+        let mut remaining := args
+        let mut calledTypeCtx : TypeCtx := []
+        let mut concreteTypeArgs : List RType := []
+        let mut argTypes : List RType := []
+        let mut valueArgs : List Expr := []
+        let mut sawTypeBinder := false
+        for binder in binders do
+          if isTypeParamBinder binder.2 then
+            sawTypeBinder := true
+            match remaining with
+            | typeArgExpr :: rest =>
+                let concreteTy ← typeOfLeanWithCtx callerTypeCtx typeArgExpr
+                concreteTypeArgs := concreteTypeArgs ++ [concreteTy]
+                calledTypeCtx := some concreteTy :: calledTypeCtx
+                remaining := rest
+            | [] => return none
+          else
+            let argTy ← typeOfLeanWithCtx calledTypeCtx binder.2
+            match remaining with
+            | valueExpr :: rest =>
+                argTypes := argTypes ++ [argTy]
+                valueArgs := valueArgs ++ [valueExpr]
+                calledTypeCtx := none :: calledTypeCtx
+                remaining := rest
+            | [] => return none
+        if sawTypeBinder && remaining.isEmpty then
+          let retTy ← typeOfLeanWithCtx calledTypeCtx retTyExpr
+          let rustName ← registerAutoMonoSpec calledName concreteTypeArgs
+          pure (some (rustName, argTypes, retTy, valueArgs))
+        else
+          pure none
+    | _ => pure none
+
   translateFunctionCall? (typeCtx : TypeCtx) (locals : LocalCtx) (calledName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
     match (← callSignature? calledName) with
-    | none => return none
     | some (argTypes, retTy) =>
         if args.length == argTypes.length then
           let translatedArgs ← (argTypes.zip args).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
           return some (.call (sanitizeRustIdent "generated" (nameLeaf calledName)) argTypes retTy translatedArgs)
         else
           return none
+    | none =>
+        match (← instantiateGenericCall? typeCtx calledName args) with
+        | some (rustName, argTypes, retTy, valueArgs) =>
+            let translatedArgs ← (argTypes.zip valueArgs).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
+            return some (.call rustName argTypes retTy translatedArgs)
+        | none => return none
 
   translateApp (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) : CoreM SurfaceExpr := do
     let fn := e.getAppFn
@@ -671,8 +763,8 @@ def emitCompatibilityReport (result : ExtractionResult) : String :=
   "  ]\n" ++
   "}\n"
 
-private def supportedDiagnostic (source rustName : String) : ExportDiagnostic :=
-  { source := source, rustName := rustName, code := .supported, detail := "exported" }
+private def supportedDiagnostic (source rustName : String) (detail : String := "exported") : ExportDiagnostic :=
+  { source := source, rustName := rustName, code := .supported, detail := detail }
 
 private def unsupportedDiagnostic (source rustName detail : String) : ExportDiagnostic :=
   { source := source, rustName := rustName, code := .unsupportedDeclaration, detail := detail }
@@ -681,19 +773,46 @@ private def extractRegularWithDiagnostic (declName : Name) : CoreM (Option Surfa
   let rustName := sanitizeRustIdent "generated" (nameLeaf declName)
   try
     let f ← extractConst declName
-    pure (some f, supportedDiagnostic (toString declName) f.name)
+    pure (some f, supportedDiagnostic (toString declName) f.name "exported")
   catch _ =>
     pure (none, unsupportedDiagnostic (toString declName) rustName "unsupported export skipped by the direct Lean-to-Rust extractor")
 
-private def extractMonoWithDiagnostic (spec : MonoExportSpec) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
+private def extractMonoWithDiagnostic (spec : MonoExportSpec) (detail : String) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
   try
     let f ← extractMonoConst spec
-    pure (some f, supportedDiagnostic (monoSpecLabel spec) f.name)
+    pure (some f, supportedDiagnostic (monoSpecLabel spec) f.name detail)
   catch _ =>
     pure (none, unsupportedDiagnostic (monoSpecLabel spec) spec.rustName "monomorphized export could not be lowered by the current extractor subset")
 
+private def monoSpecIn (spec : MonoExportSpec) : List MonoExportSpec → Bool
+  | [] => false
+  | candidate :: rest => sameMonoKey spec.source spec.typeArgs candidate || monoSpecIn spec rest
+
+private def pendingAutoSpecs (seen : List MonoExportSpec) (all : List MonoExportSpec) : List MonoExportSpec :=
+  all.filter (fun spec => !monoSpecIn spec seen)
+
+private partial def extractPendingAutoMonos (seen : List MonoExportSpec) (functions : List SurfaceFun) (diagnostics : List ExportDiagnostic) (fuel : Nat) : CoreM ExtractionResult := do
+  match fuel with
+  | 0 => pure { functions := functions, diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-monomorphization>" "<fuel>" "automatic monomorphization stopped after the fixpoint fuel was exhausted"] }
+  | fuel' + 1 => do
+      let autoSpecs ← liftIO autoMonoExportSpecsRef.get
+      let pending := pendingAutoSpecs seen autoSpecs
+      if pending.isEmpty then
+        pure { functions := functions, diagnostics := diagnostics }
+      else
+        let mut functions' := functions
+        let mut diagnostics' := diagnostics
+        for spec in pending do
+          let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec "auto-monomorphized-export"
+          diagnostics' := diagnostics' ++ [diagnostic]
+          match maybeFun with
+          | some f => functions' := functions' ++ [f]
+          | none => pure ()
+        extractPendingAutoMonos (seen ++ pending) functions' diagnostics' fuel'
+
 /-- Tolerant extraction: successful declarations are emitted; unsupported declarations are reported. -/
 def extractWithDiagnostics (decls : List Name) (monos : List MonoExportSpec) : CoreM ExtractionResult := do
+  liftIO <| autoMonoExportSpecsRef.set []
   let mut functions : List SurfaceFun := []
   let mut diagnostics : List ExportDiagnostic := []
   for decl in decls do
@@ -703,12 +822,12 @@ def extractWithDiagnostics (decls : List Name) (monos : List MonoExportSpec) : C
     | some f => functions := functions ++ [f]
     | none => pure ()
   for spec in monos do
-    let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec
+    let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec "explicit-monomorphized-export"
     diagnostics := diagnostics ++ [diagnostic]
     match maybeFun with
     | some f => functions := functions ++ [f]
     | none => pure ()
-  pure { functions := functions, diagnostics := diagnostics }
+  extractPendingAutoMonos monos functions diagnostics (decls.length + monos.length + 16)
 
 /-- Register a concrete Rust export for a generic Lean definition. -/
 syntax (name := rustMonoExport) "rust_mono_export " ident " as " ident " [" ident,* "]" : command

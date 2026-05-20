@@ -60,4 +60,14 @@ fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(choose_generic_u32(false, 10, 20), 20u32);
     assert_eq!(option_default_u64(None, 77), 77u64);
     assert_eq!(option_default_u64(Some(55), 77), 55u64);
+    assert_eq!(generic_identity__u32(11), 11u32);
+    assert_eq!(auto_identity_u32(12), 12u32);
+    assert_eq!(generic_choose__point(true, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }), Point { x: 1u32, y: 2u32 });
+    assert_eq!(generic_choose__point(false, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }), Point { x: 3u32, y: 4u32 });
+    assert_eq!(auto_choose_point(true, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }), Point { x: 1u32, y: 2u32 });
+    assert_eq!(auto_choose_point(false, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }), Point { x: 3u32, y: 4u32 });
+    assert_eq!(generic_option_default__step(None, Step::Stay), Step::Stay);
+    assert_eq!(generic_option_default__step(Some(Step::Jump(7)), Step::Stay), Step::Jump(7u32));
+    assert_eq!(auto_option_default_step(None, Step::Jump(5)), Step::Jump(5u32));
+    assert_eq!(auto_option_default_step(Some(Step::Stay), Step::Jump(5)), Step::Stay);
 }

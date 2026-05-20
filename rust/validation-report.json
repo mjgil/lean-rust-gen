@@ -1,14 +1,16 @@
 {
   "format": "lean-rust-core.rust-validation.v1",
   "architecture": "direct-lean-emits-rust",
-  "generated_function_count": 36,
+  "lean_toolchain": "leanprover/lean4:v4.22.0",
+  "rust_toolchain": "1.85.0",
+  "generated_function_count": 42,
   "generated_type_count": 3,
-  "differential_assertion_count": 48,
-  "required_functions": ["clamp_u32", "max_u32", "is_nonzero_u32", "add_u32", "mul_u32", "bounded_bump_u32", "echo_u32", "echo_u64", "echo_i32", "echo_i64", "add_u64", "inc_u32", "inc_twice_u32", "unit_roundtrip", "bool_match_u32", "option_identity_u32", "none_u32", "some_u32", "option_default_u32", "result_ok_u32", "result_err_u32", "choose_by_enum", "make_point", "point_x", "point_y", "shift_point_x", "step_stay", "step_jump", "step_amount_or", "step_amount_plus_one_or", "nested_none_u32", "result_ok_none_u32", "result_err_some_u32", "identity_u64", "choose_generic_u32", "option_default_u64"],
+  "differential_assertion_count": 60,
+  "required_functions": ["clamp_u32", "max_u32", "is_nonzero_u32", "add_u32", "mul_u32", "bounded_bump_u32", "echo_u32", "echo_u64", "echo_i32", "echo_i64", "add_u64", "inc_u32", "inc_twice_u32", "unit_roundtrip", "bool_match_u32", "option_identity_u32", "none_u32", "some_u32", "option_default_u32", "result_ok_u32", "result_err_u32", "choose_by_enum", "make_point", "point_x", "point_y", "shift_point_x", "step_stay", "step_jump", "step_amount_or", "step_amount_plus_one_or", "nested_none_u32", "result_ok_none_u32", "result_err_some_u32", "identity_u64", "choose_generic_u32", "option_default_u64", "generic_identity__u32", "generic_choose__point", "generic_option_default__step", "auto_identity_u32", "auto_choose_point", "auto_option_default_step"],
   "required_types": ["Point", "Choice", "Step"],
   "checks": [
     { "name": "surface-type-check-before-emission", "status": "passed", "detail": "every emitted declaration passes LeanRustCore.Surface.checkSurfaceFun before Rust source is produced" },
-    { "name": "snapshot-reproducibility", "status": "passed", "detail": "scripts/check-extractor-snapshot.sh diffs generated.rs, differential tests, compatibility report, and validation report against Lean output" },
+    { "name": "snapshot-reproducibility", "status": "passed", "detail": "scripts/check-extractor-snapshot.sh diffs generated.rs, differential tests, compatibility report, validation report, and build metadata against Lean output" },
     { "name": "lean-evaluator-differential-tests", "status": "passed", "detail": "rust/tests/differential_generated.rs compares generated Rust calls with expectations computed by LeanRustCore.IR.eval and LeanRustCore.Surface.evalSurfaceFun" },
     { "name": "safe-rust-subset-gate", "status": "passed", "detail": "scripts/check-rust-validation.sh rejects unsafe, extern boundaries, panic/todo/unimplemented calls, and malformed emitter markers in generated Rust" },
     { "name": "ffi-boundary-exclusion", "status": "passed", "detail": "the direct Lean-emits-Rust path emits ordinary safe Rust only; raw FFI remains outside this compiler path" },
@@ -16,6 +18,9 @@
     { "name": "first-order-call-lowering", "status": "passed", "detail": "calls to tagged first-order Lean declarations lower to checked Rust function calls and dependency-aware emission" },
     { "name": "surface-evaluator-extracted-subset-tests", "status": "passed", "detail": "the SurfaceExpr evaluator covers the current extracted struct, enum, Result, monomorphization, payload-match, and call fixtures" },
     { "name": "rust-identifier-hygiene", "status": "passed", "detail": "Rust identifiers are sanitized for ASCII Rust syntax, keywords are escaped or prefixed, type/variant names use UpperCamelCase, and generated modules are checked for post-sanitization collisions before emission" },
+    { "name": "exact-toolchain-pins", "status": "passed", "detail": "Lean toolchain leanprover/lean4:v4.22.0 and Rust toolchain 1.85.0 are pinned and checked by scripts/check-toolchain-pins.sh" },
+    { "name": "release-fallback-ban", "status": "passed", "detail": "rust/build.rs refuses checked-in generated.rs fallback for CI or release builds; local development fallback requires LEAN_RUST_CORE_ALLOW_FALLBACK=1" },
+    { "name": "automatic-monomorphization", "status": "passed", "detail": "generic calls discovered inside concrete exported declarations enqueue and emit concrete monomorphized Rust functions before their callers" },
     { "name": "syn-parser-backed-validation", "status": "passed", "detail": "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset by AST instead of relying only on text grep" }
   ]
 }

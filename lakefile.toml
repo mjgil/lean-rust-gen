@@ -24,3 +24,7 @@ root = "DifferentialMain"
 [[lean_exe]]
 name = "gen_validation_report"
 root = "ValidationReportMain"
+
+[[lean_exe]]
+name = "gen_build_metadata"
+root = "BuildMetadataMain"

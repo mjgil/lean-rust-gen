@@ -66,6 +66,12 @@ fn parser_validates_generated_top_level_subset() {
         "step_amount_or",
         "step_amount_plus_one_or",
         "option_default_u64",
+        "generic_identity__u32",
+        "generic_choose__point",
+        "generic_option_default__step",
+        "auto_identity_u32",
+        "auto_choose_point",
+        "auto_option_default_step",
     ] {
         assert!(
             functions.contains(required),

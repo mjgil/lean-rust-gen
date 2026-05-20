@@ -10,9 +10,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
+        run: |
+          rustup toolchain install 1.85.0 --profile minimal --component rustfmt --component clippy
+          rustup default 1.85.0
       - name: Setup Lean
         uses: leanprover/lean-action@v1
       - name: Check

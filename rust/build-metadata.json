@@ -1,0 +1,16 @@
+{
+  "format": "lean-rust-core.build-metadata.v1",
+  "architecture": "direct-lean-emits-rust",
+  "lean_toolchain": "leanprover/lean4:v4.22.0",
+  "rust_toolchain": "1.85.0",
+  "fallback_env_var": "LEAN_RUST_CORE_ALLOW_FALLBACK",
+  "fallback_policy": "checked-in generated.rs fallback is allowed only for explicit local development builds; CI and release builds must run the Lean generator",
+  "generated_artifacts": [
+    "rust/src/generated.rs",
+    "rust/proof-report.json",
+    "rust/compatibility-report.json",
+    "rust/tests/differential_generated.rs",
+    "rust/validation-report.json",
+    "rust/build-metadata.json"
+  ]
+}

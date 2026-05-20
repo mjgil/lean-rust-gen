@@ -10,6 +10,7 @@ import LeanRustCore.Examples
 import LeanRustCore.ProofReport
 import LeanRustCore.Differential
 import LeanRustCore.RustValidation
+import LeanRustCore.Toolchain
 
 /-!
 # LeanRustCore

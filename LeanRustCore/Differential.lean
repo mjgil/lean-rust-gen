@@ -283,6 +283,48 @@ private def sfOptionDefaultU64 : SurfaceFun := {
   body := .matchOption (.var "x") (.var "fallback") "value" (.var "value")
 }
 
+private def sfGenericIdentityU32 : SurfaceFun := {
+  name := "generic_identity__u32",
+  args := [("x", .u32)],
+  ret := .u32,
+  body := .var "x"
+}
+
+private def sfGenericChoosePoint : SurfaceFun := {
+  name := "generic_choose__point",
+  args := [("flag", .bool), ("when_true", pointTy), ("when_false", pointTy)],
+  ret := pointTy,
+  body := .ite (.var "flag") (.var "when_true") (.var "when_false")
+}
+
+private def sfGenericOptionDefaultStep : SurfaceFun := {
+  name := "generic_option_default__step",
+  args := [("x", .option stepTy), ("fallback", stepTy)],
+  ret := stepTy,
+  body := .matchOption (.var "x") (.var "fallback") "value" (.var "value")
+}
+
+private def sfAutoIdentityU32 : SurfaceFun := {
+  name := "auto_identity_u32",
+  args := [("x", .u32)],
+  ret := .u32,
+  body := .call "generic_identity__u32" [.u32] .u32 [.var "x"]
+}
+
+private def sfAutoChoosePoint : SurfaceFun := {
+  name := "auto_choose_point",
+  args := [("flag", .bool), ("left", pointTy), ("right", pointTy)],
+  ret := pointTy,
+  body := .call "generic_choose__point" [.bool, pointTy, pointTy] pointTy [.var "flag", .var "left", .var "right"]
+}
+
+private def sfAutoOptionDefaultStep : SurfaceFun := {
+  name := "auto_option_default_step",
+  args := [("x", .option stepTy), ("fallback", stepTy)],
+  ret := stepTy,
+  body := .call "generic_option_default__step" [.option stepTy, stepTy] stepTy [.var "x", .var "fallback"]
+}
+
 /-- Surface-level semantic fixtures covering the currently extracted declaration families. -/
 def surfaceFixtureFunctions : List SurfaceFun := [
   sfAddU64,
@@ -308,7 +350,13 @@ def surfaceFixtureFunctions : List SurfaceFun := [
   sfResultErrSomeU32,
   sfIdentityU64,
   sfChooseGenericU32,
-  sfOptionDefaultU64
+  sfOptionDefaultU64,
+  sfGenericIdentityU32,
+  sfGenericChoosePoint,
+  sfGenericOptionDefaultStep,
+  sfAutoIdentityU32,
+  sfAutoChoosePoint,
+  sfAutoOptionDefaultStep
 ]
 
 private def surfaceExpected (name : String) (args : List SurfaceValue) : String :=
@@ -364,7 +412,17 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "choose_generic_u32(true, 10, 20)" (surfaceExpected "choose_generic_u32" [vBool true, vU32 10, vU32 20]),
   assertion "choose_generic_u32(false, 10, 20)" (surfaceExpected "choose_generic_u32" [vBool false, vU32 10, vU32 20]),
   assertion "option_default_u64(None, 77)" (surfaceExpected "option_default_u64" [vNone .u64, vU64 77]),
-  assertion "option_default_u64(Some(55), 77)" (surfaceExpected "option_default_u64" [vSome (vU64 55), vU64 77])
+  assertion "option_default_u64(Some(55), 77)" (surfaceExpected "option_default_u64" [vSome (vU64 55), vU64 77]),
+  assertion "generic_identity__u32(11)" (surfaceExpected "generic_identity__u32" [vU32 11]),
+  assertion "auto_identity_u32(12)" (surfaceExpected "auto_identity_u32" [vU32 12]),
+  assertion "generic_choose__point(true, Point { x: 1, y: 2 }, Point { x: 3, y: 4 })" (surfaceExpected "generic_choose__point" [vBool true, vPoint 1 2, vPoint 3 4]),
+  assertion "generic_choose__point(false, Point { x: 1, y: 2 }, Point { x: 3, y: 4 })" (surfaceExpected "generic_choose__point" [vBool false, vPoint 1 2, vPoint 3 4]),
+  assertion "auto_choose_point(true, Point { x: 1, y: 2 }, Point { x: 3, y: 4 })" (surfaceExpected "auto_choose_point" [vBool true, vPoint 1 2, vPoint 3 4]),
+  assertion "auto_choose_point(false, Point { x: 1, y: 2 }, Point { x: 3, y: 4 })" (surfaceExpected "auto_choose_point" [vBool false, vPoint 1 2, vPoint 3 4]),
+  assertion "generic_option_default__step(None, Step::Stay)" (surfaceExpected "generic_option_default__step" [vNone stepTy, vStepStay]),
+  assertion "generic_option_default__step(Some(Step::Jump(7)), Step::Stay)" (surfaceExpected "generic_option_default__step" [vSome (vStepJump 7), vStepStay]),
+  assertion "auto_option_default_step(None, Step::Jump(5))" (surfaceExpected "auto_option_default_step" [vNone stepTy, vStepJump 5]),
+  assertion "auto_option_default_step(Some(Step::Stay), Step::Jump(5))" (surfaceExpected "auto_option_default_step" [vSome vStepStay, vStepJump 5])
 ]
 
 private def emitAssertion (a : RustAssertion) : String :=

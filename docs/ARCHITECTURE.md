@@ -75,17 +75,24 @@ for future raw FFI exports. It is not the main compiler architecture.
 
 ## Completed step 5: explicit concrete monomorphization
 
-`rust_mono_export` records concrete type instantiations of generic Lean
+`rust_mono_export` records explicit concrete type instantiations of generic Lean
 definitions. The extractor reuses the elaborated generic body, maps the leading
 `Type` binders to concrete `RType`s, and emits one ordinary Rust function per
-requested instance. This pass supports scalar concrete type arguments such as
-`UInt32` and `UInt64`; generic structures/enums and automatically discovered
-instances remain future work.
+requested instance.
 
-Example:
+The extractor also now discovers generic calls that occur inside concrete
+`@[rust_export]` declarations. Those calls enqueue automatic monomorphization
+requests, including struct and enum concrete type arguments, and the emitter
+orders the generated instances before their callers.
+
+Examples:
 
 ```lean
 rust_mono_export generic_choose as choose_generic_u32 [UInt32]
+
+@[rust_export]
+def auto_choose_point (flag : Bool) (left right : Point) : Point :=
+  generic_choose Point flag left right
 ```
 
 ## Completed step 6: structured compatibility reporting
@@ -115,7 +122,7 @@ lake exe gen_differential_tests rust/tests/differential_generated.rs
 The suite currently covers the proof-carrying scalar/option examples plus
 SurfaceExpr-backed extracted-declaration examples for `u64`, `Bool` matches,
 `Option`, `Result`, structs, field projections, no-payload and payload enums,
-first-order calls, nested constructors, and explicit monomorphizations.
+first-order calls, nested constructors, explicit monomorphizations, and automatically discovered monomorphizations.
 
 ## Completed step 8: emitted-subset validation gate
 
@@ -169,3 +176,21 @@ modules when two distinct source names collapse to the same Rust name.
 and validates the approved generated Rust AST shape: only structs, enums, and
 safe monomorphic functions at top level; no raw FFI blocks; no unsafe blocks; and
 no panic/todo/unimplemented macros.
+
+## Newly completed: exact toolchain pins and release fallback ban
+
+`lean-toolchain` is pinned to `leanprover/lean4:v4.22.0`, and
+`rust-toolchain.toml` is pinned to Rust `1.85.0`. `scripts/check-toolchain-pins.sh`
+checks those exact pins and the generated `rust/build-metadata.json` snapshot.
+
+`rust/build.rs` no longer silently falls back to `src/generated.rs` for CI or
+release builds. Local fallback is allowed only when `LEAN_RUST_CORE_ALLOW_FALLBACK=1`
+and the Cargo profile is not `release`.
+
+## Newly completed: automatic monomorphization
+
+Generic calls inside concrete exported declarations are now discovered during
+extraction. The extractor creates deterministic generated Rust names such as
+`generic_identity__u32`, `generic_choose__point`, and
+`generic_option_default__step`, emits those concrete instances, and lowers the
+original exported function to a normal first-order Rust call.

@@ -1,12 +1,15 @@
 {
   "format": "lean-rust-core.proof-report.v1",
   "architecture": "direct-lean-emits-rust",
+  "lean_toolchain": "leanprover/lean4:v4.22.0",
+  "rust_toolchain": "1.85.0",
   "trusted_core": ["Lean kernel", "LeanRustCore.Extract.extractConst", "LeanRustCore.Extract.extractWithDiagnostics", "LeanRustCore.Surface.typeOfExpected", "LeanRustCore.Surface.evalSurfaceFun", "LeanRustCore.RustHygiene.validateSurfaceModuleHygiene", "LeanRustCore.EmitRust.emitSurfaceRustModule", "rust/tests/parser_validation.rs", "LeanRustCore.IR.eval"],
   "policy": {
     "generated_rust_unsafe": false,
     "source_string_matching": false,
     "ffi_result_lowering": "status-plus-out-params",
-    "native_rust_types_at_ffi": false
+    "native_rust_types_at_ffi": false,
+    "release_fallback_allowed": false
   },
   "facts": [
     { "name": "extractor_reads_elaborated_definitions", "statement": "rust_emit_exports collects @[rust_export] declarations and uses Lean constant bodies, not source-string matching" },
@@ -22,6 +25,9 @@
     { "name": "struct_enum_declarations", "statement": "SurfaceStruct and SurfaceEnum declarations are emitted before generated Rust functions" },
     { "name": "expected_type_propagation", "statement": "nested Option and Except constructors are checked with the Rust-facing expected type" },
     { "name": "generic_monomorphization", "statement": "rust_mono_export registers concrete type instantiations of generic Lean definitions and emits concrete Rust functions" },
+    { "name": "automatic_monomorphization", "statement": "generic calls discovered inside concrete exported declarations enqueue and emit concrete monomorphized Rust functions" },
+    { "name": "toolchain_pins", "statement": "Lean and Rust toolchains are pinned exactly and checked before CI/release validation" },
+    { "name": "release_fallback_ban", "statement": "checked-in generated.rs fallback is disabled for CI and release builds" },
     { "name": "compatibility_reporting", "statement": "unsupported tagged exports are skipped and recorded in a structured compatibility report" },
     { "name": "payload_enum_branch_binders", "statement": "payload enum pattern matching stores checked branch binders and emits Rust variant patterns" },
     { "name": "first_order_function_calls", "statement": "calls to other tagged first-order exports lower to checked SurfaceExpr.call nodes and Rust function calls" },

@@ -7,3 +7,4 @@ lake exe gen_proof_report rust/proof-report.json
 lake exe gen_compatibility_report rust/compatibility-report.json
 lake exe gen_differential_tests rust/tests/differential_generated.rs
 lake exe gen_validation_report rust/validation-report.json
+lake exe gen_build_metadata rust/build-metadata.json

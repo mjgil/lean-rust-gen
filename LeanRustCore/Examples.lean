@@ -189,6 +189,21 @@ rust_mono_export generic_identity as identity_u64 [UInt64]
 rust_mono_export generic_choose as choose_generic_u32 [UInt32]
 rust_mono_export generic_option_default as option_default_u64 [UInt64]
 
+/-- A concrete exported declaration that triggers automatic monomorphization of `generic_identity`. -/
+@[rust_export]
+def auto_identity_u32 (x : UInt32) : UInt32 :=
+  generic_identity UInt32 x
+
+/-- A concrete exported declaration that triggers automatic monomorphization of a generic function over a struct. -/
+@[rust_export]
+def auto_choose_point (flag : Bool) (left right : Point) : Point :=
+  generic_choose Point flag left right
+
+/-- A concrete exported declaration that triggers automatic monomorphization of a generic function over an enum. -/
+@[rust_export]
+def auto_option_default_step (x : Option Step) (fallback : Step) : Step :=
+  generic_option_default Step x fallback
+
 /-- Demonstrates step 6: unsupported tagged exports are reported and skipped instead of aborting codegen. -/
 @[rust_export]
 def unsupported_higher_order_u32 (f : UInt32 → UInt32) (x : UInt32) : UInt32 :=

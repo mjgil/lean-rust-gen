@@ -153,3 +153,27 @@ pub fn choose_generic_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
 pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64 {
     match x { None => fallback, Some(value) => value }
 }
+
+pub fn generic_identity__u32(x: u32) -> u32 {
+    x
+}
+
+pub fn generic_choose__point(flag: bool, when_true: Point, when_false: Point) -> Point {
+    if flag { when_true } else { when_false }
+}
+
+pub fn generic_option_default__step(x: Option<Step>, fallback: Step) -> Step {
+    match x { None => fallback, Some(value) => value }
+}
+
+pub fn auto_identity_u32(x: u32) -> u32 {
+    generic_identity__u32(x)
+}
+
+pub fn auto_choose_point(flag: bool, left: Point, right: Point) -> Point {
+    generic_choose__point(flag, left, right)
+}
+
+pub fn auto_option_default_step(x: Option<Step>, fallback: Step) -> Step {
+    generic_option_default__step(x, fallback)
+}

@@ -2,7 +2,7 @@
 
 A self-contained direct **Lean → Rust** workflow.
 
-This pass extends the direct Lean emits Rust implementation through steps 1-8, plus the next six implementation items: payload enum pattern matching, first-order function-call lowering, a SurfaceExpr evaluator, expanded surface differential tests, Rust identifier hygiene/collision detection, and syn-backed parser validation:
+This pass extends the direct Lean emits Rust implementation through steps 1-8, plus the next eight implementation items: payload enum pattern matching, first-order function-call lowering, a SurfaceExpr evaluator, expanded surface differential tests, Rust identifier hygiene/collision detection, syn-backed parser validation, exact toolchain pins/release fallback policy, and automatic monomorphization:
 
 1. Export extraction accepts `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`,
    `Option`, `Except`, and closed inductive/structure types in addition to the
@@ -27,6 +27,11 @@ This pass extends the direct Lean emits Rust implementation through steps 1-8, p
    type and variant names, and rejects post-sanitization collisions before emission.
 10. `rust/tests/parser_validation.rs` parses generated Rust with `syn` and checks
    the approved top-level safe Rust subset by AST.
+11. Lean and Rust toolchains are pinned exactly and checked by
+   `scripts/check-toolchain-pins.sh`; CI/release builds cannot silently use the
+   checked-in generated Rust fallback.
+12. Generic calls inside concrete exported declarations are automatically
+   monomorphized into deterministic generated Rust functions.
 
 ## What is generated
 
@@ -78,14 +83,25 @@ pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>>
 pub fn identity_u64(x: u64) -> u64
 pub fn choose_generic_u32(flag: bool, when_true: u32, when_false: u32) -> u32
 pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64
+pub fn generic_identity__u32(x: u32) -> u32
+pub fn generic_choose__point(flag: bool, when_true: Point, when_false: Point) -> Point
+pub fn generic_option_default__step(x: Option<Step>, fallback: Step) -> Step
+pub fn auto_identity_u32(x: u32) -> u32
+pub fn auto_choose_point(flag: bool, left: Point, right: Point) -> Point
+pub fn auto_option_default_step(x: Option<Step>, fallback: Step) -> Step
 ```
 
-The non-generic functions are emitted from ordinary `@[rust_export]` Lean definitions; the generic examples use explicit concrete monomorphization specs:
+The non-generic functions are emitted from ordinary `@[rust_export]` Lean definitions. Generic examples use both explicit concrete monomorphization specs and automatically discovered instances from concrete exported call sites:
 
 ```lean
 rust_mono_export generic_identity as identity_u64 [UInt64]
 rust_mono_export generic_choose as choose_generic_u32 [UInt32]
 rust_mono_export generic_option_default as option_default_u64 [UInt64]
+
+@[rust_export]
+def auto_choose_point (flag : Bool) (left right : Point) : Point :=
+  generic_choose Point flag left right
+
 rust_emit_exports_with_report generatedRust generatedCompatibilityReport
 ```
 
@@ -104,21 +120,25 @@ LeanRustCore/
   ProofReport.lean       proof-sidecar JSON model
   Differential.lean      Lean IR + SurfaceExpr differential test generation
   RustValidation.lean    validation report for the current emitted subset
+  Toolchain.lean         exact toolchain/build-metadata policy
 Main.lean                `lake exe gen_rust`
 ProofReportMain.lean     `lake exe gen_proof_report`
 CompatibilityReportMain.lean `lake exe gen_compatibility_report`
 DifferentialMain.lean    `lake exe gen_differential_tests`
 ValidationReportMain.lean `lake exe gen_validation_report`
+BuildMetadataMain.lean   `lake exe gen_build_metadata`
 rust/
-  build.rs               tries Lean generator, falls back to checked-in snapshot
+  build.rs               runs Lean generator; dev fallback requires LEAN_RUST_CORE_ALLOW_FALLBACK=1
   src/generated.rs       checked-in fallback generated Rust
   tests/generated.rs     Rust tests for generated functions
   tests/differential_generated.rs Lean-generated differential tests
   tests/parser_validation.rs syn-backed AST validation for generated Rust
   validation-report.json Rust-validation manifest for the emitted subset
+  build-metadata.json    exact toolchain and fallback-policy metadata
 scripts/
   gen.sh                 regenerate Rust, reports, and differential tests
   check-extractor-snapshot.sh
+  check-toolchain-pins.sh
   check-rust-validation.sh
   check.sh
 ```
@@ -152,7 +172,8 @@ Supported now:
 - enum constructors with payload fields,
 - first-order calls to other tagged exported Lean declarations,
 - expected-type propagation through nested `Option`/`Except` constructors,
-- explicit concrete monomorphizations of generic functions with scalar type arguments,
+- explicit concrete monomorphizations of generic functions,
+- automatic monomorphization for generic calls discovered inside concrete exported declarations,
 - structured compatibility reports for unsupported tagged exports,
 - Lean-generated differential tests for proof-carrying IR and SurfaceExpr-backed cases,
 - validation reports and repository gates for the current safe Rust subset,
@@ -163,7 +184,7 @@ Still intentionally out of scope:
 
 - recursive functions and loops,
 - higher-order functions and closures,
-- implicit / discovered monomorphization; concrete generic exports currently use `rust_mono_export`,
+- recursive automatic monomorphization through recursive generic functions,
 - a full Rust→Lean translation validator for arbitrary Rust text beyond the generated subset.
 
 ## Validation gates
@@ -173,6 +194,8 @@ The step 7/8 gates are:
 ```bash
 lake exe gen_differential_tests rust/tests/differential_generated.rs
 lake exe gen_validation_report rust/validation-report.json
+lake exe gen_build_metadata rust/build-metadata.json
+./scripts/check-toolchain-pins.sh
 ./scripts/check-extractor-snapshot.sh
 ./scripts/check-rust-validation.sh
 cd rust && cargo test
@@ -182,15 +205,14 @@ cd rust && cargo test
 values computed from `LeanRustCore.IR.eval` and `LeanRustCore.Surface.evalSurfaceFun`.
 `rust/validation-report.json` records the current direct Lean→Rust validation checks, and `check-rust-validation.sh`
 rejects unsafe, raw FFI, panic/todo/unimplemented, malformed-emitter markers,
-and missing parser-validation coverage in the generated Rust snapshot. The Rust
+and missing parser-validation coverage in the generated Rust snapshot. The toolchain gate checks exact Lean/Rust pins and the release fallback policy. The Rust
 `parser_validation` integration test additionally parses `generated.rs` with `syn`
 and checks the generated top-level AST shape.
 
 ## Fully working implementation steps remaining
 
 1. Add ordinary recursion or an explicit final no-recursion policy.
-2. Extend monomorphization from explicit scalar type arguments to discovered
-   concrete instantiations and generic structures/enums.
+2. Extend automatic monomorphization through recursive generic functions and richer higher-kinded/nested generic shapes.
 3. Replace the current manually mirrored SurfaceExpr fixtures with extracted
    surface artifacts emitted directly from `rust_emit_exports_with_report`.
 4. Replace the current generated-subset `syn` validator with a Rust→Lean

@@ -29,3 +29,8 @@ The current pass adds Rust identifier hygiene and parser-backed target validatio
 `LeanRustCore.RustHygiene` owns source-name sanitization/collision checks, and
 `rust/tests/parser_validation.rs` parses the generated Rust snapshot with `syn`
 before validating the approved generated AST shape.
+
+Steps 7/8 after the parser-validation pass add exact Lean/Rust toolchain pins,
+a release-mode fallback ban in `rust/build.rs`, generated build metadata, and
+automatic monomorphization for generic calls discovered inside concrete exported
+Lean declarations.

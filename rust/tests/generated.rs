@@ -112,3 +112,21 @@ fn concrete_generic_instantiations_are_emitted() {
     assert_eq!(option_default_u64(None, 77), 77);
     assert_eq!(option_default_u64(Some(55), 77), 55);
 }
+
+#[test]
+fn automatic_monomorphization_emits_discovered_instances() {
+    assert_eq!(generic_identity__u32(11), 11);
+    assert_eq!(auto_identity_u32(12), 12);
+
+    let left = Point { x: 1, y: 2 };
+    let right = Point { x: 3, y: 4 };
+    assert_eq!(generic_choose__point(true, left.clone(), right.clone()), left);
+    assert_eq!(generic_choose__point(false, left.clone(), right.clone()), right);
+    assert_eq!(auto_choose_point(true, left.clone(), right.clone()), left);
+    assert_eq!(auto_choose_point(false, left.clone(), right.clone()), right);
+
+    assert_eq!(generic_option_default__step(None, Step::Stay), Step::Stay);
+    assert_eq!(generic_option_default__step(Some(Step::Jump(7)), Step::Stay), Step::Jump(7));
+    assert_eq!(auto_option_default_step(None, Step::Jump(5)), Step::Jump(5));
+    assert_eq!(auto_option_default_step(Some(Step::Stay), Step::Jump(5)), Step::Stay);
+}

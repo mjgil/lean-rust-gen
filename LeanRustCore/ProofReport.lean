@@ -1,5 +1,6 @@
 import LeanRustCore.Examples
 import LeanRustCore.ChimeraBoundary
+import LeanRustCore.Toolchain
 
 namespace LeanRustCore.ProofReport
 
@@ -8,6 +9,11 @@ structure ProofFact where
   name : String
   statement : String
   deriving Repr, BEq
+
+private def joinWith (sep : String) : List String → String
+  | [] => ""
+  | [x] => x
+  | x :: xs => x ++ sep ++ joinWith sep xs
 
 /-- Facts that are checked by importing/building the Lean modules. -/
 def facts : List ProofFact := [
@@ -24,6 +30,9 @@ def facts : List ProofFact := [
   { name := "struct_enum_declarations", statement := "SurfaceStruct and SurfaceEnum declarations are emitted before generated Rust functions" },
   { name := "expected_type_propagation", statement := "nested Option and Except constructors are checked with the Rust-facing expected type" },
   { name := "generic_monomorphization", statement := "rust_mono_export registers concrete type instantiations of generic Lean definitions and emits concrete Rust functions" },
+  { name := "automatic_monomorphization", statement := "generic calls discovered inside concrete exported declarations enqueue and emit concrete monomorphized Rust functions" },
+  { name := "toolchain_pins", statement := "Lean and Rust toolchains are pinned exactly and checked before CI/release validation" },
+  { name := "release_fallback_ban", statement := "checked-in generated.rs fallback is disabled for CI and release builds" },
   { name := "compatibility_reporting", statement := "unsupported tagged exports are skipped and recorded in a structured compatibility report" },
   { name := "payload_enum_branch_binders", statement := "payload enum pattern matching stores checked branch binders and emits Rust variant patterns" },
   { name := "first_order_function_calls", statement := "calls to other tagged first-order exports lower to checked SurfaceExpr.call nodes and Rust function calls" },
@@ -35,29 +44,34 @@ def facts : List ProofFact := [
   { name := "result_u32_i32_lowering", statement := "Result<u32,i32> lowers to status plus two out parameters" }
 ]
 
+private def jsonEscapeChar : Char → String
+  | '"' => "\\\""
+  | '\\' => "\\\\"
+  | '\n' => "\\n"
+  | '\r' => "\\r"
+  | '\t' => "\\t"
+  | c => String.singleton c
+
 private def jsonEscape (s : String) : String :=
-  -- First pass: generated names/statements are ASCII and controlled.
-  s
+  joinWith "" (s.toList.map jsonEscapeChar)
 
 private def factToJson (f : ProofFact) : String :=
   "    { \"name\": \"" ++ jsonEscape f.name ++ "\", \"statement\": \"" ++ jsonEscape f.statement ++ "\" }"
-
-private def joinWith (sep : String) : List String → String
-  | [] => ""
-  | [x] => x
-  | x :: xs => x ++ sep ++ joinWith sep xs
 
 /-- JSON proof report emitted next to generated Rust. -/
 def reportJson : String :=
   "{\n" ++
   "  \"format\": \"lean-rust-core.proof-report.v1\",\n" ++
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
+  "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"rust/tests/parser_validation.rs\", \"LeanRustCore.IR.eval\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
   "    \"ffi_result_lowering\": \"status-plus-out-params\",\n" ++
-  "    \"native_rust_types_at_ffi\": false\n" ++
+  "    \"native_rust_types_at_ffi\": false,\n" ++
+  "    \"release_fallback_allowed\": false\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++
   joinWith ",\n" (facts.map factToJson) ++ "\n" ++

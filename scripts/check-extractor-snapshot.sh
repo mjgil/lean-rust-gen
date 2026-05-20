@@ -21,3 +21,9 @@ tmp_validation="$(mktemp)"
 lake exe gen_validation_report "$tmp_validation"
 diff -u rust/validation-report.json "$tmp_validation"
 rm -f "$tmp_validation"
+
+
+tmp_metadata="$(mktemp)"
+lake exe gen_build_metadata "$tmp_metadata"
+diff -u rust/build-metadata.json "$tmp_metadata"
+rm -f "$tmp_metadata"

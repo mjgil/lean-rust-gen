@@ -4,11 +4,15 @@ use std::{
     process::Command,
 };
 
+const ALLOW_FALLBACK_ENV: &str = "LEAN_RUST_CORE_ALLOW_FALLBACK";
+
 fn main() {
     println!("cargo:rerun-if-changed=../LeanRustCore");
     println!("cargo:rerun-if-changed=../Main.lean");
     println!("cargo:rerun-if-changed=../lakefile.toml");
     println!("cargo:rerun-if-changed=src/generated.rs");
+    println!("cargo:rerun-if-env-changed={ALLOW_FALLBACK_ENV}");
+    println!("cargo:rerun-if-env-changed=CI");
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("Cargo sets OUT_DIR"));
     let generated_out = out_dir.join("generated.rs");
@@ -35,14 +39,44 @@ fn main() {
             );
         }
         Ok(status) => {
-            println!("cargo:warning=lake exited with status {status}; using checked-in fallback src/generated.rs");
-            copy_fallback(&manifest_dir, &generated_out);
+            fail_or_use_development_fallback(
+                &manifest_dir,
+                &generated_out,
+                format!("lake exited with status {status}"),
+            );
         }
         Err(err) => {
-            println!("cargo:warning=lake not available ({err}); using checked-in fallback src/generated.rs");
-            copy_fallback(&manifest_dir, &generated_out);
+            fail_or_use_development_fallback(
+                &manifest_dir,
+                &generated_out,
+                format!("lake was not available: {err}"),
+            );
         }
     }
+}
+
+fn fail_or_use_development_fallback(manifest_dir: &Path, generated_out: &Path, reason: String) {
+    if development_fallback_allowed() {
+        println!(
+            "cargo:warning={reason}; using checked-in src/generated.rs because {ALLOW_FALLBACK_ENV}=1 in a non-release, non-CI build"
+        );
+        copy_fallback(manifest_dir, generated_out);
+        return;
+    }
+
+    panic!(
+        "Lean generator failed ({reason}). Checked-in generated.rs fallback is disabled unless {ALLOW_FALLBACK_ENV}=1, and it is always disabled for CI or release builds. Run ./scripts/gen.sh or install the pinned Lean toolchain."
+    );
+}
+
+fn development_fallback_allowed() -> bool {
+    let explicit = env::var(ALLOW_FALLBACK_ENV).ok().as_deref() == Some("1");
+    let profile = env::var("PROFILE").unwrap_or_default();
+    let ci = env::var("CI")
+        .map(|value| value != "" && value != "0" && value != "false")
+        .unwrap_or(false);
+
+    explicit && profile != "release" && !ci
 }
 
 fn copy_fallback(manifest_dir: &Path, generated_out: &Path) {
