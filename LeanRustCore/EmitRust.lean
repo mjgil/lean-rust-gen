@@ -1,5 +1,6 @@
 import LeanRustCore.IR
 import LeanRustCore.Surface
+import LeanRustCore.RustHygiene
 
 namespace LeanRustCore
 
@@ -19,32 +20,19 @@ def rustType : RType → String
   | .i64 => "i64"
   | .option t => "Option<" ++ rustType t ++ ">"
   | .result ok err => "Result<" ++ rustType ok ++ ", " ++ rustType err ++ ">"
-  | .struct name _ => name
-  | .enum name _ => name
-
-def rustVariantName (variant : String) : String :=
-  if variant == "first" then "First"
-  else if variant == "second" then "Second"
-  else if variant == "third" then "Third"
-  else if variant == "red" then "Red"
-  else if variant == "green" then "Green"
-  else if variant == "blue" then "Blue"
-  else if variant == "left" then "Left"
-  else if variant == "right" then "Right"
-  else if variant == "stay" then "Stay"
-  else if variant == "jump" then "Jump"
-  else variant
+  | .struct name _ => rustTypeIdent name
+  | .enum name _ => rustTypeIdent name
 
 private def enumPath (ty : RType) (variant : String) : String :=
   match ty with
-  | .enum name _ => name ++ "::" ++ rustVariantName variant
-  | _ => rustVariantName variant
+  | .enum name _ => rustTypeIdent name ++ "::" ++ rustVariantIdent variant
+  | _ => rustVariantIdent variant
 
 private def emitEnumPattern (ty : RType) (branch : String × (List String × SurfaceExpr)) : String :=
   if branch.2.1.isEmpty then
     enumPath ty branch.1
   else
-    enumPath ty branch.1 ++ "(" ++ joinWith ", " branch.2.1 ++ ")"
+    enumPath ty branch.1 ++ "(" ++ joinWith ", " (branch.2.1.map (rustValueIdent "value")) ++ ")"
 
 private def emitInt (n : Int) : String :=
   toString n
@@ -63,7 +51,7 @@ private def emitWrapping (op : String) (t : RType) (a b : String) : String :=
 
 /-- Emit a valid Rust expression for the proof-carrying typed subset. -/
 def emitExpr {ctx : Type} : {t : RType} → RExpr ctx t → String
-  | _, .var name _ => name
+  | _, .var name _ => rustValueIdent "value" name
   | _, .litUnit => "()"
   | _, .litBool true => "true"
   | _, .litBool false => "false"
@@ -71,7 +59,7 @@ def emitExpr {ctx : Type} : {t : RType} → RExpr ctx t → String
   | _, .litU64 n => Nat.toString n
   | _, .litI32 n => emitInt n
   | _, .litI64 n => emitInt n
-  | _, .letIn name value body => "{ let " ++ name ++ " = " ++ emitExpr value ++ "; " ++ emitExpr body ++ " }"
+  | _, .letIn name value body => "{ let " ++ rustValueIdent "value" name ++ " = " ++ emitExpr value ++ "; " ++ emitExpr body ++ " }"
   | _, .ite c a b => "if " ++ emitExpr c ++ " { " ++ emitExpr a ++ " } else { " ++ emitExpr b ++ " }"
   | _, .matchBool c whenTrue whenFalse => "match " ++ emitExpr c ++ " { true => " ++ emitExpr whenTrue ++ ", false => " ++ emitExpr whenFalse ++ " }"
   | _, .matchOption target noneCase someCase => "match " ++ emitExpr target ++ " { None => " ++ emitExpr noneCase ++ ", Some(value) => " ++ emitExpr someCase ++ " }"
@@ -95,7 +83,7 @@ def emitExpr {ctx : Type} : {t : RType} → RExpr ctx t → String
 
 /-- Emit the extracted first-order surface subset. -/
 partial def emitSurfaceExpr : SurfaceExpr → String
-  | .var name => name
+  | .var name => rustValueIdent "value" name
   | .litUnit => "()"
   | .litBool true => "true"
   | .litBool false => "false"
@@ -103,10 +91,10 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .litU64 n => Nat.toString n
   | .litI32 n => emitInt n
   | .litI64 n => emitInt n
-  | .letIn name value body => "{ let " ++ name ++ " = " ++ emitSurfaceExpr value ++ "; " ++ emitSurfaceExpr body ++ " }"
+  | .letIn name value body => "{ let " ++ rustValueIdent "value" name ++ " = " ++ emitSurfaceExpr value ++ "; " ++ emitSurfaceExpr body ++ " }"
   | .ite c a b => "if " ++ emitSurfaceExpr c ++ " { " ++ emitSurfaceExpr a ++ " } else { " ++ emitSurfaceExpr b ++ " }"
   | .matchBool c whenTrue whenFalse => "match " ++ emitSurfaceExpr c ++ " { true => " ++ emitSurfaceExpr whenTrue ++ ", false => " ++ emitSurfaceExpr whenFalse ++ " }"
-  | .matchOption target noneCase someName someCase => "match " ++ emitSurfaceExpr target ++ " { None => " ++ emitSurfaceExpr noneCase ++ ", Some(" ++ someName ++ ") => " ++ emitSurfaceExpr someCase ++ " }"
+  | .matchOption target noneCase someName someCase => "match " ++ emitSurfaceExpr target ++ " { None => " ++ emitSurfaceExpr noneCase ++ ", Some(" ++ rustValueIdent "value" someName ++ ") => " ++ emitSurfaceExpr someCase ++ " }"
   | .matchEnum enumTy target branches =>
       let rendered := branches.map (fun branch => emitEnumPattern enumTy branch ++ " => " ++ emitSurfaceExpr branch.2.2)
       "match " ++ emitSurfaceExpr target ++ " { " ++ joinWith ", " rendered ++ " }"
@@ -128,29 +116,29 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .resultOk _ a => "Ok(" ++ emitSurfaceExpr a ++ ")"
   | .resultErr _ e => "Err(" ++ emitSurfaceExpr e ++ ")"
   | .structLit ty fields =>
-      let rendered := fields.map (fun field => field.1 ++ ": " ++ emitSurfaceExpr field.2)
+      let rendered := fields.map (fun field => rustFieldIdent field.1 ++ ": " ++ emitSurfaceExpr field.2)
       match ty with
-      | .struct name _ => name ++ " { " ++ joinWith ", " rendered ++ " }"
+      | .struct name _ => rustTypeIdent name ++ " { " ++ joinWith ", " rendered ++ " }"
       | _ => "/* malformed struct literal */"
-  | .field target fieldName => "(" ++ emitSurfaceExpr target ++ ")." ++ fieldName
+  | .field target fieldName => "(" ++ emitSurfaceExpr target ++ ")." ++ rustFieldIdent fieldName
   | .enumVariant ty variant payload =>
       let renderedPayload := if payload.isEmpty then "" else "(" ++ joinWith ", " (payload.map emitSurfaceExpr) ++ ")"
       enumPath ty variant ++ renderedPayload
   | .call name _ _ args =>
-      name ++ "(" ++ joinWith ", " (args.map emitSurfaceExpr) ++ ")"
+      rustValueIdent "generated" name ++ "(" ++ joinWith ", " (args.map emitSurfaceExpr) ++ ")"
 
 /-- Emit one Rust function argument. -/
 def emitArg (arg : RArg) : String :=
-  arg.1 ++ ": " ++ rustType arg.2
+  rustValueIdent "arg" arg.1 ++ ": " ++ rustType arg.2
 
 /-- Emit a safe Rust function from proof-carrying typed IR. -/
 def emitFun (f : RFun) : String :=
-  "pub fn " ++ f.name ++ "(" ++ joinWith ", " (f.args.map emitArg) ++ ") -> " ++
+  "pub fn " ++ rustValueIdent "generated" f.name ++ "(" ++ joinWith ", " (f.args.map emitArg) ++ ") -> " ++
     rustType f.ret ++ " {\n    " ++ emitExpr f.body ++ "\n}\n"
 
 /-- Emit a safe Rust function from extracted surface IR. -/
 def emitSurfaceFun (f : SurfaceFun) : String :=
-  "pub fn " ++ f.name ++ "(" ++ joinWith ", " (f.args.map emitArg) ++ ") -> " ++
+  "pub fn " ++ rustValueIdent "generated" f.name ++ "(" ++ joinWith ", " (f.args.map emitArg) ++ ") -> " ++
     rustType f.ret ++ " {\n    " ++ emitSurfaceExpr f.body ++ "\n}\n"
 
 private def collectTypeStructs : RType → List SurfaceStruct
@@ -301,14 +289,14 @@ private def uniqueEnums : List SurfaceEnum → List SurfaceEnum
       if hasEnumNamed e.name tail then tail else e :: tail
 
 private def emitStructFieldDecl (field : RArg) : String :=
-  "pub " ++ field.1 ++ ": " ++ rustType field.2
+  "pub " ++ rustFieldIdent field.1 ++ ": " ++ rustType field.2
 
 private def emitStruct (s : SurfaceStruct) : String :=
   "#[derive(Clone, Debug, PartialEq, Eq)]\n" ++
-  "pub struct " ++ s.name ++ " { " ++ joinWith ", " (s.fields.map emitStructFieldDecl) ++ " }\n"
+  "pub struct " ++ rustTypeIdent s.name ++ " { " ++ joinWith ", " (s.fields.map emitStructFieldDecl) ++ " }\n"
 
 private def emitEnumVariantDecl (variant : String × List RType) : String :=
-  let name := rustVariantName variant.1
+  let name := rustVariantIdent variant.1
   if variant.2.isEmpty then
     name
   else
@@ -316,7 +304,7 @@ private def emitEnumVariantDecl (variant : String × List RType) : String :=
 
 private def emitEnum (e : SurfaceEnum) : String :=
   "#[derive(Clone, Debug, PartialEq, Eq)]\n" ++
-  "pub enum " ++ e.name ++ " { " ++ joinWith ", " (e.variants.map emitEnumVariantDecl) ++ " }\n"
+  "pub enum " ++ rustTypeIdent e.name ++ " { " ++ joinWith ", " (e.variants.map emitEnumVariantDecl) ++ " }\n"
 
 private def containsNameString : List String → String → Bool
   | [], _ => false
@@ -379,12 +367,26 @@ def emitRustModule (fns : List RFun) : String :=
   "// The checked-in rust/src/generated.rs is a fallback snapshot; scripts/gen.sh regenerates it.\n\n" ++
   joinWith "\n" (fns.map emitFun)
 
-/-- Emit a whole generated module from extracted Lean declarations. -/
-def emitSurfaceModule (m : SurfaceModule) : String :=
+private def emitSurfaceModuleUnchecked (m : SurfaceModule) : String :=
   "// Generated by LeanRustCore from elaborated Lean declarations. Do not edit by hand.\n" ++
   "// The checked-in rust/src/generated.rs is a fallback snapshot; scripts/gen.sh regenerates it.\n\n" ++
   emitDecls m ++
   joinWith "\n" (m.functions.map emitSurfaceFun)
+
+/-- Emit a whole generated module from extracted Lean declarations after Rust identifier-hygiene validation. -/
+def emitSurfaceModuleChecked (m : SurfaceModule) : Except CompatibilityReport String := do
+  let checked ← validateSurfaceModuleHygiene m
+  pure (emitSurfaceModuleUnchecked checked)
+
+/-- Emit a whole generated module from extracted Lean declarations. -/
+def emitSurfaceModule (m : SurfaceModule) : String :=
+  match emitSurfaceModuleChecked m with
+  | .ok source => source
+  | .error report => "// LeanRustCore emission failed: " ++ report.detail ++ "\n"
+
+/-- Emit a whole generated module from extracted Lean declarations after Rust identifier-hygiene validation. -/
+def emitSurfaceRustModuleChecked (fns : List SurfaceFun) : Except CompatibilityReport String :=
+  emitSurfaceModuleChecked (SurfaceModule.fromFunctions fns)
 
 /-- Emit a whole generated module from extracted Lean declarations. -/
 def emitSurfaceRustModule (fns : List SurfaceFun) : String :=

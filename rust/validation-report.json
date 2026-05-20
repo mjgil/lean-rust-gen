@@ -14,6 +14,8 @@
     { "name": "ffi-boundary-exclusion", "status": "passed", "detail": "the direct Lean-emits-Rust path emits ordinary safe Rust only; raw FFI remains outside this compiler path" },
     { "name": "payload-enum-match-lowering", "status": "passed", "detail": "payload enum matches lower through checked branch binders and Rust variant patterns" },
     { "name": "first-order-call-lowering", "status": "passed", "detail": "calls to tagged first-order Lean declarations lower to checked Rust function calls and dependency-aware emission" },
-    { "name": "surface-evaluator-extracted-subset-tests", "status": "passed", "detail": "the SurfaceExpr evaluator covers the current extracted struct, enum, Result, monomorphization, payload-match, and call fixtures" }
+    { "name": "surface-evaluator-extracted-subset-tests", "status": "passed", "detail": "the SurfaceExpr evaluator covers the current extracted struct, enum, Result, monomorphization, payload-match, and call fixtures" },
+    { "name": "rust-identifier-hygiene", "status": "passed", "detail": "Rust identifiers are sanitized for ASCII Rust syntax, keywords are escaped or prefixed, type/variant names use UpperCamelCase, and generated modules are checked for post-sanitization collisions before emission" },
+    { "name": "syn-parser-backed-validation", "status": "passed", "detail": "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset by AST instead of relying only on text grep" }
   ]
 }

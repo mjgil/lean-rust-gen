@@ -52,7 +52,7 @@ private def nameParent : Name → Name
   | .num p _ => p
 
 private def sanitizeRustIdent (fallback : String) (s : String) : String :=
-  if s == "_" || s == "" then fallback else s
+  LeanRustCore.sanitizeRustIdent fallback s
 
 private def containsName : List Name → Name → Bool
   | [], _ => false
@@ -738,7 +738,9 @@ elab_rules : command
   | `(rust_emit_defs $out:ident [$ids,*]) => do
       let declNames := ids.getElems.toList.map (fun stx => stx.getId)
       let funs ← liftCoreM <| extractConsts declNames
-      let rust := emitSurfaceRustModule funs
+      let rust ← match emitSurfaceRustModuleChecked funs with
+        | .ok source => pure source
+        | .error report => throwError "Rust identifier hygiene failed: {report.detail}"
       let lit := Syntax.mkStrLit rust
       elabCommand (← `(def $out : String := $lit))
 
@@ -754,7 +756,9 @@ syntax (name := rustEmitExports) "rust_emit_exports " ident : command
 elab_rules : command
   | `(rust_emit_exports $out:ident) => do
       let result ← currentExtractionResult
-      let rust := emitSurfaceRustModule result.functions
+      let rust ← match emitSurfaceRustModuleChecked result.functions with
+        | .ok source => pure source
+        | .error report => throwError "Rust identifier hygiene failed: {report.detail}"
       let lit := Syntax.mkStrLit rust
       elabCommand (← `(def $out : String := $lit))
 
@@ -764,7 +768,9 @@ syntax (name := rustEmitExportsWithReport) "rust_emit_exports_with_report " iden
 elab_rules : command
   | `(rust_emit_exports_with_report $out:ident $reportOut:ident) => do
       let result ← currentExtractionResult
-      let rust := emitSurfaceRustModule result.functions
+      let rust ← match emitSurfaceRustModuleChecked result.functions with
+        | .ok source => pure source
+        | .error report => throwError "Rust identifier hygiene failed: {report.detail}"
       let report := emitCompatibilityReport result
       let rustLit := Syntax.mkStrLit rust
       let reportLit := Syntax.mkStrLit report

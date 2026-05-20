@@ -24,3 +24,8 @@ This pass also adds payload enum pattern lowering and first-order calls between 
 The latest pass adds a dynamic `SurfaceValue` semantics for checked surface
 expressions and expands the differential fixtures across structs, enums,
 `Result`, explicit monomorphizations, payload matches, and call chains.
+
+The current pass adds Rust identifier hygiene and parser-backed target validation:
+`LeanRustCore.RustHygiene` owns source-name sanitization/collision checks, and
+`rust/tests/parser_validation.rs` parses the generated Rust snapshot with `syn`
+before validating the approved generated AST shape.

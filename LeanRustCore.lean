@@ -1,6 +1,7 @@
 import LeanRustCore.IR
 import LeanRustCore.Surface
 import LeanRustCore.Export
+import LeanRustCore.RustHygiene
 import LeanRustCore.EmitRust
 import LeanRustCore.Extract
 import LeanRustCore.Lowering

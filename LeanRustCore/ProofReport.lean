@@ -29,6 +29,8 @@ def facts : List ProofFact := [
   { name := "first_order_function_calls", statement := "calls to other tagged first-order exports lower to checked SurfaceExpr.call nodes and Rust function calls" },
   { name := "surface_expr_evaluator", statement := "evalSurfaceFun interprets the checked SurfaceExpr subset used by the direct Lean-to-Rust emitter" },
   { name := "expanded_surface_differential", statement := "Lean-generated differential tests compute extracted struct, enum, Result, call, and monomorphization expectations with evalSurfaceFun" },
+  { name := "rust_identifier_hygiene", statement := "validateSurfaceModuleHygiene rejects generated modules whose sanitized Rust identifiers collide" },
+  { name := "syn_parser_backed_validation", statement := "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset" },
   { name := "rust_adapter_owned_rejected", statement := "owned Rust values cannot cross the raw FFI boundary" },
   { name := "result_u32_i32_lowering", statement := "Result<u32,i32> lowers to status plus two out parameters" }
 ]

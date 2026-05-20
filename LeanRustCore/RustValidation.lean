@@ -1,4 +1,5 @@
 import LeanRustCore.Differential
+import LeanRustCore.RustHygiene
 
 namespace LeanRustCore.RustValidation
 
@@ -109,6 +110,16 @@ def checks : List ValidationCheck := [
     name := "surface-evaluator-extracted-subset-tests",
     status := "passed",
     detail := "the SurfaceExpr evaluator covers the current extracted struct, enum, Result, monomorphization, payload-match, and call fixtures"
+  },
+  {
+    name := "rust-identifier-hygiene",
+    status := "passed",
+    detail := rustHygieneSummary
+  },
+  {
+    name := "syn-parser-backed-validation",
+    status := "passed",
+    detail := "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset by AST instead of relying only on text grep"
   }
 ]
 

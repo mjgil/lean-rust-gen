@@ -10,11 +10,13 @@
 - `LeanRustCore.Surface.typeOf`
 - `LeanRustCore.Surface.evalSurfaceExpr`
 - `LeanRustCore.Surface.evalSurfaceFun`
+- `LeanRustCore.RustHygiene.validateSurfaceModuleHygiene`
 - `LeanRustCore.EmitRust.emitSurfaceRustModule`
 - `LeanRustCore.IR.RType`
 - `LeanRustCore.IR.RExpr`
 - `LeanRustCore.IR.eval`
 - `LeanRustCore.ChimeraBoundary.lowerResultSignature`
+- `rust/tests/parser_validation.rs`
 
 ## CI gates
 
@@ -54,8 +56,8 @@ expression families as the emitter and bounds call evaluation with explicit fuel
 for the current non-recursive subset.
 
 The next milestones are recursive functions, automatically discovered
-monomorphizations, parser-backed Rust validation, and richer generic type
-arguments.
+monomorphizations, richer generic type arguments, and semantic Rust→Lean
+translation validation beyond the current generated-subset `syn` parser gate.
 
 ## Differential and validation additions
 
@@ -70,6 +72,18 @@ Additional trusted/generated surfaces for steps 7 and 8:
 The validation gate is intentionally split: Lean generates the expected
 differential Rust tests and the validation manifest, while shell/Rust tests check
 that the generated Rust snapshot stays inside the current safe direct-emission
-subset. The expanded differential suite now computes extracted-declaration
+subset. `rust/tests/parser_validation.rs` parses the generated Rust with `syn`
+and validates the approved AST shape. The expanded differential suite now computes extracted-declaration
 expectations through `evalSurfaceFun` for structs, enums, `Result`, calls, and
 monomorphized functions.
+
+
+## Identifier hygiene and parser-backed validation
+
+`LeanRustCore.RustHygiene` rejects generated modules whose Rust-facing names
+collide after keyword escaping, invalid-character replacement, or type/variant
+case conversion. The emitter calls this check before producing Rust source.
+
+The Rust parser gate is intentionally target-side: it parses `generated.rs` with
+`syn` during `cargo test` and checks the emitted AST rather than relying only on
+textual grep.

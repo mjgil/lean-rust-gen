@@ -5,8 +5,9 @@ cd "$(dirname "$0")/.."
 generated="rust/src/generated.rs"
 validation_report="rust/validation-report.json"
 differential_tests="rust/tests/differential_generated.rs"
+parser_validation_tests="rust/tests/parser_validation.rs"
 
-required_files=("$generated" "$validation_report" "$differential_tests")
+required_files=("$generated" "$validation_report" "$differential_tests" "$parser_validation_tests")
 for path in "${required_files[@]}"; do
   test -f "$path"
 done
@@ -19,6 +20,8 @@ grep -q '"format": "lean-rust-core.rust-validation.v1"' "$validation_report"
 grep -q '"architecture": "direct-lean-emits-rust"' "$validation_report"
 grep -q '"name": "lean-evaluator-differential-tests"' "$validation_report"
 grep -q '"name": "safe-rust-subset-gate"' "$validation_report"
+grep -q '"name": "rust-identifier-hygiene"' "$validation_report"
+grep -q '"name": "syn-parser-backed-validation"' "$validation_report"
 grep -q '"name": "payload-enum-match-lowering"' "$validation_report"
 grep -q '"name": "first-order-call-lowering"' "$validation_report"
 grep -q '"name": "surface-evaluator-extracted-subset-tests"' "$validation_report"
@@ -32,3 +35,8 @@ grep -q 'step_amount_or(Step::Jump(12), 9)' "$differential_tests"
 grep -q 'inc_twice_u32(u32::MAX)' "$differential_tests"
 grep -q 'make_point(3, 4)' "$differential_tests"
 grep -q 'result_err_some_u32(44)' "$differential_tests"
+
+# Parser-backed validation is enforced by rust/tests/parser_validation.rs during cargo test.
+grep -q 'syn::parse_file' "$parser_validation_tests"
+grep -q 'parser_validates_generated_top_level_subset' "$parser_validation_tests"
+grep -q 'parser_rejects_raw_boundary_or_panic_constructs' "$parser_validation_tests"

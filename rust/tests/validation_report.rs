@@ -9,6 +9,8 @@ fn validation_report_records_current_subset_gates() {
     assert!(report.contains("payload-enum-match-lowering"));
     assert!(report.contains("first-order-call-lowering"));
     assert!(report.contains("surface-evaluator-extracted-subset-tests"));
+    assert!(report.contains("rust-identifier-hygiene"));
+    assert!(report.contains("syn-parser-backed-validation"));
     assert!(!report.contains("\"status\": \"failed\""));
 }
 
@@ -39,6 +41,7 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn option_default_u64",
         "pub fn step_amount_or",
         "pub fn inc_twice_u32",
+        "pub fn step_amount_plus_one_or",
     ] {
         assert!(
             source.contains(required),

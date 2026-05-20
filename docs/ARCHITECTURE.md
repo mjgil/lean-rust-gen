@@ -15,6 +15,9 @@ LeanRustCore.Surface.SurfaceFun
 LeanRustCore.EmitRust.emitSurfaceRustModule
         │
         ▼
+LeanRustCore.RustHygiene.validateSurfaceModuleHygiene
+        │  sanitizes Rust identifiers and rejects collisions
+        ▼
 rust/src/generated.rs
         │
         ▼
@@ -126,9 +129,10 @@ subset:
 - Lean-generated differential tests must be checked into the Rust test suite,
 - the Rust crate continues to use `#![forbid(unsafe_code)]`.
 
-This is a validation gate for the current generated subset. A future parser-backed
-Rust→Lean validator can replace the manifest once the generated Rust grammar is
-large enough to justify a separate target-language parser.
+This is a validation gate for the current generated subset. The gate now includes
+`syn` parsing of `generated.rs`; a future Rust→Lean validator can replace the
+current parser-backed subset checker once the generated Rust grammar is large
+enough to justify semantic target-language reconstruction.
 
 ## Newly completed: payload enum pattern matching and first-order calls
 
@@ -153,3 +157,15 @@ matches, wrapping arithmetic, structs, fields, enum payload constructors,
 fixtures instead of hard-coded expected values. The differential test suite
 covers structs, enums, `Result`, monomorphized exports, payload matches, and
 call chains against the generated Rust crate.
+
+## Newly completed: Rust identifier hygiene and parser-backed validation
+
+`LeanRustCore.RustHygiene` is now the single place that maps source names to
+Rust identifiers. It sanitizes invalid characters, escapes or prefixes Rust
+keywords, emits UpperCamelCase type/variant identifiers, and rejects generated
+modules when two distinct source names collapse to the same Rust name.
+
+`rust/tests/parser_validation.rs` now parses `rust/src/generated.rs` with `syn`
+and validates the approved generated Rust AST shape: only structs, enums, and
+safe monomorphic functions at top level; no raw FFI blocks; no unsafe blocks; and
+no panic/todo/unimplemented macros.
