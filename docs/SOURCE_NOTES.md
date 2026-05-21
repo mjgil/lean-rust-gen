@@ -55,3 +55,18 @@ Phase 4 adds a separate optional boundary exporter. `LeanRustCore.BoundaryExport
 generates primitive/result raw ABI wrappers in `rust/src/ffi_generated.rs`; the
 file is compiled only under the Rust `ffi` feature so the default direct lane
 keeps safe Rust emission isolated from raw FFI.
+
+## Phase 4-6 follow-on slice
+
+The follow-on slice adds explicit exact integer modes and target-semantics
+sampling. `@[rust_nat_exact]` lowers exported `Nat` boundaries to
+`num_bigint::BigUint`, and `@[rust_int_exact]` lowers exported `Int` boundaries
+to `num_bigint::BigInt`; wrapping `Nat` remains opt-in through
+`@[rust_nat_wrapping_u32]`. Captured lambdas inside recognized structural
+combinators are lowered as loop bodies that close over ordinary Rust locals.
+`LeanRustCore.TypeclassPolicy` records the small erased-dictionary class set
+handled by monomorphic lowering.
+
+`rust/tests/target_interpreter.rs` interprets selected Lean-generated target
+fingerprints and compares the interpreted values with compiled generated Rust
+calls, strengthening the previous fingerprint-equality validation gate.

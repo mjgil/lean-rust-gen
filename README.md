@@ -45,7 +45,11 @@ This pass extends the direct Lean emits Rust implementation through the baseline
 18. Conservative proof-shaped binders are erased from Rust signatures.
 19. Unary function-valued arguments lower to safe Rust `fn` pointer arguments.
 20. `rust/target-validation.txt` records Lean-side target fingerprints and `rust/tests/semantic_validation.rs` compares them against a parsed Rust AST reconstruction.
-21. `LeanRustCore.BoundaryExport` emits optional `ffi`-feature raw ABI wrappers in `rust/src/ffi_generated.rs`, separate from the default safe lane.
+21. `@[rust_nat_exact]`/`@[rust_int_exact]` lower exact Lean `Nat`/`Int` to `num_bigint::BigUint`/`BigInt`.
+22. Captured lambdas inside recognized structural combinators lower to loop bodies that close over Rust locals.
+23. Supported resolved typeclass dictionaries are erased when monomorphic `RType` lowering selects the target operation.
+24. `rust/tests/target_interpreter.rs` executes selected target fingerprints and compares them with compiled Rust.
+25. `LeanRustCore.BoundaryExport` emits optional `ffi`-feature raw ABI wrappers in `rust/src/ffi_generated.rs`, separate from the default safe lane.
 
 ## What is generated
 
@@ -83,6 +87,10 @@ pub fn echo_list_u32(xs: Vec<u32>) -> Vec<u32>
 pub fn echo_array_u32(xs: Vec<u32>) -> Vec<u32>
 pub fn list_map_inc_u32(xs: Vec<u32>) -> Vec<u32>
 pub fn list_fold_sum_u32(xs: Vec<u32>) -> u32
+pub fn list_map_add_capture_u32(delta: u32, xs: Vec<u32>) -> Vec<u32>
+pub fn exact_nat_add(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint
+pub fn exact_nat_mul(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint
+pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt
 pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32)
 pub fn echo_sum_u32(x: Result<u32, u32>) -> Result<u32, u32>
 pub fn add_u64(a: u64, b: u64) -> u64
@@ -111,6 +119,7 @@ pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>>
 pub fn identity_u64(x: u64) -> u64
 pub fn choose_generic_u32(flag: bool, when_true: u32, when_false: u32) -> u32
 pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64
+pub fn generic_beq_u32(a: u32, b: u32) -> bool
 pub fn generic_identity__u32(x: u32) -> u32
 pub fn generic_choose__point(flag: bool, when_true: Point, when_false: Point) -> Point
 pub fn generic_option_default__step(x: Option<Step>, fallback: Step) -> Step
@@ -134,6 +143,7 @@ The non-generic functions are emitted from ordinary `@[rust_export]` Lean defini
 rust_mono_export generic_identity as identity_u64 [UInt64]
 rust_mono_export generic_choose as choose_generic_u32 [UInt32]
 rust_mono_export generic_option_default as option_default_u64 [UInt64]
+rust_mono_export generic_beq as generic_beq_u32 [UInt32]
 
 @[rust_export]
 def auto_choose_point (flag : Bool) (left right : Point) : Point :=
@@ -175,6 +185,7 @@ rust/
   tests/differential_generated.rs Lean-generated differential tests
   tests/parser_validation.rs syn-backed AST validation for generated Rust
   tests/semantic_validation.rs Rust→target fingerprint validation
+  tests/target_interpreter.rs target-fingerprint interpreter samples
   tests/ffi_boundary.rs optional ffi-feature boundary tests
   validation-report.json Rust-validation manifest for the emitted subset
   target-validation.txt  Lean-side target validation snapshot
@@ -207,8 +218,9 @@ The optional `ffi` feature enables a separate raw ABI wrapper module. It is not 
 Supported now:
 
 - `Nat` lowered to Rust `u32` only for declarations marked
-  `@[rust_nat_wrapping_u32]`; fixed-width `UInt32`/`UInt64` are preferred for
-  normal exported boundaries,
+  `@[rust_nat_wrapping_u32]`; exact `Nat`/`Int` lower through
+  `@[rust_nat_exact]`/`@[rust_int_exact]` to `num_bigint::BigUint`/`BigInt`;
+  fixed-width `UInt32`/`UInt64` are preferred for normal exported boundaries,
 - `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`, `Bool`, `Char`, and `String`,
 - `List T` and `Array T`, emitted as owned Rust `Vec<T>` values for this phase,
 - `Prod A B` and `Sum A B`, emitted as Rust tuples and `Result<B, A>` respectively,
@@ -223,6 +235,8 @@ Supported now:
 - first-order calls to other tagged exported Lean declarations and automatically extracted first-order helper definitions,
 - `List.map` and `List.foldl` over owned `List` values, lowered to explicit safe Rust loop-shaped expressions,
 - generated first-order call cycles are allowed through Rust emission; differential evaluation remains fuel-bounded,
+- captured lambdas inside recognized structural combinators close over ordinary Rust locals,
+- resolved `BEq`/`LT`/`LE`/`HAdd`/`HSub`/`HMul`/`OfNat` dictionaries are erased when monomorphic lowering selects the target operation,
 - expected-type propagation through nested `Option`/`Except` constructors,
 - explicit concrete monomorphizations of generic functions,
 - automatic monomorphization for generic calls discovered inside concrete exported declarations,
@@ -241,9 +255,9 @@ Still intentionally out of scope:
 - exact mathematical `Nat`/`Int` runtime semantics unless a future exact-integer
   backend is added,
 - broader structural-recursion lowering beyond the current `List.map`/`List.foldl` slice, including richer accumulator recursions and proofs that emitted recursion is structurally bounded,
-- captured closures and defunctionalized local lambdas beyond unary Rust `fn` pointer arguments,
-- generated typeclass dictionaries beyond the current monomorphization/inlining-oriented path,
-- a full Rust→Lean translation validator for arbitrary Rust text beyond the generated subset.
+- general first-class captured closures and defunctionalized local lambdas beyond recognized structural combinators and unary Rust `fn` pointer arguments,
+- generated typeclass dictionaries beyond the current erased/resolved monomorphization path,
+- a full Rust→Lean translation validator for arbitrary Rust text beyond the generated subset and selected target-fingerprint interpreter.
 
 ## Validation gates
 
@@ -268,13 +282,14 @@ values computed from `LeanRustCore.IR.eval` and `LeanRustCore.Surface.evalSurfac
 rejects unsafe, raw FFI, panic/todo/unimplemented, malformed-emitter markers,
 and missing parser-validation coverage in the generated Rust snapshot. The toolchain gate checks exact Lean/Rust pins and the release fallback policy. The Rust
 `parser_validation` integration test additionally parses `generated.rs` with `syn`
-and checks the generated top-level AST shape. The Rust `semantic_validation` integration test parses generated Rust into a generated-subset target fingerprint and compares it with the Lean-generated `rust/target-validation.txt` snapshot. Optional raw ABI wrappers are generated in `rust/src/ffi_generated.rs` and tested only under `cargo test --features ffi`.
+and checks the generated top-level AST shape. The Rust `semantic_validation` integration test parses generated Rust into a generated-subset target fingerprint and compares it with the Lean-generated `rust/target-validation.txt` snapshot. The `target_interpreter` integration test executes selected target fingerprints and checks them against compiled generated Rust. Optional raw ABI wrappers are generated in `rust/src/ffi_generated.rs` and tested only under `cargo test --features ffi`.
 
 ## Large-subset implementation steps remaining
 
 The full staged plan is in `docs/LARGE_SUBSET_PLAN.md`. The next high-leverage
 items are:
 
-4. Strengthen the current Rust→target fingerprint validator into a proved Rust-subset semantics or Rust→Lean translation validator.
-5. Add closure conversion/defunctionalization for captured lambdas and known top-level function values.
-6. Expand the raw ABI lane with handles for strings, slices, structs, enums, and generated C headers.
+4. Extend exact integer lowering to additional operations and precondition modes.
+5. Generalize closure conversion/defunctionalization beyond recognized structural combinators.
+6. Replace selected target-fingerprint interpreter samples with a full generated-subset semantics theorem or Rust→Lean translation validator.
+7. Expand the raw ABI lane with handles for strings, slices, structs, enums, and generated C headers.

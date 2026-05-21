@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use syn::{
     BinOp, Expr, ExprBlock, ExprCall, ExprField, ExprForLoop, ExprIf, ExprLit, ExprMatch,
-    ExprMethodCall, ExprParen, ExprPath, ExprStruct, FnArg, GenericArgument, Item, ItemEnum,
-    ItemFn, ItemStruct, Lit, Member, Pat, Path, PathArguments, ReturnType, Stmt, Type,
+    ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprStruct, FnArg, GenericArgument, Item,
+    ItemEnum, ItemFn, ItemStruct, Lit, Member, Pat, Path, PathArguments, ReturnType, Stmt, Type,
 };
 
 const GENERATED_SOURCE: &str = include_str!("../src/generated.rs");
@@ -32,6 +32,11 @@ fn target_validation_snapshot_records_phase_3_contract() {
     assert!(TARGET_VALIDATION_SNAPSHOT.contains("FN\tlist_fold_sum_u32"));
     assert!(TARGET_VALIDATION_SNAPSHOT
         .contains("list_foldl(acc,x,lit(0),var(xs),add(var(acc),var(x)))"));
+    assert!(TARGET_VALIDATION_SNAPSHOT.contains("FN\tlist_map_add_capture_u32"));
+    assert!(TARGET_VALIDATION_SNAPSHOT.contains("list_map(x,var(xs),add(var(x),var(delta)))"));
+    assert!(TARGET_VALIDATION_SNAPSHOT.contains("FN\texact_nat_add"));
+    assert!(TARGET_VALIDATION_SNAPSHOT.contains("num_bigint::BigUint"));
+    assert!(TARGET_VALIDATION_SNAPSHOT.contains("FN\tgeneric_beq_u32"));
 }
 
 fn snapshot_lines(snapshot: &str) -> Vec<String> {
@@ -336,6 +341,7 @@ fn expr_fingerprint(expr: &Expr, known_functions: &BTreeSet<String>) -> String {
     match expr {
         Expr::Paren(ExprParen { expr, .. }) => expr_fingerprint(expr, known_functions),
         Expr::Group(group) => expr_fingerprint(&group.expr, known_functions),
+        Expr::Reference(ExprReference { expr, .. }) => expr_fingerprint(expr, known_functions),
         Expr::Path(path) => path_expr_fingerprint(path),
         Expr::Lit(lit) => literal_fingerprint(lit),
         Expr::Tuple(tuple) if tuple.elems.is_empty() => "unit".to_string(),
