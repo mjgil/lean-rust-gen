@@ -13,6 +13,7 @@ only through operations whose Rust behavior is explicit.
 inductive RType where
   | unit
   | bool
+  | ordering
   | u32
   | u64
   | i32
@@ -38,6 +39,7 @@ def Denote : RType → Type
   | .unit => Unit
   | .bool => Bool
   | .u32 => Nat
+  | .ordering => Ordering
   | .u64 => Nat
   | .i32 => Int
   | .i64 => Int

@@ -10,6 +10,9 @@ fn primitive_ffi_wrappers_call_generated_functions() {
     assert_eq!(lrc_bool_match_u32(1, 7, 9), 7);
     assert_eq!(lrc_bool_match_u32(0, 7, 9), 9);
     assert_eq!(lrc_helper_chain_u32(40), 42);
+    assert_eq!(lrc_decidable_eq_u32(7, 7), 1);
+    assert_eq!(lrc_decidable_eq_u32(7, 8), 0);
+    assert_eq!(lrc_closure_apply_capture_u32(5, 37), 42);
 }
 assert_eq!(lrc_nat_sum_to_u32(5), 10);
 assert_eq!(lrc_subtype_val_u32(42), 42);

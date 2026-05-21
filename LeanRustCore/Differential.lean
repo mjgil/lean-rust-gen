@@ -35,6 +35,11 @@ private def rustI64 (n : Int) : String :=
 private def rustBool (b : Bool) : String :=
   if b then "true" else "false"
 
+private def rustOrdering : Ordering → String
+  | Ordering.lt => "Ordering::Lt"
+  | Ordering.eq => "Ordering::Eq"
+  | Ordering.gt => "Ordering::Gt"
+
 private def rustChar (c : Char) : String :=
   "char::from_u32(" ++ Nat.toString c.toNat ++ ").unwrap()"
 
@@ -50,6 +55,7 @@ private partial def rustSurfaceValue : SurfaceValue → String
   | .i64 n => rustI64 n
   | .char c => rustChar c
   | .string s => rustStringLiteral s
+  | .ordering o => rustOrdering o
   | .list values => "vec![" ++ joinWith ", " (values.map rustSurfaceValue) ++ "]"
   | .array values => "vec![" ++ joinWith ", " (values.map rustSurfaceValue) ++ "]"
   | .prodVal a b => "(" ++ rustSurfaceValue a ++ ", " ++ rustSurfaceValue b ++ ")"
@@ -199,6 +205,17 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "tagged_missing_u32(())" (surfaceExpected "tagged_missing_u32" [vUnit]),
   assertion "tagged_present_u32(6)" (surfaceExpected "tagged_present_u32" [vU32 6]),
   assertion "tagged_default_u32(TaggedU32::Missing, 7)" (surfaceExpected "tagged_default_u32" [vTaggedMissing, vU32 7]),
+  assertion "decidable_eq_u32(7, 7)" (surfaceExpected "decidable_eq_u32" [vU32 7, vU32 7]),
+  assertion "decidable_eq_u32(7, 8)" (surfaceExpected "decidable_eq_u32" [vU32 7, vU32 8]),
+  assertion "ord_compare_u32(1, 2)" (surfaceExpected "ord_compare_u32" [vU32 1, vU32 2]),
+  assertion "ord_compare_u32(2, 2)" (surfaceExpected "ord_compare_u32" [vU32 2, vU32 2]),
+  assertion "ord_compare_u32(3, 2)" (surfaceExpected "ord_compare_u32" [vU32 3, vU32 2]),
+  assertion "inhabited_default_u32(())" (surfaceExpected "inhabited_default_u32" [vUnit]),
+  assertion "to_string_u32(42)" (surfaceExpected "to_string_u32" [vU32 42]),
+  assertion "repr_u32(42)" (surfaceExpected "repr_u32" [vU32 42]),
+  assertion "option_do_inc_u32(Some(41))" (surfaceExpected "option_do_inc_u32" [vSome (vU32 41)]),
+  assertion "option_do_inc_u32(None)" (surfaceExpected "option_do_inc_u32" [vNone .u32]),
+  assertion "closure_apply_capture_u32(5, 37)" (surfaceExpected "closure_apply_capture_u32" [vU32 5, vU32 37]),
   assertion "tagged_default_u32(TaggedU32::Present(6), 7)" (surfaceExpected "tagged_default_u32" [vTaggedPresent 6, vU32 7]),
   assertion "step_stay(())" (surfaceExpected "step_stay" [vUnit]),
   assertion "step_jump(12)" (surfaceExpected "step_jump" [vU32 12]),

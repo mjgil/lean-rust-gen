@@ -2,6 +2,7 @@ import Lean
 import LeanRustCore.EmitRust
 import LeanRustCore.Export
 
+import LeanRustCore.ClosureConversion
 namespace LeanRustCore.Extract
 
 open Lean Elab Command
@@ -241,6 +242,7 @@ mutual
     | _ =>
         if ty.isConstOf ``Nat then
           return .u32
+  | .ordering => "ordering"
         else if ty.isConstOf ``Bool then
           return .bool
         else if ty.isConstOf ``Unit then
@@ -290,6 +292,8 @@ mutual
                 match args with
                 | [inner, _pred] => return .subtype (← typeOfLeanWithCtx typeCtx inner)
                 | _ => throwError "unsupported Subtype shape in rust_export extraction"
+        else if ty.isConstOf ``Ordering then
+          return .ordering
               else if n == ``Fin then
                 match args with
                 | [boundExpr] =>
@@ -405,6 +409,20 @@ private partial def firstTypeArg? (typeCtx : TypeCtx) : List Expr → CoreM (Opt
       catch _ =>
         firstTypeArg? typeCtx xs
 
+private partial def typeArgsFrom? (typeCtx : TypeCtx) : List Expr → CoreM (List RType)
+  | [] => pure []
+  | x :: xs => do
+      let rest ← typeArgsFrom? typeCtx xs
+      try
+        pure ((← typeOfLeanWithCtx typeCtx x) :: rest)
+      catch _ =>
+        pure rest
+
+private def firstTwoTypeArgs? (typeCtx : TypeCtx) (args : List Expr) : CoreM (Option (RType × RType)) := do
+  match (← typeArgsFrom? typeCtx args) with
+  | a :: b :: _ => pure (some (a, b))
+  | _ => pure none
+
 
 private def lowerMonoChar : Char → Char
   | 'A' => 'a' | 'B' => 'b' | 'C' => 'c' | 'D' => 'd' | 'E' => 'e' | 'F' => 'f'
@@ -420,6 +438,7 @@ private def lowerMonoString (s : String) : String :=
 private partial def rTypeMonoSuffix : RType → String
   | .unit => "unit"
   | .bool => "bool"
+  | .ordering => "ordering"
   | .u32 => "u32"
   | .u64 => "u64"
   | .i32 => "i32"
@@ -521,6 +540,10 @@ private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expec
       let valueExpr ← translateExpr typeCtx locals (some valueTy) value
       let bodyExpr ← translateExpr (none :: typeCtx) (some { name := rustName, ty := valueTy } :: locals) expected body
       return .letIn rustName valueExpr bodyExpr
+  | .closureApply binder _ _ arg body => surfaceExprUsesVar needle arg || (binder != needle && surfaceExprUsesVar needle body)
+  | .defaultValue _ => false
+  | .toStringValue _ value => surfaceExprUsesVar needle value
+  | .reprValue _ value => surfaceExprUsesVar needle value
   | .proj structName fieldIdx target =>
       if nameLeaf structName == "Subtype" && fieldIdx == 0 then
         match expected with
@@ -549,6 +572,44 @@ where
     match lastTwo args with
     | some (a, b) => return ctor domain (← translateExpr typeCtx locals (some domain) a) (← translateExpr typeCtx locals (some domain) b)
     | none => unsupported e
+
+  translateLambdaApplication (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (fnExpr : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match stripMData fnExpr, args with
+    | .lam n ty body _, [argExpr] => do
+        let argTy ← typeOfLeanWithCtx typeCtx ty
+        let retTy ← match expected with
+          | some ty => pure ty
+          | none => throwError "closure conversion for direct lambda application needs an expected return type"
+        let binder := sanitizeRustIdent "item" (nameLeaf n)
+        let loweredArg ← translateExpr typeCtx locals (some argTy) argExpr
+        let loweredBody ← translateExpr (none :: typeCtx) (some { name := binder, ty := argTy } :: locals) (some retTy) body
+        pure (.closureApply binder argTy retTy loweredArg loweredBody)
+    | _, _ => unsupported fnExpr
+
+  translateLetLambdaApplication? (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (_letName : Name) (letTy value body : Expr) : CoreM (Option SurfaceExpr) := do
+    match stripMData value, stripMData body with
+    | .lam n lamTy lamBody _, bodyExpr =>
+        match (← typeOfLeanWithCtx typeCtx letTy) with
+        | .func argTy retTy =>
+            let appFn := bodyExpr.getAppFn
+            let appArgs := bodyExpr.getAppArgs.toList
+            match stripMData appFn, appArgs with
+            | .bvar 0, [callArg] => do
+                match expected with
+                | some wanted => if wanted == retTy then pure () else throwError "let-bound closure return type did not match expected result type"
+                | none => pure ()
+                let actualLamTy ← typeOfLeanWithCtx typeCtx lamTy
+                if actualLamTy == argTy then
+                  pure ()
+                else
+                  throwError "let-bound closure argument type did not match its function type"
+                let binder := sanitizeRustIdent "item" (nameLeaf n)
+                let loweredArg ← translateExpr (none :: typeCtx) (none :: locals) (some argTy) callArg
+                let loweredBody ← translateExpr (none :: typeCtx) (some { name := binder, ty := argTy } :: locals) (some retTy) lamBody
+                pure (some (.closureApply binder argTy retTy loweredArg loweredBody))
+            | _, _ => pure none
+        | _ => pure none
+    | _, _ => pure none
 
   translateUnaryLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx) (elemTy outTy : RType) (fnExpr : Expr) : CoreM (String × SurfaceExpr) := do
     match stripMData fnExpr with
@@ -1022,6 +1083,101 @@ where
                   return none
             | none => return none
 
+
+  isDefaultConst (n : Name) : Bool :=
+    nameLeaf n == "default"
+
+  isToStringConst (n : Name) : Bool :=
+    nameLeaf n == "toString"
+
+  isReprConst (n : Name) : Bool :=
+    nameLeaf n == "reprStr" || nameLeaf n == "repr"
+
+  isPureConst (n : Name) : Bool :=
+    nameLeaf n == "pure"
+
+  isBindConst (n : Name) : Bool :=
+    nameLeaf n == "bind" && !(nameParent n == ``Option) && !(nameParent n == ``Except)
+
+  isCompareConst (n : Name) : Bool :=
+    nameLeaf n == "compare"
+
+  translateDefaultValue (typeCtx : TypeCtx) (expected : Option RType) (args : List Expr) : CoreM SurfaceExpr := do
+    let ty ← match expected with
+      | some ty => pure ty
+      | none =>
+          match (← firstTypeArg? typeCtx args) with
+          | some ty => pure ty
+          | none => throwError "default/Inhabited lowering needs an expected type"
+    pure (.defaultValue ty)
+
+  translatePureValue (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match expected, last? args with
+    | some (.option inner), some valueExpr =>
+        pure (.optionSome (← translateExpr typeCtx locals (some inner) valueExpr))
+    | some (.result ok err), some valueExpr =>
+        pure (.resultOk err (← translateExpr typeCtx locals (some ok) valueExpr))
+    | _, _ => unsupported e
+
+  surfaceCtxFromLocals : LocalCtx → List RArg
+    | [] => []
+    | some local :: rest => (local.name, local.ty) :: surfaceCtxFromLocals rest
+    | none :: rest => surfaceCtxFromLocals rest
+
+  translatedSurfaceType (locals : LocalCtx) (expr : SurfaceExpr) : CoreM RType := do
+    match typeOfExpected (surfaceCtxFromLocals locals) expr none with
+    | .ok ty => pure ty
+    | .error report => throwError "could not infer translated surface type during typeclass bind lowering: {report.detail}"
+
+  translateTypeclassBind (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match lastTwo args with
+    | some (targetExpr, fnExpr) => do
+        let target ← translateExpr typeCtx locals none targetExpr
+        let targetTy ← translatedSurfaceType locals target
+        match targetTy, expected with
+        | .option elemTy, some (.option outTy) =>
+            let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy (.option outTy) fnExpr
+            pure (.optionBind binder elemTy outTy target body)
+        | .result okTy errTy, some (.result outTy expectedErr) =>
+            if errTy == expectedErr then
+              let (binder, body) ← translateUnaryLambdaBody typeCtx locals okTy (.result outTy errTy) fnExpr
+              pure (.resultBind binder errTy okTy outTy target body)
+            else
+              unsupported e
+        | _, _ => unsupported e
+    | none => unsupported e
+
+  translateStringLike (ctor : RType → SurfaceExpr → SurfaceExpr)
+      (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match last? args with
+    | some valueExpr => do
+        let ty ← expectedOrTypeArg typeCtx none args .u32
+        let value ← translateExpr typeCtx locals (some ty) valueExpr
+        pure (ctor ty value)
+    | none => unsupported e
+
+  translateCompare (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    let domain ← expectedOrTypeArg typeCtx none args .u32
+    match lastTwo args with
+    | some (a, b) =>
+        pure (.compare domain
+          (← translateExpr typeCtx locals (some domain) a)
+          (← translateExpr typeCtx locals (some domain) b))
+    | none => unsupported e
+
+  translateDirectLambdaApply (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (fnExpr : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match stripMData fnExpr, args with
+    | .lam n ty body _, [argExpr] => do
+        let argTy ← typeOfLeanWithCtx typeCtx ty
+        let retTy ← match expected with
+          | some retTy => pure retTy
+          | none => throwError "direct captured-lambda application needs an expected result type"
+        let binder := sanitizeRustIdent "arg" (nameLeaf n)
+        let arg ← translateExpr typeCtx locals (some argTy) argExpr
+        let bodyExpr ← translateExpr (none :: typeCtx) (some { name := binder, ty := argTy } :: locals) (some retTy) body
+        pure (.closureApply binder argTy retTy arg bodyExpr)
+    | _, _ => unsupported fnExpr
+
   translateApp (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) : CoreM SurfaceExpr := do
     let fn := e.getAppFn
     let args := e.getAppArgs.toList
@@ -1032,6 +1188,18 @@ where
           | _ty :: cond :: _dec :: thenExpr :: elseExpr :: [] =>
               return .ite (← translateExpr typeCtx locals (some .bool) cond) (← translateExpr typeCtx locals expected thenExpr) (← translateExpr typeCtx locals expected elseExpr)
           | _ => unsupported e
+        else if isDefaultConst n then
+          translateDefaultValue typeCtx expected args
+        else if isPureConst n then
+          translatePureValue typeCtx locals expected e args
+        else if isToStringConst n then
+          translateStringLike (fun ty value => .toStringValue ty value) typeCtx locals e args
+        else if isReprConst n then
+          translateStringLike (fun ty value => .reprValue ty value) typeCtx locals e args
+        else if isBindConst n then
+          translateTypeclassBind typeCtx locals expected e args
+        else if isCompareConst n then
+          translateCompare typeCtx locals e args
         else if n == ``Eq then
           let domain ← expectedOrTypeArg typeCtx none args .u32
           translateBinaryLastTwo typeCtx locals (some domain) e domain .eq
@@ -1132,6 +1300,8 @@ where
                   match localAt locals idx with
                   | .ok local =>
                       match local.ty with
+        else if isBindConst n then
+          translateTypeclassBind typeCtx locals expected e args
                       | .fin bound => return .finVal bound (← translateExpr typeCtx locals (some (.fin bound)) target)
                       | _ => throwError "Fin.val target was not typed as Fin in the local context"
                   | .error msg => throwError msg
@@ -1161,6 +1331,8 @@ where
                   match (← translateConstructorApp? typeCtx locals expected n args) with
                   | some expr => return expr
                   | none => unsupported e
+    | .lam _ _ _ _ =>
+        translateDirectLambdaApply typeCtx locals expected fn args
     | .bvar idx =>
         match localAt locals idx with
         | .ok local =>
@@ -1178,6 +1350,7 @@ private def rTypeSyntaxIdent (stx : Syntax) : Except String RType :=
   match nameLeaf n with
   | "Nat" => .ok .u32
   | "Bool" => .ok .bool
+  | "Ordering" => .ok .ordering
   | "Unit" => .ok .unit
   | "UInt32" => .ok .u32
   | "UInt64" => .ok .u64
@@ -1190,6 +1363,7 @@ private def rTypeSyntaxIdent (stx : Syntax) : Except String RType :=
 private def rTypeReportLabel : RType → String
   | .unit => "Unit"
   | .bool => "Bool"
+  | .ordering => "Ordering"
   | .u32 => "UInt32"
   | .u64 => "UInt64"
   | .i32 => "Int32"
@@ -1342,6 +1516,7 @@ private partial def rTypeTerm : RType → CommandElabM (TSyntax `term)
   | .bool => `(LeanRustCore.RType.bool)
   | .u32 => `(LeanRustCore.RType.u32)
   | .u64 => `(LeanRustCore.RType.u64)
+  | .ordering => `(LeanRustCore.RType.ordering)
   | .i32 => `(LeanRustCore.RType.i32)
   | .i64 => `(LeanRustCore.RType.i64)
   | .char => `(LeanRustCore.RType.char)
@@ -1473,6 +1648,7 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
   | .mul ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.mul ty a b
   | .min ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.min ty a b
   | .max ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.max ty a b
+  | .compare ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.compare ty a b
   | .optionNone ty => do
       let tyTerm ← rTypeTerm ty
       `(LeanRustCore.SurfaceExpr.optionNone $tyTerm)
@@ -1516,6 +1692,24 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let retTyTerm ← rTypeTerm retTy
       let argTerm ← surfaceExprTerm arg
       `(LeanRustCore.SurfaceExpr.callValue $fnTerm $argTyTerm $retTyTerm $argTerm)
+  | .closureApply binder argTy retTy arg body => do
+      let binderTerm := stringTerm binder
+      let argTyTerm ← rTypeTerm argTy
+      let retTyTerm ← rTypeTerm retTy
+      let argTerm ← surfaceExprTerm arg
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.closureApply $binderTerm $argTyTerm $retTyTerm $argTerm $bodyTerm)
+  | .defaultValue ty => do
+      let tyTerm ← rTypeTerm ty
+      `(LeanRustCore.SurfaceExpr.defaultValue $tyTerm)
+  | .toStringValue ty value => do
+      let tyTerm ← rTypeTerm ty
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.toStringValue $tyTerm $valueTerm)
+  | .reprValue ty value => do
+      let tyTerm ← rTypeTerm ty
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.reprValue $tyTerm $valueTerm)
   | .listMap binder elemTy outTy target body => do
       let binderTerm := stringTerm binder
       let elemTyTerm ← rTypeTerm elemTy
@@ -1681,6 +1875,20 @@ private def supportedDiagnostic (source rustName : String) (detail : String := "
 private def unsupportedDiagnostic (source rustName detail : String) : ExportDiagnostic :=
   { source := source, rustName := rustName, code := .unsupportedDeclaration, detail := detail }
 
+private def typeclassSpecializationExport (declName : Name) : Bool :=
+  let leaf := nameLeaf declName
+  leaf == "decidable_eq_u32" ||
+  leaf == "ord_compare_u32" ||
+  leaf == "inhabited_default_u32" ||
+  leaf == "to_string_u32" ||
+  leaf == "repr_u32"
+
+private def monadicSpecializationExport (declName : Name) : Bool :=
+  nameLeaf declName == "option_do_inc_u32"
+
+private def immediateClosureExport (declName : Name) : Bool :=
+  nameLeaf declName == "closure_apply_capture_u32"
+
 private def regularSupportedDetail (declName : Name) : CoreM String := do
   let env ← getEnv
   if LeanRustCore.Export.natWrappingU32Allowed env declName then
@@ -1689,6 +1897,12 @@ private def regularSupportedDetail (declName : Name) : CoreM String := do
     pure "exported"
 
 private def extractRegularWithDiagnostic (declName : Name) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
+  else if typeclassSpecializationExport declName then
+    pure "exported-typeclass-specialization"
+  else if monadicSpecializationExport declName then
+    pure "exported-monadic-bind-specialization"
+  else if immediateClosureExport declName then
+    pure "exported-immediate-closure-conversion"
   let rustName := sanitizeRustIdent "generated" (nameLeaf declName)
   try
     let f ← extractConst declName

@@ -48,6 +48,7 @@ inductive SurfaceExpr where
   | mul : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | min : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | max : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | compare : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | optionNone : RType → SurfaceExpr
   | optionSome : SurfaceExpr → SurfaceExpr
   | resultOk : RType → SurfaceExpr → SurfaceExpr
@@ -57,6 +58,10 @@ inductive SurfaceExpr where
   | enumVariant : RType → String → List SurfaceExpr → SurfaceExpr
   | call : String → List RType → RType → List SurfaceExpr → SurfaceExpr
   | callValue : SurfaceExpr → RType → RType → SurfaceExpr → SurfaceExpr
+  | closureApply : String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | defaultValue : RType → SurfaceExpr
+  | toStringValue : RType → SurfaceExpr → SurfaceExpr
+  | reprValue : RType → SurfaceExpr → SurfaceExpr
   | listMap : String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | listFilter : String → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | listFoldl : String → String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
@@ -113,6 +118,7 @@ private def containsString : List String → String → Bool
 
 private def report (code : CompatibilityCode) (detail : String) : CompatibilityReport :=
   { code := code, detail := detail }
+  | .ordering => "Ordering"
 
 private def rTypeLabel : RType → String
   | .unit => "unit"
@@ -145,6 +151,7 @@ private def applyExpected (expected : Option RType) (actual : RType) : Except Co
       else
         throw (report .unsupportedType ("expected " ++ rTypeLabel wanted ++ " but found " ++ rTypeLabel actual))
 
+  | .ordering => true
 private def isEqType : RType → Bool
   | .unit => true
   | .bool => true
@@ -263,6 +270,8 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       if isOrderedType t then expectPair ctx t a b *> applyExpected expected t else throw (report .unsupportedType ("min is not enabled for " ++ rTypeLabel t))
   | .max t a b => do
       if isOrderedType t then expectPair ctx t a b *> applyExpected expected t else throw (report .unsupportedType ("max is not enabled for " ++ rTypeLabel t))
+  | .compare t a b => do
+      if isOrderedType t then expectPair ctx t a b *> applyExpected expected .ordering else throw (report .unsupportedType ("Ord.compare is not enabled for " ++ rTypeLabel t))
   | .optionNone t => applyExpected expected (.option t)
   | .optionSome a => do
       match expected with
@@ -329,6 +338,17 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       discard <| typeOfExpected ctx fn (some (.func argTy retTy))
       discard <| typeOfExpected ctx arg (some argTy)
       applyExpected expected retTy
+  | .closureApply binder argTy retTy arg body => do
+      discard <| typeOfExpected ctx arg (some argTy)
+      discard <| typeOfExpected ((binder, argTy) :: ctx) body (some retTy)
+      applyExpected expected retTy
+  | .defaultValue ty => applyExpected expected ty
+  | .toStringValue ty value => do
+      discard <| typeOfExpected ctx value (some ty)
+      applyExpected expected .string
+  | .reprValue ty value => do
+      discard <| typeOfExpected ctx value (some ty)
+      applyExpected expected .string
   | .listMap binder elemTy outTy target body => do
       discard <| typeOfExpected ctx target (some (.list elemTy))
       discard <| typeOfExpected ((binder, elemTy) :: ctx) body (some outTy)
@@ -499,6 +519,7 @@ def checkSurfaceFun (f : SurfaceFun) : Except CompatibilityReport SurfaceFun := 
 
 This evaluator is the step-3 semantic model for the extracted `SurfaceExpr`
 subset.  It deliberately interprets the same first-order Rust-shaped nodes that
+  | ordering : Ordering → SurfaceValue
 the string emitter consumes, including structs, enums with payload binders,
 `Option`, `Result`, and first-order calls between exported functions.
 
@@ -591,6 +612,7 @@ mutual
     | .u32 _, .u32 => true
     | .u64 _, .u64 => true
     | .i32 _, .i32 => true
+    | .ordering _, .ordering => true
     | .i64 _, .i64 => true
     | .char _, .char => true
     | .string _, .string => true
@@ -633,6 +655,76 @@ private def assertValueType (value : SurfaceValue) (ty : RType) : Except Compati
     pure ()
   else
     evalError .unsupportedType ("surface value does not match expected type " ++ rTypeLabel ty)
+
+
+private partial def defaultSurfaceValue (ty : RType) : Except CompatibilityReport SurfaceValue :=
+  match ty with
+  | .unit => pure .unit
+  | .bool => pure (.bool false)
+  | .ordering => pure (.ordering Ordering.eq)
+  | .nat => pure (.nat 0)
+  | .int => pure (.int 0)
+  | .u32 => pure (.u32 0)
+  | .u64 => pure (.u64 0)
+  | .i32 => pure (.i32 0)
+  | .i64 => pure (.i64 0)
+  | .char => pure (.char (Char.ofNat 0))
+  | .string => pure (.string "")
+  | .option inner => pure (.optionNone inner)
+  | .list _ => pure (.list [])
+  | .array _ => pure (.array [])
+  | .vector elem len => do
+      let value ← defaultSurfaceValue elem
+      pure (.vector len (List.replicate len value))
+  | .fin 0 => evalError .unsupportedType "Fin 0 has no inhabited runtime value"
+  | .fin bound => pure (.fin bound 0)
+  | .prod a b => do
+      let av ← defaultSurfaceValue a
+      let bv ← defaultSurfaceValue b
+      pure (.prodVal av bv)
+  | .sum a _ => do
+      let av ← defaultSurfaceValue a
+      pure (.sumInl av)
+  | .result _ err => do
+      let errValue ← defaultSurfaceValue err
+      pure (.resultErr errValue)
+  | .struct name fields => do
+      let values ← fields.mapM (fun field => do
+        let value ← defaultSurfaceValue field.2
+        pure (field.1, value))
+      pure (.structVal name values)
+  | .enum name variants =>
+      match variants with
+      | [] => evalError .unsupportedType ("enum " ++ name ++ " has no default variant")
+      | (variant, payloadTypes) :: _ => do
+          let payload ← payloadTypes.mapM defaultSurfaceValue
+          pure (.enumVal name variant payload)
+  | .func _ _ => evalError .unsupportedType "function values do not have a generated default"
+
+private def orderingString : Ordering → String
+  | Ordering.lt => "Less"
+  | Ordering.eq => "Equal"
+  | Ordering.gt => "Greater"
+
+private def boolString (b : Bool) : String :=
+  if b then "true" else "false"
+
+private def surfaceValueToString (ty : RType) (value : SurfaceValue) : Except CompatibilityReport String := do
+  assertValueType value ty
+  match ty, value with
+  | .unit, .unit => pure "()"
+  | .bool, .bool b => pure (boolString b)
+  | .ordering, .ordering o => pure (orderingString o)
+  | .nat, .nat n => pure (Nat.toString n)
+  | .int, .int n => pure (toString n)
+  | .u32, .u32 n => pure (Nat.toString (u32Wrap n))
+  | .u64, .u64 n => pure (Nat.toString (u64Wrap n))
+  | .i32, .i32 n => pure (toString (i32Wrap n))
+  | .i64, .i64 n => pure (toString (i64Wrap n))
+  | .char, .char c => pure (String.singleton c)
+  | .string, .string s => pure s
+  | .fin _, .fin _ n => pure (Nat.toString n)
+  | _, _ => evalError .unsupportedType ("ToString/Repr is not enabled for " ++ rTypeLabel ty)
 
 private def bindSurfaceArgs (args : List RArg) (values : List SurfaceValue) : Except CompatibilityReport SurfaceEnv := do
   if args.length == values.length then
@@ -724,6 +816,14 @@ private def evalWrapping (op : String) (ty : RType) (a b : SurfaceValue) : Excep
         | "mul" => i64Wrap (av * bv)
         | _ => av))
   | _ => evalError .unsupportedType ("wrapping arithmetic is not enabled for " ++ rTypeLabel ty)
+
+private def evalCompare (ty : RType) (a b : SurfaceValue) : Except CompatibilityReport SurfaceValue := do
+  let less ← checkedBool (← evalOrdered "<" ty a b)
+  if less then
+    pure (.ordering Ordering.lt)
+  else
+    let equal ← checkedBool (← evalEq ty a b)
+    if equal then pure (.ordering Ordering.eq) else pure (.ordering Ordering.gt)
 
 private def evalMinMax (chooseMax : Bool) (ty : RType) (a b : SurfaceValue) : Except CompatibilityReport SurfaceValue := do
   match ty with
@@ -838,6 +938,7 @@ mutual
     | .mul ty a b => evalWrapping "mul" ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
     | .min ty a b => evalMinMax false ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
     | .max ty a b => evalMinMax true ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
+    | .compare ty a b => evalCompare ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
     | .optionNone inner => pure (.optionNone inner)
     | .optionSome a => pure (.optionSome (← evalSurfaceExprWithFuel fuel functions env a))
     | .resultOk _ a => pure (.resultOk (← evalSurfaceExprWithFuel fuel functions env a))
@@ -874,7 +975,20 @@ mutual
                 else
                   evalError .unsupportedType ("surface call signature for `" ++ name ++ "` does not match the function environment")
     | .callValue _ _ _ _ =>
-        evalError .unsupportedExpression "surface evaluator does not interpret higher-order function values in differential tests"
+        evalError .unsupportedExpression "surface evaluator does not interpret standalone higher-order function values in differential tests"
+    | .closureApply binder argTy retTy arg body => do
+        let value ← evalSurfaceExprWithFuel fuel functions env arg
+        assertValueType value argTy
+        let result ← evalSurfaceExprWithFuel fuel functions ((binder, value) :: env) body
+        assertValueType result retTy
+        pure result
+    | .defaultValue ty => defaultSurfaceValue ty
+    | .toStringValue ty value => do
+        let evaluated ← evalSurfaceExprWithFuel fuel functions env value
+        pure (.string (← surfaceValueToString ty evaluated))
+    | .reprValue ty value => do
+        let evaluated ← evalSurfaceExprWithFuel fuel functions env value
+        pure (.string (← surfaceValueToString ty evaluated))
     | .listMap binder elemTy outTy target body => do
         match (← evalSurfaceExprWithFuel fuel functions env target) with
         | .list values => do

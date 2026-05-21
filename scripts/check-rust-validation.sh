@@ -66,6 +66,8 @@ grep -q '"lean_toolchain": "leanprover/lean4:v4.22.0"' "$validation_report"
 grep -q '"rust_toolchain": "1.85.0"' "$validation_report"
 ! grep -q '"status": "failed"' "$validation_report"
 
+grep -q '"name": "broader-typeclass-specialization"' "$validation_report"
+grep -q '"name": "immediate-captured-closure-conversion"' "$validation_report"
 grep -q 'LeanRustCore.Differential' "$differential_tests"
 grep -q 'lean_ir_evaluator_matches_generated_rust' "$differential_tests"
 grep -q 'surface_evaluator_matches_extracted_rust' "$differential_tests"
@@ -99,6 +101,10 @@ grep -q 'target_validation_snapshot_matches_generated_rust_ast' "$semantic_valid
 grep -q 'syn::parse_file' "$semantic_validation_tests"
 
 # Parser-backed validation is enforced by rust/tests/parser_validation.rs during cargo test.
+grep -q 'decidable_eq_u32(7, 7)' "$differential_tests"
+grep -q 'ord_compare_u32(1, 2)' "$differential_tests"
+grep -q 'option_do_inc_u32(Some(41))' "$differential_tests"
+grep -q 'closure_apply_capture_u32(5, 37)' "$differential_tests"
 grep -q 'syn::parse_file' "$parser_validation_tests"
 grep -q 'parser_validates_generated_top_level_subset' "$parser_validation_tests"
 grep -q 'parser_rejects_raw_boundary_or_panic_constructs' "$parser_validation_tests"
@@ -126,3 +132,5 @@ grep -q 'development_fallback_allowed' rust/build.rs
 grep -q 'PROFILE' rust/build.rs
 grep -q 'CI' rust/build.rs
 grep -q 'LEAN_RUST_CORE_ALLOW_FALLBACK' rust/build.rs
+grep -q 'extern "C" fn lrc_decidable_eq_u32' "$ffi_generated"
+grep -q 'extern "C" fn lrc_closure_apply_capture_u32' "$ffi_generated"

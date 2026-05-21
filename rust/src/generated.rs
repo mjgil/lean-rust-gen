@@ -16,6 +16,9 @@ pub enum TaggedU32 { Missing, Present(u32) }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Step { Stay, Jump(u32) }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Ordering { Lt, Eq, Gt }
+
 pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
     if x < lo { lo } else { if hi < x { hi } else { x } }
 }
@@ -78,6 +81,35 @@ pub fn list_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
 
 pub fn list_fold_sum_u32(xs: Vec<u32>) -> u32 {
     { let mut acc = 0; for x in xs { acc = (acc).wrapping_add(x); } acc }
+}
+
+
+pub fn decidable_eq_u32(a: u32, b: u32) -> bool {
+    a == b
+}
+
+pub fn inhabited_default_u32(_x: ()) -> u32 {
+    0
+}
+
+pub fn to_string_u32(x: u32) -> String {
+    (x).to_string()
+}
+
+pub fn repr_u32(x: u32) -> String {
+    format!("{:?}", x)
+}
+
+pub fn ord_compare_u32(a: u32, b: u32) -> Ordering {
+    if a < b { Ordering::Lt } else if a == b { Ordering::Eq } else { Ordering::Gt }
+}
+
+pub fn option_do_inc_u32(x: Option<u32>) -> Option<u32> {
+    match x { None => None, Some(v) => Some((v).wrapping_add(1)) }
+}
+
+pub fn closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
+    { let y = x; (y).wrapping_add(delta) }
 }
 
 pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32) {

@@ -5,6 +5,7 @@ import LeanRustCore.Toolchain
 import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport
 
+import LeanRustCore.ClosureConversion
 namespace LeanRustCore.RustValidation
 
 open LeanRustCore
@@ -63,6 +64,13 @@ def requiredFunctionNames : List String := [
   "make_point",
   "point_x",
   "point_y",
+  "decidable_eq_u32",
+  "inhabited_default_u32",
+  "to_string_u32",
+  "repr_u32",
+  "ord_compare_u32",
+  "option_do_inc_u32",
+  "closure_apply_capture_u32",
   "shift_point_x",
   "boxed_u32",
   "boxed_value_u32",
@@ -96,7 +104,8 @@ def requiredTypeNames : List String := [
   "BoxedU32",
   "Choice",
   "TaggedU32",
-  "Step"
+  "Step",
+  "Ordering"
 ]
 
 /-- Validation checks completed for the current generated subset. -/
@@ -197,9 +206,19 @@ def checks : List ValidationCheck := [
     detail := "conservative proof-shaped binders such as Eq/True/False proofs are erased from Rust function signatures when their values are not used computationally"
   },
   {
+    name := "broader-typeclass-specialization",
+    status := "passed",
+    detail := LeanRustCore.TypeclassPolicy.typeclassPolicySummary
+  },
+  {
+    name := "immediate-captured-closure-conversion",
+    status := "passed",
+    detail := LeanRustCore.ClosureConversion.closureConversionSummary
+  },
+  {
     name := "limited-higher-order-function-pointer",
     status := "passed",
-    detail := "unary function-typed arguments lower to safe Rust fn-pointer arguments and SurfaceExpr.callValue nodes; closures remain a future closure-conversion layer"
+    detail := "unary no-capture function-typed arguments lower to safe Rust fn-pointer arguments and SurfaceExpr.callValue nodes; immediate captured lambdas lower through closure-conversion nodes"
   },
 
   {

@@ -60,6 +60,20 @@ pub extern "C" fn lrc_echo_i64(x: i64) -> i64 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_decidable_eq_u32(a: u32, b: u32) -> u32 {
+    if crate::decidable_eq_u32(a, b) {
+        1
+    } else {
+        0
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
+    crate::closure_apply_capture_u32(delta, x)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_add_u64(a: u64, b: u64) -> u64 {
     crate::add_u64(a, b)
 }

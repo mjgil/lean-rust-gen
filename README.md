@@ -71,6 +71,9 @@ pub enum TaggedU32 { Missing, Present(u32) }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Step { Stay, Jump(u32) }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Ordering { Lt, Eq, Gt }
+
 pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32
 pub fn max_u32(a: u32, b: u32) -> u32
 pub fn is_nonzero_u32(x: u32) -> bool
@@ -104,6 +107,13 @@ pub fn vector_echo3_u32(xs: Vec<u32>) -> Vec<u32>
 pub fn exact_nat_add(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint
 pub fn exact_nat_mul(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint
 pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt
+pub fn decidable_eq_u32(a: u32, b: u32) -> bool
+pub fn inhabited_default_u32(_x: ()) -> u32
+pub fn to_string_u32(x: u32) -> String
+pub fn repr_u32(x: u32) -> String
+pub fn ord_compare_u32(a: u32, b: u32) -> Ordering
+pub fn option_do_inc_u32(x: Option<u32>) -> Option<u32>
+pub fn closure_apply_capture_u32(delta: u32, x: u32) -> u32
 pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32)
 pub fn echo_sum_u32(x: Result<u32, u32>) -> Result<u32, u32>
 pub fn add_u64(a: u64, b: u64) -> u64
@@ -249,7 +259,8 @@ Supported now:
 - `List.map` and `List.foldl` over owned `List` values, lowered to explicit safe Rust loop-shaped expressions,
 - generated first-order call cycles are allowed through Rust emission; differential evaluation remains fuel-bounded,
 - captured lambdas inside recognized structural combinators close over ordinary Rust locals,
-- resolved `BEq`/`LT`/`LE`/`HAdd`/`HSub`/`HMul`/`OfNat` dictionaries are erased when monomorphic lowering selects the target operation,
+- immediate applications of captured unary lambdas lower through `SurfaceExpr.closureApply` to safe Rust `let` blocks,
+- resolved `BEq`/`Decidable`/`DecidableEq`/`Ord`/`LT`/`LE`/`HAdd`/`HSub`/`HMul`/`OfNat`/`Inhabited`/`ToString`/`Repr` dictionaries are erased when monomorphic lowering selects the target operation,
 - expected-type propagation through nested `Option`/`Except` constructors,
 - explicit concrete monomorphizations of generic functions,
 - automatic monomorphization for generic calls discovered inside concrete exported declarations,
@@ -268,8 +279,8 @@ Still intentionally out of scope:
 - exact mathematical `Nat`/`Int` runtime semantics unless a future exact-integer
   backend is added,
 - broader structural-recursion lowering beyond the current `List.map`/`List.foldl` slice, including richer accumulator recursions and proofs that emitted recursion is structurally bounded,
-- general first-class captured closures and defunctionalized local lambdas beyond recognized structural combinators and unary Rust `fn` pointer arguments,
-- generated typeclass dictionaries beyond the current erased/resolved monomorphization path,
+- first-class captured-closure storage/passing and defunctionalized local lambdas beyond immediate application, recognized structural combinators, and unary Rust `fn` pointer arguments,
+- generated typeclass dictionaries beyond the current erased/resolved/specialized monomorphization path,
 - a full Rust→Lean translation validator for arbitrary Rust text beyond the generated subset and selected target-fingerprint interpreter.
 
 ## Validation gates

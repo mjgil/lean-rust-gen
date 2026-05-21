@@ -46,6 +46,38 @@ private def fingerprintEnumPath (ty : RType) (variant : String) : String :=
 private def fingerprintBinders (binders : List String) : String :=
   joinWith "," (binders.map (rustValueIdent "value"))
 
+private def fingerprintDefaultValue : RType → String
+  | .unit => "default(())"
+  | .bool => "default(bool)"
+  | .ordering => "default(Ordering)"
+  | .u32 => "default(u32)"
+  | .u64 => "default(u64)"
+  | .nat => "default(num_bigint::BigUint)"
+  | .i32 => "default(i32)"
+  | .i64 => "default(i64)"
+  | .int => "default(num_bigint::BigInt)"
+  | .char => "default(char)"
+  | .string => "default(String)"
+  | .option _ => "none"
+  | .list _ | .array _ | .vector _ _ => "vec()"
+  | .fin _ => "default(usize)"
+  | .prod a b => "tuple(" ++ fingerprintDefaultValue a ++ "," ++ fingerprintDefaultValue b ++ ")"
+  | .sum a _ => "err(" ++ fingerprintDefaultValue a ++ ")"
+  | .result _ err => "err(" ++ fingerprintDefaultValue err ++ ")"
+  | .struct name fields =>
+      let rendered := fields.map (fun field => rustFieldIdent field.1 ++ "=" ++ fingerprintDefaultValue field.2)
+      "struct(" ++ rustTypeIdent name ++ "," ++ joinWith "," rendered ++ ")"
+  | .enum name variants =>
+      match variants with
+      | [] => "enum(" ++ rustTypeIdent name ++ "::<empty>)"
+      | (variant, payload) :: _ =>
+          let renderedPayload := joinWith "," (payload.map fingerprintDefaultValue)
+          if renderedPayload == "" then
+            "enum(" ++ rustTypeIdent name ++ "::" ++ rustVariantIdent variant ++ ")"
+          else
+            "enum(" ++ rustTypeIdent name ++ "::" ++ rustVariantIdent variant ++ "," ++ renderedPayload ++ ")"
+  | .func _ _ => "default_fn"
+
 partial def fingerprintSurfaceExpr : SurfaceExpr → String
   | .var name => "var(" ++ rustValueIdent "value" name ++ ")"
   | .litUnit => "unit"
@@ -83,6 +115,7 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
   | .mul _ a b => "mul(" ++ fingerprintSurfaceExpr a ++ "," ++ fingerprintSurfaceExpr b ++ ")"
   | .min _ a b => "min(" ++ fingerprintSurfaceExpr a ++ "," ++ fingerprintSurfaceExpr b ++ ")"
   | .max _ a b => "max(" ++ fingerprintSurfaceExpr a ++ "," ++ fingerprintSurfaceExpr b ++ ")"
+  | .compare _ a b => "compare(" ++ fingerprintSurfaceExpr a ++ "," ++ fingerprintSurfaceExpr b ++ ")"
   | .optionNone _ => "none"
   | .optionSome a => "some(" ++ fingerprintSurfaceExpr a ++ ")"
   | .resultOk _ a => "ok(" ++ fingerprintSurfaceExpr a ++ ")"
@@ -103,6 +136,11 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
       "call(" ++ rustValueIdent "generated" name ++ "," ++ joinWith "," (args.map fingerprintSurfaceExpr) ++ ")"
   | .callValue fn _ _ arg =>
       "call_value(" ++ fingerprintSurfaceExpr fn ++ "," ++ fingerprintSurfaceExpr arg ++ ")"
+  | .closureApply binder _ _ arg body =>
+      "closure_apply(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr arg ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .defaultValue ty => fingerprintDefaultValue ty
+  | .toStringValue ty value => "to_string(" ++ fingerprintType ty ++ "," ++ fingerprintSurfaceExpr value ++ ")"
+  | .reprValue ty value => "repr(" ++ fingerprintType ty ++ "," ++ fingerprintSurfaceExpr value ++ ")"
   | .listMap binder _ _ target body =>
       "list_map(" ++ rustValueIdent "value" binder ++ "," ++
       fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"

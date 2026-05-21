@@ -201,6 +201,7 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .mul _ a b => surfaceBinders a ++ surfaceBinders b
   | .min _ a b => surfaceBinders a ++ surfaceBinders b
   | .max _ a b => surfaceBinders a ++ surfaceBinders b
+  | .compare _ a b => surfaceBinders a ++ surfaceBinders b
   | .optionNone _ => []
   | .optionSome a => surfaceBinders a
   | .resultOk _ a => surfaceBinders a
@@ -210,6 +211,10 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .enumVariant _ _ payload => payload.bind surfaceBinders
   | .call _ _ _ args => args.bind surfaceBinders
   | .callValue fn _ _ arg => surfaceBinders fn ++ surfaceBinders arg
+  | .closureApply binder _ _ arg body => surfaceBinders arg ++ (binder :: surfaceBinders body)
+  | .defaultValue _ => []
+  | .toStringValue _ value => surfaceBinders value
+  | .reprValue _ value => surfaceBinders value
   | .listMap binder _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
   | .listFilter binder _ target predicate => binder :: surfaceBinders target ++ surfaceBinders predicate
   | .listFoldl accName elemName _ _ init target body => accName :: elemName :: surfaceBinders init ++ surfaceBinders target ++ surfaceBinders body

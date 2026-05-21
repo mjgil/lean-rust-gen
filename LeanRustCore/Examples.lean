@@ -175,6 +175,37 @@ def exact_int_mul (a b : Int) : Int :=
   a * b
 
 
+
+@[rust_export]
+def decidable_eq_u32 (a b : UInt32) : Bool :=
+  a == b
+
+@[rust_export]
+def inhabited_default_u32 (_x : Unit) : UInt32 :=
+  default
+
+@[rust_export]
+def to_string_u32 (x : UInt32) : String :=
+  toString x
+
+@[rust_export]
+def repr_u32 (x : UInt32) : String :=
+  reprStr x
+
+@[rust_export]
+def ord_compare_u32 (a b : UInt32) : Ordering :=
+  compare a b
+
+
+@[rust_export]
+def option_do_inc_u32 (x : Option UInt32) : Option UInt32 := do
+  let v ← x
+  pure (v + 1)
+
+@[rust_export]
+def closure_apply_capture_u32 (delta x : UInt32) : UInt32 :=
+  (fun y => y + delta) x
+
 @[rust_export]
 def echo_prod_u32 (x : UInt32 × UInt32) : UInt32 × UInt32 :=
   x

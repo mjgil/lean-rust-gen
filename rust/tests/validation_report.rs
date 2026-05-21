@@ -162,6 +162,8 @@ fn validation_report_records_current_subset_gates() {
     assert!(report.contains("parameterized-data-lowering"));
     assert!(report.contains("standard-container-shapes"));
     assert!(report.contains("structural-recursion-lowering"));
+    assert!(report.contains("broader-typeclass-specialization"));
+    assert!(report.contains("immediate-captured-closure-conversion"));
     assert!(report.contains("transitive-helper-extraction"));
     assert!(report.contains("proof-erased-binders"));
     assert!(report.contains("limited-higher-order-function-pointer"));
@@ -202,6 +204,7 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub enum Choice",
         "pub enum TaggedU32",
         "pub enum Step",
+        "pub enum Ordering",
         "pub fn clamp_u32",
         "pub fn echo_string",
         "pub fn echo_list_u32",
@@ -225,6 +228,13 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn helper_inc_fixed",
         "pub fn auto_identity_u32",
         "pub fn auto_choose_point",
+        "pub fn decidable_eq_u32",
+        "pub fn ord_compare_u32",
+        "pub fn inhabited_default_u32",
+        "pub fn to_string_u32",
+        "pub fn repr_u32",
+        "pub fn option_do_inc_u32",
+        "pub fn closure_apply_capture_u32",
         "pub fn auto_option_default_step",
     ] {
         assert!(
@@ -252,6 +262,7 @@ fn target_validation_snapshot_records_generated_subset() {
 
     assert!(snapshot.contains("FORMAT\tlean-rust-core.target-validation.v1"));
     assert!(snapshot.contains("TYPE\tstruct\tBoxedU32"));
+    assert!(snapshot.contains("TYPE\tenum\tOrdering"));
     assert!(snapshot.contains("FN\tclamp_u32"));
     assert!(snapshot.contains("FN\tunsupported_higher_order_u32"));
     assert!(snapshot.contains("call_value(var(f),var(x))"));
@@ -272,5 +283,12 @@ fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
     assert!(lib.contains("#[cfg(feature = \"ffi\")]"));
     assert!(ffi.contains("extern \"C\" fn lrc_add_u32"));
     assert!(ffi.contains("unsafe extern \"C\" fn lrc_result_ok_u32"));
+    assert!(snapshot.contains("FN\tdecidable_eq_u32"));
+    assert!(snapshot.contains("FN\tord_compare_u32"));
+    assert!(snapshot.contains("compare(var(a),var(b))"));
+    assert!(snapshot.contains("FN\toption_do_inc_u32"));
+    assert!(snapshot.contains("option_bind(v,var(x),some(add(var(v),lit(1))))"));
+    assert!(snapshot.contains("FN\tclosure_apply_capture_u32"));
+    assert!(snapshot.contains("closure_apply(y,var(x),add(var(y),var(delta)))"));
     assert!(ffi.contains("lower_result_u32_u32"));
 }

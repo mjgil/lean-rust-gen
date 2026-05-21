@@ -54,6 +54,17 @@ fn surface_evaluator_matches_extracted_rust() {
         Point { x: 0u32, y: 7u32 }
     );
     assert_eq!(boxed_u32(9), BoxedU32 { value: 9u32 });
+    assert!(decidable_eq_u32(7, 7));
+    assert!(!decidable_eq_u32(7, 8));
+    assert_eq!(inhabited_default_u32(()), 0u32);
+    assert_eq!(ord_compare_u32(1, 2), Ordering::Lt);
+    assert_eq!(ord_compare_u32(2, 2), Ordering::Eq);
+    assert_eq!(ord_compare_u32(3, 2), Ordering::Gt);
+    assert_eq!(to_string_u32(42), String::from("42"));
+    assert_eq!(repr_u32(42), String::from("42"));
+    assert_eq!(option_do_inc_u32(Some(41)), Some(42u32));
+    assert_eq!(option_do_inc_u32(None), None::<u32>);
+    assert_eq!(closure_apply_capture_u32(5, 37), 42u32);
     assert_eq!(boxed_value_u32(BoxedU32 { value: 9 }), 9u32);
     assert_eq!(tagged_missing_u32(()), TaggedU32::Missing);
     assert_eq!(tagged_present_u32(6), TaggedU32::Present(6u32));

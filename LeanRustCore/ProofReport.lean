@@ -4,6 +4,7 @@ import LeanRustCore.Toolchain
 import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport
 
+import LeanRustCore.ClosureConversion
 namespace LeanRustCore.ProofReport
 
 /-- A compact proof-sidecar model for generated Rust artifacts. -/

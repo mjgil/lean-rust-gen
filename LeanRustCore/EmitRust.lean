@@ -14,6 +14,7 @@ def joinWith (sep : String) : List String → String
 def rustType : RType → String
   | .unit => "()"
   | .bool => "bool"
+  | .ordering => "Ordering"
   | .u32 => "u32"
   | .u64 => "u64"
   | .i32 => "i32"
@@ -64,6 +65,37 @@ private def emitWrapping (op : String) (t : RType) (a b : String) : String :=
   match wrappingMethod t op with
   | some method => "(" ++ a ++ ")." ++ method ++ "(" ++ b ++ ")"
   | none => "(" ++ a ++ " /* unsupported wrapping op */ " ++ b ++ ")"
+
+private partial def emitDefaultValue : RType → String
+  | .unit => "()"
+  | .bool => "false"
+  | .ordering => "Ordering::Eq"
+  | .nat => "num_bigint::BigUint::from(0u8)"
+  | .int => "num_bigint::BigInt::from(0i8)"
+  | .u32 => "0"
+  | .u64 => "0"
+  | .i32 => "0"
+  | .i64 => "0"
+  | .char => "char::from_u32(0).unwrap()"
+  | .string => "String::new()"
+  | .option _ => "None"
+  | .list _ => "Vec::new()"
+  | .array _ => "Vec::new()"
+  | .vector _ _ => "Vec::new()"
+  | .fin bound => "{ let __lrc_fin: usize = 0; assert!(__lrc_fin < " ++ Nat.toString bound ++ "); __lrc_fin }"
+  | .prod a b => "(" ++ emitDefaultValue a ++ ", " ++ emitDefaultValue b ++ ")"
+  | .sum a _ => "Err(" ++ emitDefaultValue a ++ ")"
+  | .result _ err => "Err(" ++ emitDefaultValue err ++ ")"
+  | .struct name fields =>
+      let rendered := fields.map (fun field => rustFieldIdent field.1 ++ ": " ++ emitDefaultValue field.2)
+      rustTypeIdent name ++ " { " ++ joinWith ", " rendered ++ " }"
+  | .enum name variants =>
+      match variants with
+      | [] => rustTypeIdent name ++ "::default()"
+      | (variant, payload) :: _ =>
+          let renderedPayload := if payload.isEmpty then "" else "(" ++ joinWith ", " (payload.map emitDefaultValue) ++ ")"
+          rustTypeIdent name ++ "::" ++ rustVariantIdent variant ++ renderedPayload
+  | .func _ _ => "Default::default()"
 
 /-- Emit a valid Rust expression for the proof-carrying typed subset. -/
 def emitExpr {ctx : Type} : {t : RType} → RExpr ctx t → String
@@ -129,6 +161,7 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .mul t a b => emitWrapping "mul" t (emitSurfaceExpr a) (emitSurfaceExpr b)
   | .min _ a b => "core::cmp::min(" ++ emitSurfaceExpr a ++ ", " ++ emitSurfaceExpr b ++ ")"
   | .max _ a b => "core::cmp::max(" ++ emitSurfaceExpr a ++ ", " ++ emitSurfaceExpr b ++ ")"
+  | .compare _ a b => "if " ++ emitSurfaceExpr a ++ " < " ++ emitSurfaceExpr b ++ " { Ordering::Lt } else if " ++ emitSurfaceExpr a ++ " == " ++ emitSurfaceExpr b ++ " { Ordering::Eq } else { Ordering::Gt }"
   | .optionNone _ => "None"
   | .optionSome a => "Some(" ++ emitSurfaceExpr a ++ ")"
   | .resultOk _ a => "Ok(" ++ emitSurfaceExpr a ++ ")"
@@ -146,6 +179,11 @@ partial def emitSurfaceExpr : SurfaceExpr → String
       rustValueIdent "generated" name ++ "(" ++ joinWith ", " (args.map emitSurfaceExpr) ++ ")"
   | .callValue fn _ _ arg =>
       emitSurfaceExpr fn ++ "(" ++ emitSurfaceExpr arg ++ ")"
+  | .closureApply binder _ _ arg body =>
+      "{ let " ++ rustValueIdent "value" binder ++ " = " ++ emitSurfaceExpr arg ++ "; " ++ emitSurfaceExpr body ++ " }"
+  | .defaultValue ty => emitDefaultValue ty
+  | .toStringValue _ value => "(" ++ emitSurfaceExpr value ++ ").to_string()"
+  | .reprValue _ value => "format!(\"{:?}\", " ++ emitSurfaceExpr value ++ ")"
   | .listMap binder _ _ target body =>
       let outName := "__lrc_out"
       let binderName := rustValueIdent "value" binder
@@ -234,6 +272,7 @@ private def collectTypeStructs : RType → List SurfaceStruct
   | _ => []
 
 private def collectTypeEnums : RType → List SurfaceEnum
+  | .ordering => [{ name := "Ordering", variants := [("lt", []), ("eq", []), ("gt", [])] }]
   | .option t => collectTypeEnums t
   | .result ok err => collectTypeEnums ok ++ collectTypeEnums err
   | .list t => collectTypeEnums t
@@ -277,6 +316,7 @@ partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
   | .mul t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
   | .min t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
   | .max t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
+  | .compare t a b => collectTypeStructs t ++ collectSurfaceStructs a ++ collectSurfaceStructs b
   | .optionNone t => collectTypeStructs t
   | .optionSome a => collectSurfaceStructs a
   | .resultOk t a => collectTypeStructs t ++ collectSurfaceStructs a
@@ -286,6 +326,10 @@ partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
   | .enumVariant ty _ payload => collectTypeStructs ty ++ payload.bind collectSurfaceStructs
   | .call _ argTypes ret args => argTypes.bind collectTypeStructs ++ collectTypeStructs ret ++ args.bind collectSurfaceStructs
   | .callValue fn argTy retTy arg => collectSurfaceStructs fn ++ collectTypeStructs argTy ++ collectTypeStructs retTy ++ collectSurfaceStructs arg
+  | .closureApply _ argTy retTy arg body => collectTypeStructs argTy ++ collectTypeStructs retTy ++ collectSurfaceStructs arg ++ collectSurfaceStructs body
+  | .defaultValue ty => collectTypeStructs ty
+  | .toStringValue ty value => collectTypeStructs ty ++ collectSurfaceStructs value
+  | .reprValue ty value => collectTypeStructs ty ++ collectSurfaceStructs value
   | .listMap _ elemTy outTy target body =>
       collectTypeStructs elemTy ++ collectTypeStructs outTy ++ collectSurfaceStructs target ++ collectSurfaceStructs body
   | .listFilter _ elemTy target predicate =>
@@ -346,6 +390,7 @@ partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .mul t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
   | .min t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
   | .max t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
+  | .compare t a b => collectTypeEnums t ++ collectSurfaceEnums a ++ collectSurfaceEnums b
   | .optionNone t => collectTypeEnums t
   | .optionSome a => collectSurfaceEnums a
   | .resultOk t a => collectTypeEnums t ++ collectSurfaceEnums a
@@ -355,6 +400,10 @@ partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .enumVariant ty _ payload => collectTypeEnums ty ++ payload.bind collectSurfaceEnums
   | .call _ argTypes ret args => argTypes.bind collectTypeEnums ++ collectTypeEnums ret ++ args.bind collectSurfaceEnums
   | .callValue fn argTy retTy arg => collectSurfaceEnums fn ++ collectTypeEnums argTy ++ collectTypeEnums retTy ++ collectSurfaceEnums arg
+  | .closureApply _ argTy retTy arg body => collectTypeEnums argTy ++ collectTypeEnums retTy ++ collectSurfaceEnums arg ++ collectSurfaceEnums body
+  | .defaultValue ty => collectTypeEnums ty
+  | .toStringValue ty value => collectTypeEnums ty ++ collectSurfaceEnums value
+  | .reprValue ty value => collectTypeEnums ty ++ collectSurfaceEnums value
   | .listMap _ elemTy outTy target body =>
       collectTypeEnums elemTy ++ collectTypeEnums outTy ++ collectSurfaceEnums target ++ collectSurfaceEnums body
   | .listFilter _ elemTy target predicate =>
@@ -415,6 +464,7 @@ partial def collectSurfaceCalls : SurfaceExpr → List String
   | .mul _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
   | .min _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
   | .max _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
+  | .compare _ a b => collectSurfaceCalls a ++ collectSurfaceCalls b
   | .optionNone _ => []
   | .optionSome a => collectSurfaceCalls a
   | .resultOk _ a => collectSurfaceCalls a
@@ -424,6 +474,10 @@ partial def collectSurfaceCalls : SurfaceExpr → List String
   | .enumVariant _ _ payload => payload.bind collectSurfaceCalls
   | .call name _ _ args => name :: args.bind collectSurfaceCalls
   | .callValue fn _ _ arg => collectSurfaceCalls fn ++ collectSurfaceCalls arg
+  | .closureApply _ _ _ arg body => collectSurfaceCalls arg ++ collectSurfaceCalls body
+  | .defaultValue _ => []
+  | .toStringValue _ value => collectSurfaceCalls value
+  | .reprValue _ value => collectSurfaceCalls value
   | .listMap _ _ _ target body => collectSurfaceCalls target ++ collectSurfaceCalls body
   | .listFilter _ _ target predicate => collectSurfaceCalls target ++ collectSurfaceCalls predicate
   | .listFoldl _ _ _ _ init target body => collectSurfaceCalls init ++ collectSurfaceCalls target ++ collectSurfaceCalls body

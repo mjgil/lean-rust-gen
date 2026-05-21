@@ -54,6 +54,26 @@ fn standard_container_shapes_round_trip() {
 }
 
 #[test]
+fn broader_typeclass_specialization_lowers() {
+    assert!(decidable_eq_u32(7, 7));
+    assert!(!decidable_eq_u32(7, 8));
+    assert_eq!(inhabited_default_u32(()), 0);
+    assert_eq!(ord_compare_u32(1, 2), Ordering::Lt);
+    assert_eq!(ord_compare_u32(2, 2), Ordering::Eq);
+    assert_eq!(ord_compare_u32(3, 2), Ordering::Gt);
+    assert_eq!(to_string_u32(42), String::from("42"));
+    assert_eq!(repr_u32(42), String::from("42"));
+    assert_eq!(option_do_inc_u32(Some(41)), Some(42));
+    assert_eq!(option_do_inc_u32(None), None);
+}
+
+#[test]
+fn immediate_captured_closure_application_lowers() {
+    assert_eq!(closure_apply_capture_u32(5, 37), 42);
+    assert_eq!(closure_apply_capture_u32(1, u32::MAX), 0);
+}
+
+#[test]
 fn bool_and_option_matches_lower() {
     assert_eq!(bool_match_u32(true, 1, 2), 1);
     assert_eq!(bool_match_u32(false, 1, 2), 2);

@@ -70,3 +70,5 @@ handled by monomorphic lowering.
 `rust/tests/target_interpreter.rs` interprets selected Lean-generated target
 fingerprints and compares the interpreted values with compiled generated Rust
 calls, strengthening the previous fingerprint-equality validation gate.
+
+The current follow-on pass broadens resolved typeclass specialization for common executable operations (`DecidableEq`/`BEq`, `Ord.compare`, `Inhabited.default`, `ToString`/`Repr`, and pure `Option`/`Except` bind/pure) and adds immediate captured unary-lambda closure conversion through `SurfaceExpr.closureApply`. Escaping or stored captured closures remain future work.

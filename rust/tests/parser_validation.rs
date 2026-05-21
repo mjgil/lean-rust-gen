@@ -52,7 +52,14 @@ fn parser_validates_generated_top_level_subset() {
         }
     }
 
-    for required in ["Point", "BoxedU32", "Choice", "TaggedU32", "Step"] {
+    for required in [
+        "Point",
+        "BoxedU32",
+        "Choice",
+        "TaggedU32",
+        "Step",
+        "Ordering",
+    ] {
         assert!(
             types.contains(required),
             "missing generated type {required}"
@@ -84,6 +91,13 @@ fn parser_validates_generated_top_level_subset() {
         "generic_option_default__step",
         "helper_inc_fixed",
         "auto_identity_u32",
+        "decidable_eq_u32",
+        "ord_compare_u32",
+        "inhabited_default_u32",
+        "to_string_u32",
+        "repr_u32",
+        "option_do_inc_u32",
+        "closure_apply_capture_u32",
         "auto_choose_point",
         "auto_option_default_step",
     ] {
