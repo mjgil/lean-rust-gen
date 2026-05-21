@@ -25,18 +25,25 @@ def facts : List ProofFact := [
   { name := "add_refines_wrapping_spec", statement := "eval addBody = u32 wrapping-add spec" },
   { name := "bounded_bump_refines_spec", statement := "eval boundedBumpBody = let/arithmetic spec" },
   { name := "option_default_refines_spec", statement := "eval optionDefaultBody = Option-match spec" },
-  { name := "fixed_width_type_extraction", statement := "rust_export extraction recognizes UInt32, UInt64, Int32, Int64, Unit, Option, Except, and simple closed enums" },
+  { name := "fixed_width_type_extraction", statement := "rust_export extraction recognizes UInt32, UInt64, Int32, Int64, Unit, Option, Except, and simple closed enums; Nat-to-u32 lowering requires explicit rust_nat_wrapping_u32 opt-in" },
   { name := "match_lowering", statement := "Bool, Option, and closed enum matches, including payload variant binders, lower from elaborated recursor/casesOn forms" },
   { name := "struct_enum_declarations", statement := "SurfaceStruct and SurfaceEnum declarations are emitted before generated Rust functions" },
   { name := "expected_type_propagation", statement := "nested Option and Except constructors are checked with the Rust-facing expected type" },
   { name := "generic_monomorphization", statement := "rust_mono_export registers concrete type instantiations of generic Lean definitions and emits concrete Rust functions" },
   { name := "automatic_monomorphization", statement := "generic calls discovered inside concrete exported declarations enqueue and emit concrete monomorphized Rust functions" },
+  { name := "phase_1_recursion_policy", statement := "the default direct Rust lane permits first-order generated call cycles; the surface evaluator bounds recursive calls with fuel" },
+  { name := "parameterized_data_monomorphization", statement := "index-free parameterized structures and enums lower to concrete Rust declarations after substituting concrete type arguments" },
+  { name := "standard_container_shapes", statement := "RType represents Char, String, List, Array, Prod, Sum, and unary function types with safe Rust type spellings" },
+  { name := "transitive_helper_extraction", statement := "first-order helper definitions reached from exported bodies are enqueued and emitted as auto-helper-export functions" },
+  { name := "proof_erased_binders", statement := "conservative proof-shaped binders are erased from Rust signatures when their values are not used computationally" },
+  { name := "limited_higher_order_function_pointer", statement := "unary function-typed arguments lower to Rust fn-pointer arguments and SurfaceExpr.callValue nodes" },
   { name := "toolchain_pins", statement := "Lean and Rust toolchains are pinned exactly and checked before CI/release validation" },
   { name := "release_fallback_ban", statement := "checked-in generated.rs fallback is disabled for CI and release builds" },
   { name := "compatibility_reporting", statement := "unsupported tagged exports are skipped and recorded in a structured compatibility report" },
   { name := "payload_enum_branch_binders", statement := "payload enum pattern matching stores checked branch binders and emits Rust variant patterns" },
   { name := "first_order_function_calls", statement := "calls to other tagged first-order exports lower to checked SurfaceExpr.call nodes and Rust function calls" },
   { name := "surface_expr_evaluator", statement := "evalSurfaceFun interprets the checked SurfaceExpr subset used by the direct Lean-to-Rust emitter" },
+  { name := "extracted_surface_artifact", statement := "rust_emit_exports_with_report_and_surface emits the same checked SurfaceFun list that generated Rust uses, and the differential suite consumes that artifact instead of hand-mirrored fixtures" },
   { name := "expanded_surface_differential", statement := "Lean-generated differential tests compute extracted struct, enum, Result, call, and monomorphization expectations with evalSurfaceFun" },
   { name := "rust_identifier_hygiene", statement := "validateSurfaceModuleHygiene rejects generated modules whose sanitized Rust identifiers collide" },
   { name := "syn_parser_backed_validation", statement := "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset" },
@@ -65,13 +72,16 @@ def reportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
   "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"rust/tests/parser_validation.rs\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"rust/tests/parser_validation.rs\", \"LeanRustCore.IR.eval\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
   "    \"ffi_result_lowering\": \"status-plus-out-params\",\n" ++
   "    \"native_rust_types_at_ffi\": false,\n" ++
-  "    \"release_fallback_allowed\": false\n" ++
+  "    \"release_fallback_allowed\": false,\n" ++
+  "    \"nat_to_u32_requires_opt_in\": true,\n" ++
+  "    \"first_order_recursion_allowed\": true,\n" ++
+  "    \"closure_conversion\": \"future-phase\"\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++
   joinWith ",\n" (facts.map factToJson) ++ "\n" ++

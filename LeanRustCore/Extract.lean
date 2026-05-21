@@ -41,6 +41,7 @@ structure ExtractionResult where
 
 initialize monoExportSpecsRef : IO.Ref (List MonoExportSpec) ← IO.mkRef []
 initialize autoMonoExportSpecsRef : IO.Ref (List MonoExportSpec) ← IO.mkRef []
+initialize autoHelperExportSpecsRef : IO.Ref (List MonoExportSpec) ← IO.mkRef []
 
 private def nameLeaf : Name → String
   | .anonymous => "_"
@@ -59,11 +60,14 @@ private def containsName : List Name → Name → Bool
   | [], _ => false
   | x :: xs, target => x == target || containsName xs target
 
-private def localNameAt (locals : LocalCtx) (idx : Nat) : Except String String :=
+private def localAt (locals : LocalCtx) (idx : Nat) : Except String Local :=
   match locals.get? idx with
-  | some (some local) => Except.ok local.name
-  | some none => Except.error s!"de-Bruijn variable #{idx} is a type parameter, not a Rust value"
+  | some (some local) => Except.ok local
+  | some none => Except.error s!"de-Bruijn variable #{idx} is erased or type-level, not a Rust value"
   | none => Except.error s!"unbound de-Bruijn variable #{idx} during extraction"
+
+private def localNameAt (locals : LocalCtx) (idx : Nat) : Except String String := do
+  pure (← localAt locals idx).name
 
 private def typeParamAt (typeCtx : TypeCtx) (idx : Nat) : CoreM RType := do
   match typeCtx.get? idx with
@@ -138,6 +142,13 @@ private def isTypeParamBinder (ty : Expr) : Bool :=
   | .sort _ => true
   | _ => false
 
+/-- Conservative proof-erasure predicate for exported binders. -/
+private def isProofTypeShape (ty0 : Expr) : Bool :=
+  let ty := stripMData ty0
+  match ty.getAppFn with
+  | .const n _ => n == ``Eq || n == ``True || n == ``False
+  | _ => false
+
 private def unsupported (e : Expr) : CoreM α :=
   throwError "unsupported Lean expression in rust_export extraction: {e}"
 
@@ -146,11 +157,61 @@ private def lookupRField (fields : List RArg) (fieldName : String) : Option RTyp
   | [] => none
   | (name, ty) :: rest => if name == fieldName then some ty else lookupRField rest fieldName
 
+private def typeCtxFromParams (params : List RType) : TypeCtx :=
+  params.foldl (fun ctx ty => some ty :: ctx) []
+
+private def lowerRuntimeTypeChar : Char → Char
+  | 'A' => 'a' | 'B' => 'b' | 'C' => 'c' | 'D' => 'd' | 'E' => 'e' | 'F' => 'f'
+  | 'G' => 'g' | 'H' => 'h' | 'I' => 'i' | 'J' => 'j' | 'K' => 'k' | 'L' => 'l'
+  | 'M' => 'm' | 'N' => 'n' | 'O' => 'o' | 'P' => 'p' | 'Q' => 'q' | 'R' => 'r'
+  | 'S' => 's' | 'T' => 't' | 'U' => 'u' | 'V' => 'v' | 'W' => 'w' | 'X' => 'x'
+  | 'Y' => 'y' | 'Z' => 'z'
+  | c => c
+
+private def lowerRuntimeTypeString (s : String) : String :=
+  String.mk (s.toList.map lowerRuntimeTypeChar)
+
+private partial def rTypeRuntimeSuffix : RType → String
+  | .unit => "unit"
+  | .bool => "bool"
+  | .u32 => "u32"
+  | .u64 => "u64"
+  | .i32 => "i32"
+  | .i64 => "i64"
+  | .char => "char"
+  | .string => "string"
+  | .option t => "option_" ++ rTypeRuntimeSuffix t
+  | .result ok err => "result_" ++ rTypeRuntimeSuffix ok ++ "_" ++ rTypeRuntimeSuffix err
+  | .list t => "list_" ++ rTypeRuntimeSuffix t
+  | .array t => "array_" ++ rTypeRuntimeSuffix t
+  | .prod a b => "prod_" ++ rTypeRuntimeSuffix a ++ "_" ++ rTypeRuntimeSuffix b
+  | .sum a b => "sum_" ++ rTypeRuntimeSuffix a ++ "_" ++ rTypeRuntimeSuffix b
+  | .func a b => "fn_" ++ rTypeRuntimeSuffix a ++ "_" ++ rTypeRuntimeSuffix b
+  | .struct name _ => sanitizeRustIdent "struct" (lowerRuntimeTypeString name)
+  | .enum name _ => sanitizeRustIdent "enum" (lowerRuntimeTypeString name)
+
+private def monomorphizedInductiveName (inductName : Name) (typeArgs : List RType) : String :=
+  if typeArgs.isEmpty then
+    nameLeaf inductName
+  else
+    nameLeaf inductName ++ "__" ++ joinWith "_" (typeArgs.map rTypeRuntimeSuffix)
+
+private def indexedPayloadFieldsAux (idx : Nat) : List RType → List RArg
+  | [] => []
+  | ty :: rest => ("field" ++ Nat.toString idx, ty) :: indexedPayloadFieldsAux (idx + 1) rest
+
+private def indexedPayloadFields (payload : List RType) : List RArg :=
+  indexedPayloadFieldsAux 0 payload
+
 mutual
   partial def typeOfLeanWithCtx (typeCtx : TypeCtx) (ty0 : Expr) : CoreM RType := do
     let ty := stripMData ty0
     match ty with
     | .bvar idx => typeParamAt typeCtx idx
+    | .forallE _ domain body _ => do
+        let argTy ← typeOfLeanWithCtx typeCtx domain
+        let retTy ← typeOfLeanWithCtx (none :: typeCtx) body
+        pure (.func argTy retTy)
     | _ =>
         if ty.isConstOf ``Nat then
           return .u32
@@ -166,6 +227,10 @@ mutual
           return .i32
         else if ty.isConstOf ``Int64 then
           return .i64
+        else if ty.isConstOf ``Char then
+          return .char
+        else if ty.isConstOf ``String then
+          return .string
         else
           let fn := ty.getAppFn
           let args := ty.getAppArgs.toList
@@ -179,59 +244,89 @@ mutual
                 match args with
                 | [errTy, okTy] => return .result (← typeOfLeanWithCtx typeCtx okTy) (← typeOfLeanWithCtx typeCtx errTy)
                 | _ => throwError "unsupported Except type shape in rust_export extraction"
+              else if n == ``List then
+                match args with
+                | [inner] => return .list (← typeOfLeanWithCtx typeCtx inner)
+                | _ => throwError "unsupported List type shape in rust_export extraction"
+              else if n == ``Array then
+                match args with
+                | [inner] => return .array (← typeOfLeanWithCtx typeCtx inner)
+                | _ => throwError "unsupported Array type shape in rust_export extraction"
+              else if n == ``Prod then
+                match args with
+                | [a, b] => return .prod (← typeOfLeanWithCtx typeCtx a) (← typeOfLeanWithCtx typeCtx b)
+                | _ => throwError "unsupported Prod type shape in rust_export extraction"
+              else if n == ``Sum then
+                match args with
+                | [a, b] => return .sum (← typeOfLeanWithCtx typeCtx a) (← typeOfLeanWithCtx typeCtx b)
+                | _ => throwError "unsupported Sum type shape in rust_export extraction"
               else
                 match (← getEnv).find? n with
-                | some (.inductInfo _) => typeOfInductive n
+                | some (.inductInfo info) => do
+                    let paramExprs := args.take info.numParams
+                    if paramExprs.length == info.numParams then
+                      let concreteParams ← paramExprs.mapM (typeOfLeanWithCtx typeCtx)
+                      typeOfInductiveWithArgs n concreteParams
+                    else
+                      throwError "inductive type `{n}` expected {info.numParams} parameters but got {paramExprs.length}"
                 | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
           | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
 
   partial def typeOfLeanM (ty0 : Expr) : CoreM RType :=
     typeOfLeanWithCtx [] ty0
 
-  partial def typeOfInductive (inductName : Name) : CoreM RType := do
+  partial def typeOfInductive (inductName : Name) : CoreM RType :=
+    typeOfInductiveWithArgs inductName []
+
+  partial def typeOfInductiveWithArgs (inductName : Name) (typeArgs : List RType) : CoreM RType := do
     let env ← getEnv
     match env.find? inductName with
     | some (.inductInfo info) =>
-        if info.numParams == 0 && info.numIndices == 0 then
+        if info.numIndices == 0 && info.numParams == typeArgs.length then
+          let runtimeName := monomorphizedInductiveName inductName typeArgs
           match info.ctors with
           | [ctorName] =>
-              let fields ← ctorPayloadFields ctorName
+              let fields ← ctorPayloadFieldsWithParams ctorName typeArgs
               if fields.isEmpty then
-                pure (.enum (nameLeaf inductName) [(nameLeaf ctorName, [])])
+                pure (.enum runtimeName [(nameLeaf ctorName, [])])
               else
-                pure (.struct (nameLeaf inductName) fields)
+                pure (.struct runtimeName fields)
           | ctors => do
               let variants ← ctors.mapM (fun ctorName => do
-                let fields ← ctorPayloadFields ctorName
+                let fields ← ctorPayloadFieldsWithParams ctorName typeArgs
                 pure (nameLeaf ctorName, fields.map (fun field => field.2)))
-              pure (.enum (nameLeaf inductName) variants)
+              pure (.enum runtimeName variants)
         else
-          throwError "rust_export type lowering currently supports only closed, parameter-free inductives and structures; got {inductName}"
+          throwError "rust_export type lowering supports parameterized, index-free inductives only; got {inductName} with {info.numParams} params, {info.numIndices} indices, and {typeArgs.length} concrete args"
     | _ => throwError "expected inductive declaration for {inductName}"
 
-  partial def ctorPayloadFields (ctorName : Name) : CoreM (List RArg) := do
+  partial def ctorPayloadFields (ctorName : Name) : CoreM (List RArg) :=
+    ctorPayloadFieldsWithParams ctorName []
+
+  partial def ctorPayloadFieldsWithParams (ctorName : Name) (typeArgs : List RType) : CoreM (List RArg) := do
     let env ← getEnv
     match env.find? ctorName with
     | some (.ctorInfo info) =>
-        let (binders, _) := peelForalls info.type
-        let fieldBinders := (binders.drop info.numParams).take info.numFields
-        let mut out : List RArg := []
-        let mut idx : Nat := 0
-        for field in fieldBinders do
-          let fallback := "field" ++ Nat.toString idx
-          let fieldName := sanitizeRustIdent fallback (nameLeaf field.1)
-          let fieldTy ← typeOfLeanM field.2
-          out := out ++ [(fieldName, fieldTy)]
-          idx := idx + 1
-        pure out
+        if info.numParams == typeArgs.length then
+          let (binders, _) := peelForalls info.type
+          let fieldBinders := (binders.drop info.numParams).take info.numFields
+          let mut out : List RArg := []
+          let mut fieldCtx := typeCtxFromParams typeArgs
+          let mut idx : Nat := 0
+          for field in fieldBinders do
+            let fallback := "field" ++ Nat.toString idx
+            let fieldName := sanitizeRustIdent fallback (nameLeaf field.1)
+            let fieldTy ← typeOfLeanWithCtx fieldCtx field.2
+            out := out ++ [(fieldName, fieldTy)]
+            fieldCtx := none :: fieldCtx
+            idx := idx + 1
+          pure out
+        else
+          throwError "constructor `{ctorName}` expected {info.numParams} type parameters but got {typeArgs.length}"
     | _ => throwError "expected constructor declaration for {ctorName}"
 end
 
-/-- Signature lookup for first-order calls to other tagged non-generic Lean declarations. Generic calls are handled by automatic/explicit monomorphization below. -/
-private def callSignature? (declName : Name) : CoreM (Option (List RType × RType)) := do
-  let env ← getEnv
-  if !containsName (LeanRustCore.Export.exportedNames env) declName then
-    return none
+private def firstOrderSignature? (declName : Name) : CoreM (Option (List RType × RType)) := do
   let info ← getConstInfo declName
   match info with
   | .defnInfo defInfo =>
@@ -241,12 +336,22 @@ private def callSignature? (declName : Name) : CoreM (Option (List RType × RTyp
       for binder in binders do
         if isTypeParamBinder binder.2 then
           return none
-        let rty ← typeOfLeanWithCtx typeCtx binder.2
-        argTypes := argTypes ++ [rty]
-        typeCtx := none :: typeCtx
+        else if isProofTypeShape binder.2 then
+          typeCtx := none :: typeCtx
+        else
+          let rty ← typeOfLeanWithCtx typeCtx binder.2
+          argTypes := argTypes ++ [rty]
+          typeCtx := none :: typeCtx
       let retTy ← typeOfLeanWithCtx typeCtx retTyExpr
       pure (some (argTypes, retTy))
   | _ => pure none
+
+/-- Signature lookup for calls to other tagged non-generic Lean declarations. Generic calls are handled by automatic/explicit monomorphization below. -/
+private def callSignature? (declName : Name) : CoreM (Option (List RType × RType)) := do
+  let env ← getEnv
+  if !containsName (LeanRustCore.Export.exportedNames env) declName then
+    return none
+  firstOrderSignature? declName
 
 private partial def firstTypeArg? (typeCtx : TypeCtx) : List Expr → CoreM (Option RType)
   | [] => pure none
@@ -275,8 +380,15 @@ private partial def rTypeMonoSuffix : RType → String
   | .u64 => "u64"
   | .i32 => "i32"
   | .i64 => "i64"
+  | .char => "char"
+  | .string => "string"
   | .option t => "option_" ++ rTypeMonoSuffix t
   | .result ok err => "result_" ++ rTypeMonoSuffix ok ++ "_" ++ rTypeMonoSuffix err
+  | .list t => "list_" ++ rTypeMonoSuffix t
+  | .array t => "array_" ++ rTypeMonoSuffix t
+  | .prod a b => "prod_" ++ rTypeMonoSuffix a ++ "_" ++ rTypeMonoSuffix b
+  | .sum a b => "sum_" ++ rTypeMonoSuffix a ++ "_" ++ rTypeMonoSuffix b
+  | .func a b => "fn_" ++ rTypeMonoSuffix a ++ "_" ++ rTypeMonoSuffix b
   | .struct name _ => sanitizeRustIdent "struct" (lowerMonoString name)
   | .enum name _ => sanitizeRustIdent "enum" (lowerMonoString name)
 
@@ -302,6 +414,23 @@ private def registerAutoMonoSpec (source : Name) (typeArgs : List RType) : CoreM
           let rustName := autoMonoRustName source typeArgs
           let spec : MonoExportSpec := { source := source, rustName := rustName, typeArgs := typeArgs }
           liftIO <| autoMonoExportSpecsRef.modify (fun specs => specs ++ [spec])
+          pure rustName
+
+private def helperRustName (source : Name) : String :=
+  sanitizeRustIdent "generated" (nameLeaf source)
+
+private def registerAutoHelperSpec (source : Name) : CoreM String := do
+  let explicitSpecs ← liftIO monoExportSpecsRef.get
+  match findMonoSpecByKey source [] explicitSpecs with
+  | some spec => pure spec.rustName
+  | none => do
+      let autoSpecs ← liftIO autoHelperExportSpecsRef.get
+      match findMonoSpecByKey source [] autoSpecs with
+      | some spec => pure spec.rustName
+      | none => do
+          let rustName := helperRustName source
+          let spec : MonoExportSpec := { source := source, rustName := rustName, typeArgs := [] }
+          liftIO <| autoHelperExportSpecsRef.modify (fun specs => specs ++ [spec])
           pure rustName
 
 private def expectedOrTypeArg (typeCtx : TypeCtx) (expected : Option RType) (args : List Expr) (fallback : RType) : CoreM RType := do
@@ -420,14 +549,27 @@ where
     let (binders, body) ← peel 0 typeCtx locals [] variant.2 branchExpr
     pure (variant.1, (binders, body))
 
+  inductiveTypeFromArgs (typeCtx : TypeCtx) (inductName : Name) (args : List Expr) : CoreM (RType × List Expr) := do
+    let env ← getEnv
+    match env.find? inductName with
+    | some (.inductInfo info) =>
+        let paramExprs := args.take info.numParams
+        if paramExprs.length == info.numParams then
+          let concreteParams ← paramExprs.mapM (typeOfLeanWithCtx typeCtx)
+          let ty ← typeOfInductiveWithArgs inductName concreteParams
+          pure (ty, args.drop info.numParams)
+        else
+          throwError "inductive `{inductName}` expected {info.numParams} type parameters but got {paramExprs.length}"
+    | _ => throwError "expected inductive declaration for {inductName}"
+
   translateEnumCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (recursor : Name) (args : List Expr) : CoreM SurfaceExpr := do
     let inductName := nameParent recursor
-    let enumTy ← typeOfInductive inductName
+    let (enumTy, argsWithoutParams) ← inductiveTypeFromArgs typeCtx inductName args
     match enumTy with
     | .enum _ variants =>
         let branchCount := variants.length
-        if args.length == branchCount + 2 then
-          match args with
+        if argsWithoutParams.length == branchCount + 2 then
+          match argsWithoutParams with
           | _motive :: discr :: rest =>
               let branches := variants.zip rest
               return .matchEnum enumTy (← translateExpr typeCtx locals (some enumTy) discr)
@@ -439,14 +581,14 @@ where
 
   translateEnumRec (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (recursor : Name) (args : List Expr) : CoreM SurfaceExpr := do
     let inductName := nameParent recursor
-    let enumTy ← typeOfInductive inductName
+    let (enumTy, argsWithoutParams) ← inductiveTypeFromArgs typeCtx inductName args
     match enumTy with
     | .enum _ variants =>
         let branchCount := variants.length
-        if args.length == branchCount + 2 then
-          match args.reverse with
+        if argsWithoutParams.length == branchCount + 2 then
+          match argsWithoutParams.reverse with
           | discr :: _ =>
-              let rest := (args.drop 1).take branchCount
+              let rest := (argsWithoutParams.drop 1).take branchCount
               let branches := variants.zip rest
               return .matchEnum enumTy (← translateExpr typeCtx locals (some enumTy) discr)
                 (← branches.mapM (fun branch => translateEnumBranch typeCtx locals expected branch.1 branch.2))
@@ -458,41 +600,72 @@ where
   translateConstructorApp? (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (ctorName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
     match (← getEnv).find? ctorName with
     | some (.ctorInfo info) =>
-        let ty ← typeOfInductive info.induct
-        let fields ← ctorPayloadFields ctorName
-        let valueArgs := takeLast info.numFields args
-        match ty with
-        | .struct _ declared =>
-            if declared.length == fields.length && valueArgs.length == fields.length then
-              let mut provided : List (String × SurfaceExpr) := []
-              for pair in fields.zip valueArgs do
-                provided := provided ++ [(pair.1.1, (← translateExpr typeCtx locals (some pair.1.2) pair.2))]
-              return some (.structLit ty provided)
-            else
-              return none
-        | .enum _ _ =>
-            if valueArgs.length == fields.length then
-              let mut payload : List SurfaceExpr := []
-              for pair in fields.zip valueArgs do
-                payload := payload ++ [(← translateExpr typeCtx locals (some pair.1.2) pair.2)]
-              return some (.enumVariant ty (nameLeaf ctorName) payload)
-            else
-              return none
-        | _ => return none
+        let paramExprs := args.take info.numParams
+        let fallbackFromExpected : CoreM (Option (RType × List RArg)) :=
+          match expected with
+          | some ty@(.struct _ fields) => pure (some (ty, fields))
+          | some ty@(.enum _ variants) =>
+              match lookupVariant variants (nameLeaf ctorName) with
+              | some payload =>
+                  let fields := indexedPayloadFields payload
+                  pure (some (ty, fields))
+              | none => pure none
+          | _ => pure none
+        let inferred ←
+          if paramExprs.length == info.numParams then
+            try
+              let concreteParams ← paramExprs.mapM (typeOfLeanWithCtx typeCtx)
+              let ty ← typeOfInductiveWithArgs info.induct concreteParams
+              let fields ← ctorPayloadFieldsWithParams ctorName concreteParams
+              pure (some (ty, fields))
+            catch _ =>
+              fallbackFromExpected
+          else
+            fallbackFromExpected
+        match inferred with
+        | none => return none
+        | some (ty, fields) =>
+            let valueArgs := takeLast info.numFields args
+            match ty with
+            | .struct _ declared =>
+                if declared.length == fields.length && valueArgs.length == fields.length then
+                  let mut provided : List (String × SurfaceExpr) := []
+                  for pair in fields.zip valueArgs do
+                    provided := provided ++ [(pair.1.1, (← translateExpr typeCtx locals (some pair.1.2) pair.2))]
+                  return some (.structLit ty provided)
+                else
+                  return none
+            | .enum _ _ =>
+                if valueArgs.length == fields.length then
+                  let mut payload : List SurfaceExpr := []
+                  for pair in fields.zip valueArgs do
+                    payload := payload ++ [(← translateExpr typeCtx locals (some pair.1.2) pair.2)]
+                  return some (.enumVariant ty (nameLeaf ctorName) payload)
+                else
+                  return none
+            | _ => return none
     | _ => return none
 
   translateProjectionApp? (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (projName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
     let parent := nameParent projName
     try
-      let ty ← typeOfInductive parent
-      match ty with
-      | .struct _ fields =>
-          let fieldName := nameLeaf projName
-          match lookupRField fields fieldName, last? args with
-          | some _fieldTy, some target =>
-              let targetExpr ← translateExpr typeCtx locals (some ty) target
-              return some (.field targetExpr fieldName)
-          | _, _ => return none
+      let env ← getEnv
+      match env.find? parent with
+      | some (.inductInfo info) =>
+          let paramExprs := args.take info.numParams
+          if paramExprs.length != info.numParams then
+            return none
+          let concreteParams ← paramExprs.mapM (typeOfLeanWithCtx typeCtx)
+          let ty ← typeOfInductiveWithArgs parent concreteParams
+          match ty with
+          | .struct _ fields =>
+              let fieldName := nameLeaf projName
+              match lookupRField fields fieldName, last? args with
+              | some _fieldTy, some target =>
+                  let targetExpr ← translateExpr typeCtx locals (some ty) target
+                  return some (.field targetExpr fieldName)
+              | _, _ => return none
+          | _ => return none
       | _ => return none
     catch _ =>
       return none
@@ -548,7 +721,16 @@ where
         | some (rustName, argTypes, retTy, valueArgs) =>
             let translatedArgs ← (argTypes.zip valueArgs).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
             return some (.call rustName argTypes retTy translatedArgs)
-        | none => return none
+        | none =>
+            match (← firstOrderSignature? calledName) with
+            | some (argTypes, retTy) =>
+                if args.length == argTypes.length then
+                  let rustName ← registerAutoHelperSpec calledName
+                  let translatedArgs ← (argTypes.zip args).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
+                  return some (.call rustName argTypes retTy translatedArgs)
+                else
+                  return none
+            | none => return none
 
   translateApp (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) : CoreM SurfaceExpr := do
     let fn := e.getAppFn
@@ -643,6 +825,16 @@ where
                   match (← translateConstructorApp? typeCtx locals expected n args) with
                   | some expr => return expr
                   | none => unsupported e
+    | .bvar idx =>
+        match localAt locals idx with
+        | .ok local =>
+            match local.ty, args with
+            | .func argTy retTy, [arg] =>
+                return .callValue (.var local.name) argTy retTy (← translateExpr typeCtx locals (some argTy) arg)
+            | .func _ _, _ =>
+                throwError "higher-order function value `{local.name}` was applied with an unsupported arity"
+            | _, _ => unsupported e
+        | .error msg => throwError msg
     | _ => unsupported e
 
 private def rTypeSyntaxIdent (stx : Syntax) : Except String RType :=
@@ -655,6 +847,8 @@ private def rTypeSyntaxIdent (stx : Syntax) : Except String RType :=
   | "UInt64" => .ok .u64
   | "Int32" => .ok .i32
   | "Int64" => .ok .i64
+  | "Char" => .ok .char
+  | "String" => .ok .string
   | _ => .error s!"rust_mono_export type argument `{n}` is not in the current concrete type subset"
 
 private def rTypeReportLabel : RType → String
@@ -664,8 +858,15 @@ private def rTypeReportLabel : RType → String
   | .u64 => "UInt64"
   | .i32 => "Int32"
   | .i64 => "Int64"
+  | .char => "Char"
+  | .string => "String"
   | .option t => "Option " ++ rTypeReportLabel t
   | .result ok err => "Except " ++ rTypeReportLabel err ++ " " ++ rTypeReportLabel ok
+  | .list t => "List " ++ rTypeReportLabel t
+  | .array t => "Array " ++ rTypeReportLabel t
+  | .prod a b => "Prod " ++ rTypeReportLabel a ++ " " ++ rTypeReportLabel b
+  | .sum a b => "Sum " ++ rTypeReportLabel a ++ " " ++ rTypeReportLabel b
+  | .func a b => "Function " ++ rTypeReportLabel a ++ " -> " ++ rTypeReportLabel b
   | .struct name _ => name
   | .enum name _ => name
 
@@ -688,6 +889,9 @@ private def buildExtractionContexts (binders : List (Name × Expr)) (typeArgs : 
           typeArgIndex := typeArgIndex + 1
       | none =>
           throwError "generic rust_export `{binderName}` requires rust_mono_export with a concrete type argument"
+    else if isProofTypeShape binderTy then
+      typeCtx := none :: typeCtx
+      locals := none :: locals
     else
       let rustName := sanitizeRustIdent s!"arg{valueIndex}" (nameLeaf binderName)
       let rty ← typeOfLeanWithCtx typeCtx binderTy
@@ -763,17 +967,265 @@ def emitCompatibilityReport (result : ExtractionResult) : String :=
   "  ]\n" ++
   "}\n"
 
+/-!
+## Extracted surface artifact emission
+
+The differential suite should consume the exact `SurfaceFun`s produced by the
+extractor, not hand-mirrored fixtures.  The helpers below quote checked surface
+values back into Lean syntax so `rust_emit_exports_with_report_and_surface` can
+define a first-class `List SurfaceFun` next to the generated Rust and report.
+-/
+
+private def stringTerm (s : String) : TSyntax `term :=
+  ⟨Syntax.mkStrLit s⟩
+
+private def natTerm (n : Nat) : TSyntax `term :=
+  ⟨Syntax.mkNumLit (Nat.toString n)⟩
+
+private def intTerm (n : Int) : CommandElabM (TSyntax `term) := do
+  let magnitude := if n < 0 then Int.toNat (-n) else Int.toNat n
+  let magnitudeTerm := natTerm magnitude
+  if n < 0 then
+    `(- (Int.ofNat $magnitudeTerm))
+  else
+    `(Int.ofNat $magnitudeTerm)
+
+private partial def listTerm (items : List (TSyntax `term)) : CommandElabM (TSyntax `term) := do
+  match items with
+  | [] => `([])
+  | item :: rest => do
+      let restTerm ← listTerm rest
+      `($item :: $restTerm)
+
+private partial def rTypeTerm : RType → CommandElabM (TSyntax `term)
+  | .unit => `(LeanRustCore.RType.unit)
+  | .bool => `(LeanRustCore.RType.bool)
+  | .u32 => `(LeanRustCore.RType.u32)
+  | .u64 => `(LeanRustCore.RType.u64)
+  | .i32 => `(LeanRustCore.RType.i32)
+  | .i64 => `(LeanRustCore.RType.i64)
+  | .char => `(LeanRustCore.RType.char)
+  | .string => `(LeanRustCore.RType.string)
+  | .option ty => do
+      let tyTerm ← rTypeTerm ty
+      `(LeanRustCore.RType.option $tyTerm)
+  | .result ok err => do
+      let okTerm ← rTypeTerm ok
+      let errTerm ← rTypeTerm err
+      `(LeanRustCore.RType.result $okTerm $errTerm)
+  | .list ty => do
+      let tyTerm ← rTypeTerm ty
+      `(LeanRustCore.RType.list $tyTerm)
+  | .array ty => do
+      let tyTerm ← rTypeTerm ty
+      `(LeanRustCore.RType.array $tyTerm)
+  | .prod a b => do
+      let aTerm ← rTypeTerm a
+      let bTerm ← rTypeTerm b
+      `(LeanRustCore.RType.prod $aTerm $bTerm)
+  | .sum a b => do
+      let aTerm ← rTypeTerm a
+      let bTerm ← rTypeTerm b
+      `(LeanRustCore.RType.sum $aTerm $bTerm)
+  | .func a b => do
+      let aTerm ← rTypeTerm a
+      let bTerm ← rTypeTerm b
+      `(LeanRustCore.RType.func $aTerm $bTerm)
+  | .struct name fields => do
+      let nameTerm := stringTerm name
+      let fieldTerms ← fields.mapM rArgTerm
+      let fieldsTerm ← listTerm fieldTerms
+      `(LeanRustCore.RType.struct $nameTerm $fieldsTerm)
+  | .enum name variants => do
+      let nameTerm := stringTerm name
+      let variantTerms ← variants.mapM enumVariantTerm
+      let variantsTerm ← listTerm variantTerms
+      `(LeanRustCore.RType.enum $nameTerm $variantsTerm)
+where
+  rArgTerm (arg : RArg) : CommandElabM (TSyntax `term) := do
+    let nameTerm := stringTerm arg.1
+    let tyTerm ← rTypeTerm arg.2
+    `(($nameTerm, $tyTerm))
+
+  enumVariantTerm (variant : String × List RType) : CommandElabM (TSyntax `term) := do
+    let nameTerm := stringTerm variant.1
+    let payloadTerms ← variant.2.mapM rTypeTerm
+    let payloadTerm ← listTerm payloadTerms
+    `(($nameTerm, $payloadTerm))
+
+private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `term)
+  | .var name => do
+      let nameTerm := stringTerm name
+      `(LeanRustCore.SurfaceExpr.var $nameTerm)
+  | .litUnit => `(LeanRustCore.SurfaceExpr.litUnit)
+  | .litBool value => do
+      if value then
+        `(LeanRustCore.SurfaceExpr.litBool true)
+      else
+        `(LeanRustCore.SurfaceExpr.litBool false)
+  | .litU32 value => do
+      let valueTerm := natTerm value
+      `(LeanRustCore.SurfaceExpr.litU32 $valueTerm)
+  | .litU64 value => do
+      let valueTerm := natTerm value
+      `(LeanRustCore.SurfaceExpr.litU64 $valueTerm)
+  | .litI32 value => do
+      let valueTerm ← intTerm value
+      `(LeanRustCore.SurfaceExpr.litI32 $valueTerm)
+  | .litI64 value => do
+      let valueTerm ← intTerm value
+      `(LeanRustCore.SurfaceExpr.litI64 $valueTerm)
+  | .litChar value => do
+      let valueTerm := natTerm value.toNat
+      `(LeanRustCore.SurfaceExpr.litChar (Char.ofNat $valueTerm))
+  | .litString value => do
+      let valueTerm := stringTerm value
+      `(LeanRustCore.SurfaceExpr.litString $valueTerm)
+  | .letIn name value body => do
+      let nameTerm := stringTerm name
+      let valueTerm ← surfaceExprTerm value
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.letIn $nameTerm $valueTerm $bodyTerm)
+  | .ite c a b => do
+      let cTerm ← surfaceExprTerm c
+      let aTerm ← surfaceExprTerm a
+      let bTerm ← surfaceExprTerm b
+      `(LeanRustCore.SurfaceExpr.ite $cTerm $aTerm $bTerm)
+  | .matchBool c a b => do
+      let cTerm ← surfaceExprTerm c
+      let aTerm ← surfaceExprTerm a
+      let bTerm ← surfaceExprTerm b
+      `(LeanRustCore.SurfaceExpr.matchBool $cTerm $aTerm $bTerm)
+  | .matchOption target noneCase someName someCase => do
+      let targetTerm ← surfaceExprTerm target
+      let noneTerm ← surfaceExprTerm noneCase
+      let nameTerm := stringTerm someName
+      let someTerm ← surfaceExprTerm someCase
+      `(LeanRustCore.SurfaceExpr.matchOption $targetTerm $noneTerm $nameTerm $someTerm)
+  | .matchEnum ty target branches => do
+      let tyTerm ← rTypeTerm ty
+      let targetTerm ← surfaceExprTerm target
+      let branchTerms ← branches.mapM enumBranchTerm
+      let branchesTerm ← listTerm branchTerms
+      `(LeanRustCore.SurfaceExpr.matchEnum $tyTerm $targetTerm $branchesTerm)
+  | .not a => do
+      let aTerm ← surfaceExprTerm a
+      `(LeanRustCore.SurfaceExpr.not $aTerm)
+  | .and a b => binaryExprTerm ``LeanRustCore.SurfaceExpr.and a b
+  | .or a b => binaryExprTerm ``LeanRustCore.SurfaceExpr.or a b
+  | .eq ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.eq ty a b
+  | .lt ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.lt ty a b
+  | .le ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.le ty a b
+  | .gt ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.gt ty a b
+  | .ge ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.ge ty a b
+  | .add ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.add ty a b
+  | .sub ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.sub ty a b
+  | .mul ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.mul ty a b
+  | .min ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.min ty a b
+  | .max ty a b => typedBinaryExprTerm ``LeanRustCore.SurfaceExpr.max ty a b
+  | .optionNone ty => do
+      let tyTerm ← rTypeTerm ty
+      `(LeanRustCore.SurfaceExpr.optionNone $tyTerm)
+  | .optionSome value => do
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.optionSome $valueTerm)
+  | .resultOk errTy value => do
+      let errTerm ← rTypeTerm errTy
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.resultOk $errTerm $valueTerm)
+  | .resultErr okTy value => do
+      let okTerm ← rTypeTerm okTy
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.resultErr $okTerm $valueTerm)
+  | .structLit ty fields => do
+      let tyTerm ← rTypeTerm ty
+      let fieldTerms ← fields.mapM exprFieldTerm
+      let fieldsTerm ← listTerm fieldTerms
+      `(LeanRustCore.SurfaceExpr.structLit $tyTerm $fieldsTerm)
+  | .field target fieldName => do
+      let targetTerm ← surfaceExprTerm target
+      let fieldTerm := stringTerm fieldName
+      `(LeanRustCore.SurfaceExpr.field $targetTerm $fieldTerm)
+  | .enumVariant ty variant payload => do
+      let tyTerm ← rTypeTerm ty
+      let variantTerm := stringTerm variant
+      let payloadTerms ← payload.mapM surfaceExprTerm
+      let payloadTerm ← listTerm payloadTerms
+      `(LeanRustCore.SurfaceExpr.enumVariant $tyTerm $variantTerm $payloadTerm)
+  | .call name argTypes ret args => do
+      let nameTerm := stringTerm name
+      let argTypeTerms ← argTypes.mapM rTypeTerm
+      let argTypesTerm ← listTerm argTypeTerms
+      let retTerm ← rTypeTerm ret
+      let argTerms ← args.mapM surfaceExprTerm
+      let argsTerm ← listTerm argTerms
+      `(LeanRustCore.SurfaceExpr.call $nameTerm $argTypesTerm $retTerm $argsTerm)
+  | .callValue fn argTy retTy arg => do
+      let fnTerm ← surfaceExprTerm fn
+      let argTyTerm ← rTypeTerm argTy
+      let retTyTerm ← rTypeTerm retTy
+      let argTerm ← surfaceExprTerm arg
+      `(LeanRustCore.SurfaceExpr.callValue $fnTerm $argTyTerm $retTyTerm $argTerm)
+where
+  enumBranchTerm (branch : String × (List String × SurfaceExpr)) : CommandElabM (TSyntax `term) := do
+    let variantTerm := stringTerm branch.1
+    let binderTerms := branch.2.1.map stringTerm
+    let bindersTerm ← listTerm binderTerms
+    let bodyTerm ← surfaceExprTerm branch.2.2
+    `(($variantTerm, ($bindersTerm, $bodyTerm)))
+
+  exprFieldTerm (field : String × SurfaceExpr) : CommandElabM (TSyntax `term) := do
+    let fieldTerm := stringTerm field.1
+    let valueTerm ← surfaceExprTerm field.2
+    `(($fieldTerm, $valueTerm))
+
+  binaryExprTerm (ctorName : Name) (a b : SurfaceExpr) : CommandElabM (TSyntax `term) := do
+    let ctor := mkIdent ctorName
+    let aTerm ← surfaceExprTerm a
+    let bTerm ← surfaceExprTerm b
+    `($ctor $aTerm $bTerm)
+
+  typedBinaryExprTerm (ctorName : Name) (ty : RType) (a b : SurfaceExpr) : CommandElabM (TSyntax `term) := do
+    let ctor := mkIdent ctorName
+    let tyTerm ← rTypeTerm ty
+    let aTerm ← surfaceExprTerm a
+    let bTerm ← surfaceExprTerm b
+    `($ctor $tyTerm $aTerm $bTerm)
+
+private def surfaceFunTerm (f : SurfaceFun) : CommandElabM (TSyntax `term) := do
+  let nameTerm := stringTerm f.name
+  let argTerms ← f.args.mapM (fun arg => do
+    let argName := stringTerm arg.1
+    let argTy ← rTypeTerm arg.2
+    `(($argName, $argTy)))
+  let argsTerm ← listTerm argTerms
+  let retTerm ← rTypeTerm f.ret
+  let bodyTerm ← surfaceExprTerm f.body
+  `(({ name := $nameTerm, args := $argsTerm, ret := $retTerm, body := $bodyTerm } : LeanRustCore.SurfaceFun))
+
+private def surfaceFunListTerm (functions : List SurfaceFun) : CommandElabM (TSyntax `term) := do
+  let functionTerms ← functions.mapM surfaceFunTerm
+  listTerm functionTerms
+
 private def supportedDiagnostic (source rustName : String) (detail : String := "exported") : ExportDiagnostic :=
   { source := source, rustName := rustName, code := .supported, detail := detail }
 
 private def unsupportedDiagnostic (source rustName detail : String) : ExportDiagnostic :=
   { source := source, rustName := rustName, code := .unsupportedDeclaration, detail := detail }
 
+private def regularSupportedDetail (declName : Name) : CoreM String := do
+  let env ← getEnv
+  if LeanRustCore.Export.natWrappingU32Allowed env declName then
+    pure "exported-nat-wrapping-u32"
+  else
+    pure "exported"
+
 private def extractRegularWithDiagnostic (declName : Name) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
   let rustName := sanitizeRustIdent "generated" (nameLeaf declName)
   try
     let f ← extractConst declName
-    pure (some f, supportedDiagnostic (toString declName) f.name "exported")
+    let detail ← regularSupportedDetail declName
+    pure (some f, supportedDiagnostic (toString declName) f.name detail)
   catch _ =>
     pure (none, unsupportedDiagnostic (toString declName) rustName "unsupported export skipped by the direct Lean-to-Rust extractor")
 
@@ -813,6 +1265,7 @@ private partial def extractPendingAutoMonos (seen : List MonoExportSpec) (functi
 /-- Tolerant extraction: successful declarations are emitted; unsupported declarations are reported. -/
 def extractWithDiagnostics (decls : List Name) (monos : List MonoExportSpec) : CoreM ExtractionResult := do
   liftIO <| autoMonoExportSpecsRef.set []
+  liftIO <| autoHelperExportSpecsRef.set []
   let mut functions : List SurfaceFun := []
   let mut diagnostics : List ExportDiagnostic := []
   for decl in decls do

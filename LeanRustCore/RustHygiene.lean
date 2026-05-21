@@ -180,6 +180,8 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .litU64 _ => []
   | .litI32 _ => []
   | .litI64 _ => []
+  | .litChar _ => []
+  | .litString _ => []
   | .letIn name value body => name :: surfaceBinders value ++ surfaceBinders body
   | .ite c a b => surfaceBinders c ++ surfaceBinders a ++ surfaceBinders b
   | .matchBool c a b => surfaceBinders c ++ surfaceBinders a ++ surfaceBinders b
@@ -207,6 +209,7 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .field target _ => surfaceBinders target
   | .enumVariant _ _ payload => payload.bind surfaceBinders
   | .call _ _ _ args => args.bind surfaceBinders
+  | .callValue fn _ _ arg => surfaceBinders fn ++ surfaceBinders arg
 
 private def validateStructHygiene (s : SurfaceStruct) : List RustHygieneIssue :=
   detectNameCollisions ("struct " ++ s.name ++ " fields") (fieldNameEntries s.fields)

@@ -5,7 +5,13 @@
 pub struct Point { pub x: u32, pub y: u32 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BoxedU32 { pub value: u32 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Choice { First, Second }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TaggedU32 { Missing, Present(u32) }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Step { Stay, Jump(u32) }
@@ -50,6 +56,30 @@ pub fn echo_i64(x: i64) -> i64 {
     x
 }
 
+pub fn echo_char(x: char) -> char {
+    x
+}
+
+pub fn echo_string(x: String) -> String {
+    x
+}
+
+pub fn echo_list_u32(xs: Vec<u32>) -> Vec<u32> {
+    xs
+}
+
+pub fn echo_array_u32(xs: Vec<u32>) -> Vec<u32> {
+    xs
+}
+
+pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32) {
+    x
+}
+
+pub fn echo_sum_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    x
+}
+
 pub fn add_u64(a: u64, b: u64) -> u64 {
     (a).wrapping_add(b)
 }
@@ -60,6 +90,10 @@ pub fn inc_u32(x: u32) -> u32 {
 
 pub fn inc_twice_u32(x: u32) -> u32 {
     inc_u32(inc_u32(x))
+}
+
+pub fn proof_erased_u32(x: u32) -> u32 {
+    x
 }
 
 pub fn unit_roundtrip(x: ()) -> () {
@@ -114,6 +148,26 @@ pub fn shift_point_x(p: Point, dx: u32) -> Point {
     Point { x: ((p).x).wrapping_add(dx), y: (p).y }
 }
 
+pub fn boxed_u32(x: u32) -> BoxedU32 {
+    BoxedU32 { value: x }
+}
+
+pub fn boxed_value_u32(b: BoxedU32) -> u32 {
+    (b).value
+}
+
+pub fn tagged_missing_u32(_x: ()) -> TaggedU32 {
+    TaggedU32::Missing
+}
+
+pub fn tagged_present_u32(x: u32) -> TaggedU32 {
+    TaggedU32::Present(x)
+}
+
+pub fn tagged_default_u32(t: TaggedU32, fallback: u32) -> u32 {
+    match t { TaggedU32::Missing => fallback, TaggedU32::Present(value) => value }
+}
+
 pub fn step_stay(_x: ()) -> Step {
     Step::Stay
 }
@@ -142,6 +196,10 @@ pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>> {
     Err(Some(e))
 }
 
+pub fn unsupported_higher_order_u32(f: fn(u32) -> u32, x: u32) -> u32 {
+    f(x)
+}
+
 pub fn identity_u64(x: u64) -> u64 {
     x
 }
@@ -164,6 +222,14 @@ pub fn generic_choose__point(flag: bool, when_true: Point, when_false: Point) ->
 
 pub fn generic_option_default__step(x: Option<Step>, fallback: Step) -> Step {
     match x { None => fallback, Some(value) => value }
+}
+
+pub fn helper_inc_fixed(x: u32) -> u32 {
+    (x).wrapping_add(1)
+}
+
+pub fn helper_chain_u32(x: u32) -> u32 {
+    helper_inc_fixed(helper_inc_fixed(x))
 }
 
 pub fn auto_identity_u32(x: u32) -> u32 {

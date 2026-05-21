@@ -13,7 +13,8 @@ open LeanRustCore.Extract
 These are ordinary Lean definitions tagged with `@[rust_export]`. The
 `rust_emit_exports` command reads their elaborated constant bodies from the Lean
 environment and emits Rust for the supported subset. There is no source-string
-matching in this path.
+matching in this path. The `Nat` examples below explicitly opt into wrapping
+`u32` boundary semantics with `@[rust_nat_wrapping_u32]`.
 -/
 
 inductive Choice where
@@ -28,27 +29,34 @@ inductive Step where
   | stay
   | jump (amount : UInt32)
 
-@[rust_export]
+structure Boxed (α : Type) where
+  value : α
+
+inductive Tagged (α : Type) where
+  | missing
+  | present (value : α)
+
+@[rust_export, rust_nat_wrapping_u32]
 def clamp_u32 (lo hi x : Nat) : Nat :=
   if x < lo then lo else if x > hi then hi else x
 
-@[rust_export]
+@[rust_export, rust_nat_wrapping_u32]
 def max_u32 (a b : Nat) : Nat :=
   if a < b then b else a
 
-@[rust_export]
+@[rust_export, rust_nat_wrapping_u32]
 def is_nonzero_u32 (x : Nat) : Bool :=
   if x = 0 then false else true
 
-@[rust_export]
+@[rust_export, rust_nat_wrapping_u32]
 def add_u32 (a b : Nat) : Nat :=
   a + b
 
-@[rust_export]
+@[rust_export, rust_nat_wrapping_u32]
 def mul_u32 (a b : Nat) : Nat :=
   a * b
 
-@[rust_export]
+@[rust_export, rust_nat_wrapping_u32]
 def bounded_bump_u32 (x : Nat) : Nat :=
   let y := x + 1
   if y > 10 then 10 else y
@@ -70,6 +78,30 @@ def echo_i64 (x : Int64) : Int64 :=
   x
 
 @[rust_export]
+def echo_char (x : Char) : Char :=
+  x
+
+@[rust_export]
+def echo_string (x : String) : String :=
+  x
+
+@[rust_export]
+def echo_list_u32 (xs : List UInt32) : List UInt32 :=
+  xs
+
+@[rust_export]
+def echo_array_u32 (xs : Array UInt32) : Array UInt32 :=
+  xs
+
+@[rust_export]
+def echo_prod_u32 (x : UInt32 × UInt32) : UInt32 × UInt32 :=
+  x
+
+@[rust_export]
+def echo_sum_u32 (x : Sum UInt32 UInt32) : Sum UInt32 UInt32 :=
+  x
+
+@[rust_export]
 def add_u64 (a b : UInt64) : UInt64 :=
   a + b
 
@@ -80,6 +112,17 @@ def inc_u32 (x : UInt32) : UInt32 :=
 @[rust_export]
 def inc_twice_u32 (x : UInt32) : UInt32 :=
   inc_u32 (inc_u32 x)
+
+def helper_inc_fixed (x : UInt32) : UInt32 :=
+  x + 1
+
+@[rust_export]
+def helper_chain_u32 (x : UInt32) : UInt32 :=
+  helper_inc_fixed (helper_inc_fixed x)
+
+@[rust_export]
+def proof_erased_u32 (x : UInt32) (_h : x = x) : UInt32 :=
+  x
 
 @[rust_export]
 def unit_roundtrip (x : Unit) : Unit :=
@@ -138,6 +181,28 @@ def point_y (p : Point) : UInt32 :=
 @[rust_export]
 def shift_point_x (p : Point) (dx : UInt32) : Point :=
   { x := p.x + dx, y := p.y }
+
+@[rust_export]
+def boxed_u32 (x : UInt32) : Boxed UInt32 :=
+  { value := x }
+
+@[rust_export]
+def boxed_value_u32 (b : Boxed UInt32) : UInt32 :=
+  b.value
+
+@[rust_export]
+def tagged_missing_u32 (_x : Unit) : Tagged UInt32 :=
+  Tagged.missing
+
+@[rust_export]
+def tagged_present_u32 (x : UInt32) : Tagged UInt32 :=
+  Tagged.present x
+
+@[rust_export]
+def tagged_default_u32 (t : Tagged UInt32) (fallback : UInt32) : UInt32 :=
+  match t with
+  | Tagged.missing => fallback
+  | Tagged.present value => value
 
 @[rust_export]
 def step_stay (_x : Unit) : Step :=
@@ -209,7 +274,7 @@ def auto_option_default_step (x : Option Step) (fallback : Step) : Step :=
 def unsupported_higher_order_u32 (f : UInt32 → UInt32) (x : UInt32) : UInt32 :=
   f x
 
-rust_emit_exports_with_report generatedRust generatedCompatibilityReport
+rust_emit_exports_with_report_and_surface generatedRust generatedCompatibilityReport extractedSurfaceFunctions
 
 /-!
 ## Proof-carrying IR examples

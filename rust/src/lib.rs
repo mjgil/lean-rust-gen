@@ -2,7 +2,8 @@
 #![allow(
     clippy::needless_bool,
     clippy::redundant_field_names,
-    clippy::unused_unit
+    clippy::unused_unit,
+    non_snake_case
 )]
 
 pub mod abi;

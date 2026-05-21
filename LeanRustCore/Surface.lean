@@ -28,6 +28,8 @@ inductive SurfaceExpr where
   | litU64 : Nat → SurfaceExpr
   | litI32 : Int → SurfaceExpr
   | litI64 : Int → SurfaceExpr
+  | litChar : Char → SurfaceExpr
+  | litString : String → SurfaceExpr
   | letIn : String → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | ite : SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | matchBool : SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
@@ -54,6 +56,7 @@ inductive SurfaceExpr where
   | field : SurfaceExpr → String → SurfaceExpr
   | enumVariant : RType → String → List SurfaceExpr → SurfaceExpr
   | call : String → List RType → RType → List SurfaceExpr → SurfaceExpr
+  | callValue : SurfaceExpr → RType → RType → SurfaceExpr → SurfaceExpr
   deriving Repr, BEq
 
 /-- A checked extracted function, before packaging into proof-carrying `RFun`s. -/
@@ -100,8 +103,15 @@ private def rTypeLabel : RType → String
   | .u64 => "u64"
   | .i32 => "i32"
   | .i64 => "i64"
+  | .char => "Char"
+  | .string => "String"
   | .option t => "Option<" ++ rTypeLabel t ++ ">"
   | .result ok err => "Result<" ++ rTypeLabel ok ++ "," ++ rTypeLabel err ++ ">"
+  | .list t => "List<" ++ rTypeLabel t ++ ">"
+  | .array t => "Array<" ++ rTypeLabel t ++ ">"
+  | .prod a b => "Prod<" ++ rTypeLabel a ++ "," ++ rTypeLabel b ++ ">"
+  | .sum a b => "Sum<" ++ rTypeLabel a ++ "," ++ rTypeLabel b ++ ">"
+  | .func a b => "Fn<" ++ rTypeLabel a ++ "," ++ rTypeLabel b ++ ">"
   | .struct name _ => name
   | .enum name _ => name
 
@@ -121,6 +131,8 @@ private def isEqType : RType → Bool
   | .u64 => true
   | .i32 => true
   | .i64 => true
+  | .char => true
+  | .string => true
   | .enum _ variants => variants.all (fun v => v.2.isEmpty)
   | _ => false
 
@@ -167,6 +179,8 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
   | .litU64 _ => applyExpected expected .u64
   | .litI32 _ => applyExpected expected .i32
   | .litI64 _ => applyExpected expected .i64
+  | .litChar _ => applyExpected expected .char
+  | .litString _ => applyExpected expected .string
   | .letIn name value body => do
       let valueTy ← typeOfExpected ctx value none
       typeOfExpected ((name, valueTy) :: ctx) body expected
@@ -285,6 +299,10 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
         applyExpected expected ret
       else
         throw (report .unsupportedExpression ("function call `" ++ name ++ "` received the wrong number of arguments"))
+  | .callValue fn argTy retTy arg => do
+      discard <| typeOfExpected ctx fn (some (.func argTy retTy))
+      discard <| typeOfExpected ctx arg (some argTy)
+      applyExpected expected retTy
 where
   checkExpected (ctx : List RArg) (expr : SurfaceExpr) (wanted : RType) : Except CompatibilityReport Unit := do
     discard <| typeOfExpected ctx expr (some wanted)
@@ -401,6 +419,13 @@ inductive SurfaceValue where
   | u64 : Nat → SurfaceValue
   | i32 : Int → SurfaceValue
   | i64 : Int → SurfaceValue
+  | char : Char → SurfaceValue
+  | string : String → SurfaceValue
+  | list : List SurfaceValue → SurfaceValue
+  | array : List SurfaceValue → SurfaceValue
+  | prodVal : SurfaceValue → SurfaceValue → SurfaceValue
+  | sumInl : SurfaceValue → SurfaceValue
+  | sumInr : SurfaceValue → SurfaceValue
   | optionNone : RType → SurfaceValue
   | optionSome : SurfaceValue → SurfaceValue
   | resultOk : SurfaceValue → SurfaceValue
@@ -470,6 +495,13 @@ mutual
     | .u64 _, .u64 => true
     | .i32 _, .i32 => true
     | .i64 _, .i64 => true
+    | .char _, .char => true
+    | .string _, .string => true
+    | .list values, .list expected => values.all (fun value => valueHasType value expected)
+    | .array values, .array expected => values.all (fun value => valueHasType value expected)
+    | .prodVal a b, .prod expectedA expectedB => valueHasType a expectedA && valueHasType b expectedB
+    | .sumInl value, .sum expectedA _ => valueHasType value expectedA
+    | .sumInr value, .sum _ expectedB => valueHasType value expectedB
     | .optionNone inner, .option expected => inner == expected
     | .optionSome value, .option expected => valueHasType value expected
     | .resultOk value, .result okTy _ => valueHasType value okTy
@@ -651,6 +683,8 @@ mutual
     | .litU64 n => pure (.u64 (u64Wrap n))
     | .litI32 n => pure (.i32 (i32Wrap n))
     | .litI64 n => pure (.i64 (i64Wrap n))
+    | .litChar c => pure (.char c)
+    | .litString value => pure (.string value)
     | .letIn name value body => do
         let value' ← evalSurfaceExprWithFuel fuel functions env value
         evalSurfaceExprWithFuel fuel functions ((name, value') :: env) body
@@ -738,6 +772,8 @@ mutual
                   evalSurfaceFunWithFuel fuel' functions f evaluatedArgs
                 else
                   evalError .unsupportedType ("surface call signature for `" ++ name ++ "` does not match the function environment")
+    | .callValue _ _ _ _ =>
+        evalError .unsupportedExpression "surface evaluator does not interpret higher-order function values in differential tests"
 
   /-- Evaluate a surface function from already-evaluated argument values. -/
   partial def evalSurfaceFunWithFuel (fuel : Nat) (functions : List SurfaceFun) (f : SurfaceFun) (values : List SurfaceValue) : Except CompatibilityReport SurfaceValue := do
@@ -747,7 +783,7 @@ mutual
     pure value
 end
 
-/-- Default call-fuel budget for the non-recursive exported surface subset. -/
+/-- Default call-fuel budget for first-order calls, including generated recursive call cycles. -/
 def defaultSurfaceEvalFuel (functions : List SurfaceFun) : Nat :=
   64 + functions.length * 8
 

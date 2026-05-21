@@ -6,6 +6,8 @@
 - `LeanRustCore.Extract.extractMonoConst`
 - `LeanRustCore.Extract.registerAutoMonoSpec`
 - `LeanRustCore.Extract.extractWithDiagnostics`
+- `LeanRustCore.Extract.extractPendingAutoHelpers`
+- `LeanRustCore.Examples.extractedSurfaceFunctions`
 - `LeanRustCore.Extract.typeOfLeanM`
 - `LeanRustCore.Surface.SurfaceExpr`
 - `LeanRustCore.Surface.typeOf`
@@ -42,24 +44,25 @@ what the Lean extractor emits. The validation gate then checks the generated Rus
 The extractor supports ordinary `def`s tagged with `@[rust_export]` whose
 arguments and return values are built from:
 
-- `Nat`, `Bool`, `Unit`,
-- `UInt32`, `UInt64`, `Int32`, `Int64`,
+- `Nat` only when the exported declaration has `@[rust_nat_wrapping_u32]`,
+- `Bool`, `Unit`, `UInt32`, `UInt64`, `Int32`, `Int64`, `Char`, `String`,
 - `Option`,
 - `Except`,
-- closed parameter-free structures and inductive enums.
+- `List` and `Array` as owned Rust `Vec<T>` values,
+- unary function-pointer arguments,
+- index-free structures and inductive enums, including concrete monomorphized parameterized data.
 
 The body subset includes variables, literals, `if`, `let`, scalar comparisons,
 wrapping arithmetic, `Option`/`Except` constructors, struct literals, field
 projection, enum payload constructors, payload enum pattern matching, and
-first-order calls to other tagged exported Lean declarations. Explicit concrete
+first-order calls to other tagged exported Lean declarations or automatically extracted first-order helper definitions. Explicit concrete
 monomorphizations are registered with `rust_mono_export`, and generic calls inside concrete exported declarations are automatically monomorphized.
 
 `LeanRustCore.Surface.evalSurfaceFun` now gives this extracted surface subset a
 dynamic Lean semantics used by the differential suite. It covers the same
-expression families as the emitter and bounds call evaluation with explicit fuel
-for the current non-recursive subset.
+expression families as the emitter and bounds call evaluation with explicit fuel, which now also protects recursive or helper-expanded call graphs during tests.
 
-The next milestones are recursive functions, richer generic type arguments, and semantic Rust→Lean translation validation beyond the current generated-subset `syn` parser gate.
+The next milestones are loop lowering for common structural recursions, captured-closure conversion, generated typeclass dictionaries, exact `Nat`/`Int` backends, and semantic Rust→Lean translation validation beyond the current generated-subset `syn` parser gate. See `docs/LARGE_SUBSET_PLAN.md` for the staged large-subset plan.
 
 ## Differential and validation additions
 
@@ -74,7 +77,9 @@ Additional trusted/generated surfaces for steps 7 and 8:
 The validation gate is intentionally split: Lean generates the expected
 differential Rust tests and the validation manifest, while shell/Rust tests check
 that the generated Rust snapshot stays inside the current safe direct-emission
-subset. `rust/tests/parser_validation.rs` parses the generated Rust with `syn`
+subset. The SurfaceExpr differential expectations now consume
+`LeanRustCore.Examples.extractedSurfaceFunctions`, emitted by the same extractor
+command as the generated Rust snapshot. `rust/tests/parser_validation.rs` parses the generated Rust with `syn`
 and validates the approved AST shape. The expanded differential suite now computes extracted-declaration
 expectations through `evalSurfaceFun` for structs, enums, `Result`, calls, and
 monomorphized functions.
@@ -104,3 +109,6 @@ Generic calls found inside concrete exported declarations enqueue concrete
 `MonoExportSpec`s. The extraction loop processes those specs to a fixpoint, emits
 the generated instances, and records them as `auto-monomorphized-export` entries
 in the compatibility report.
+## Phase 0-2 large-subset gates
+
+The current large-subset slice treats `LeanRustCore.RecursionPolicy` as an analyzer instead of the default rejection path. Generated Rust may contain first-order recursive calls, while validation and differential evaluation remain fuel-bounded. Parameterized data is accepted only after concrete monomorphization to Rust-facing type names. Proof-shaped binders are erased conservatively, and higher-order support is limited to unary Rust `fn` pointer arguments until closure conversion is added.

@@ -52,7 +52,7 @@ fn parser_validates_generated_top_level_subset() {
         }
     }
 
-    for required in ["Point", "Choice", "Step"] {
+    for required in ["Point", "BoxedU32", "Choice", "TaggedU32", "Step"] {
         assert!(
             types.contains(required),
             "missing generated type {required}"
@@ -62,13 +62,25 @@ fn parser_validates_generated_top_level_subset() {
     for required in [
         "clamp_u32",
         "add_u32",
+        "echo_string",
+        "echo_list_u32",
+        "echo_array_u32",
+        "echo_prod_u32",
+        "echo_sum_u32",
         "inc_twice_u32",
+        "helper_chain_u32",
+        "proof_erased_u32",
+        "boxed_u32",
+        "boxed_value_u32",
+        "tagged_default_u32",
+        "unsupported_higher_order_u32",
         "step_amount_or",
         "step_amount_plus_one_or",
         "option_default_u64",
         "generic_identity__u32",
         "generic_choose__point",
         "generic_option_default__step",
+        "helper_inc_fixed",
         "auto_identity_u32",
         "auto_choose_point",
         "auto_option_default_step",

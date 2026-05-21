@@ -18,8 +18,15 @@ def rustType : RType → String
   | .u64 => "u64"
   | .i32 => "i32"
   | .i64 => "i64"
+  | .char => "char"
+  | .string => "String"
   | .option t => "Option<" ++ rustType t ++ ">"
   | .result ok err => "Result<" ++ rustType ok ++ ", " ++ rustType err ++ ">"
+  | .list t => "Vec<" ++ rustType t ++ ">"
+  | .array t => "Vec<" ++ rustType t ++ ">"
+  | .prod a b => "(" ++ rustType a ++ ", " ++ rustType b ++ ")"
+  | .sum a b => "Result<" ++ rustType b ++ ", " ++ rustType a ++ ">"
+  | .func a b => "fn(" ++ rustType a ++ ") -> " ++ rustType b
   | .struct name _ => rustTypeIdent name
   | .enum name _ => rustTypeIdent name
 
@@ -36,6 +43,12 @@ private def emitEnumPattern (ty : RType) (branch : String × (List String × Sur
 
 private def emitInt (n : Int) : String :=
   toString n
+
+private def emitRustStringLiteral (s : String) : String :=
+  "String::from(\"" ++ s ++ "\")"
+
+private def emitRustChar (c : Char) : String :=
+  "char::from_u32(" ++ Nat.toString c.toNat ++ ").unwrap()"
 
 private def wrappingMethod : RType → String → Option String
   | .u32, op => some ("wrapping_" ++ op)
@@ -91,6 +104,8 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .litU64 n => Nat.toString n
   | .litI32 n => emitInt n
   | .litI64 n => emitInt n
+  | .litChar c => emitRustChar c
+  | .litString value => emitRustStringLiteral value
   | .letIn name value body => "{ let " ++ rustValueIdent "value" name ++ " = " ++ emitSurfaceExpr value ++ "; " ++ emitSurfaceExpr body ++ " }"
   | .ite c a b => "if " ++ emitSurfaceExpr c ++ " { " ++ emitSurfaceExpr a ++ " } else { " ++ emitSurfaceExpr b ++ " }"
   | .matchBool c whenTrue whenFalse => "match " ++ emitSurfaceExpr c ++ " { true => " ++ emitSurfaceExpr whenTrue ++ ", false => " ++ emitSurfaceExpr whenFalse ++ " }"
@@ -126,6 +141,8 @@ partial def emitSurfaceExpr : SurfaceExpr → String
       enumPath ty variant ++ renderedPayload
   | .call name _ _ args =>
       rustValueIdent "generated" name ++ "(" ++ joinWith ", " (args.map emitSurfaceExpr) ++ ")"
+  | .callValue fn _ _ arg =>
+      emitSurfaceExpr fn ++ "(" ++ emitSurfaceExpr arg ++ ")"
 
 /-- Emit one Rust function argument. -/
 def emitArg (arg : RArg) : String :=
@@ -144,6 +161,11 @@ def emitSurfaceFun (f : SurfaceFun) : String :=
 private def collectTypeStructs : RType → List SurfaceStruct
   | .option t => collectTypeStructs t
   | .result ok err => collectTypeStructs ok ++ collectTypeStructs err
+  | .list t => collectTypeStructs t
+  | .array t => collectTypeStructs t
+  | .prod a b => collectTypeStructs a ++ collectTypeStructs b
+  | .sum a b => collectTypeStructs a ++ collectTypeStructs b
+  | .func a b => collectTypeStructs a ++ collectTypeStructs b
   | s@(.struct name fields) =>
       { name := name, fields := fields } :: fields.bind (fun field => collectTypeStructs field.2)
   | .enum _ variants => variants.bind (fun variant => variant.2.bind collectTypeStructs)
@@ -152,6 +174,11 @@ private def collectTypeStructs : RType → List SurfaceStruct
 private def collectTypeEnums : RType → List SurfaceEnum
   | .option t => collectTypeEnums t
   | .result ok err => collectTypeEnums ok ++ collectTypeEnums err
+  | .list t => collectTypeEnums t
+  | .array t => collectTypeEnums t
+  | .prod a b => collectTypeEnums a ++ collectTypeEnums b
+  | .sum a b => collectTypeEnums a ++ collectTypeEnums b
+  | .func a b => collectTypeEnums a ++ collectTypeEnums b
   | .struct _ fields => fields.bind (fun field => collectTypeEnums field.2)
   | .enum name variants =>
       { name := name, variants := variants } :: variants.bind (fun variant => variant.2.bind collectTypeEnums)
@@ -165,6 +192,8 @@ partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
   | .litU64 _ => []
   | .litI32 _ => []
   | .litI64 _ => []
+  | .litChar _ => []
+  | .litString _ => []
   | .letIn _ value body => collectSurfaceStructs value ++ collectSurfaceStructs body
   | .ite c a b => collectSurfaceStructs c ++ collectSurfaceStructs a ++ collectSurfaceStructs b
   | .matchBool c a b => collectSurfaceStructs c ++ collectSurfaceStructs a ++ collectSurfaceStructs b
@@ -191,6 +220,7 @@ partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
   | .field target _ => collectSurfaceStructs target
   | .enumVariant ty _ payload => collectTypeStructs ty ++ payload.bind collectSurfaceStructs
   | .call _ argTypes ret args => argTypes.bind collectTypeStructs ++ collectTypeStructs ret ++ args.bind collectSurfaceStructs
+  | .callValue fn argTy retTy arg => collectSurfaceStructs fn ++ collectTypeStructs argTy ++ collectTypeStructs retTy ++ collectSurfaceStructs arg
 
 partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .var _ => []
@@ -200,6 +230,8 @@ partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .litU64 _ => []
   | .litI32 _ => []
   | .litI64 _ => []
+  | .litChar _ => []
+  | .litString _ => []
   | .letIn _ value body => collectSurfaceEnums value ++ collectSurfaceEnums body
   | .ite c a b => collectSurfaceEnums c ++ collectSurfaceEnums a ++ collectSurfaceEnums b
   | .matchBool c a b => collectSurfaceEnums c ++ collectSurfaceEnums a ++ collectSurfaceEnums b
@@ -226,6 +258,7 @@ partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .field target _ => collectSurfaceEnums target
   | .enumVariant ty _ payload => collectTypeEnums ty ++ payload.bind collectSurfaceEnums
   | .call _ argTypes ret args => argTypes.bind collectTypeEnums ++ collectTypeEnums ret ++ args.bind collectSurfaceEnums
+  | .callValue fn argTy retTy arg => collectSurfaceEnums fn ++ collectTypeEnums argTy ++ collectTypeEnums retTy ++ collectSurfaceEnums arg
 
 partial def collectSurfaceCalls : SurfaceExpr → List String
   | .var _ => []
@@ -235,6 +268,8 @@ partial def collectSurfaceCalls : SurfaceExpr → List String
   | .litU64 _ => []
   | .litI32 _ => []
   | .litI64 _ => []
+  | .litChar _ => []
+  | .litString _ => []
   | .letIn _ value body => collectSurfaceCalls value ++ collectSurfaceCalls body
   | .ite c a b => collectSurfaceCalls c ++ collectSurfaceCalls a ++ collectSurfaceCalls b
   | .matchBool c a b => collectSurfaceCalls c ++ collectSurfaceCalls a ++ collectSurfaceCalls b
@@ -261,6 +296,7 @@ partial def collectSurfaceCalls : SurfaceExpr → List String
   | .field target _ => collectSurfaceCalls target
   | .enumVariant _ _ payload => payload.bind collectSurfaceCalls
   | .call name _ _ args => name :: args.bind collectSurfaceCalls
+  | .callValue fn _ _ arg => collectSurfaceCalls fn ++ collectSurfaceCalls arg
 
 private def collectFunStructs (f : SurfaceFun) : List SurfaceStruct :=
   f.args.bind (fun arg => collectTypeStructs arg.2) ++ collectTypeStructs f.ret ++ collectSurfaceStructs f.body

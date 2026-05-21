@@ -34,3 +34,12 @@ Steps 7/8 after the parser-validation pass add exact Lean/Rust toolchain pins,
 a release-mode fallback ban in `rust/build.rs`, generated build metadata, and
 automatic monomorphization for generic calls discovered inside concrete exported
 Lean declarations.
+## Phase 0-2 large-subset slice
+
+The phase-1/2 large-subset slice widens runtime lowering without changing the
+safe direct-emission lane: parameterized index-free data is monomorphized to
+stable Rust type names, `Char`/`String`/`List`/`Array`/`Prod`/`Sum` are available
+as owned runtime shapes, first-order helpers can be pulled in transitively, and
+simple unary higher-order arguments lower to Rust `fn` pointers. Recursive call
+graphs are no longer rejected by the default emitter; `RecursionPolicy` remains
+available as an analyzer or strict compatibility gate.

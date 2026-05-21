@@ -25,6 +25,15 @@ fn lean_ir_evaluator_matches_generated_rust() {
 #[test]
 fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(add_u64(u64::MAX, 1), 0u64);
+    assert_eq!(echo_char('z'), char::from_u32(122).unwrap());
+    assert_eq!(echo_string(String::from("hi")), String::from("hi"));
+    assert_eq!(echo_list_u32(vec![1, 2]), vec![1u32, 2u32]);
+    assert_eq!(echo_array_u32(vec![3, 4]), vec![3u32, 4u32]);
+    assert_eq!(echo_prod_u32((5, 6)), (5u32, 6u32));
+    assert_eq!(echo_sum_u32(Ok(7)), Ok(7u32));
+    assert_eq!(echo_sum_u32(Err(8)), Err(8u32));
+    assert_eq!(helper_chain_u32(40), 42u32);
+    assert_eq!(proof_erased_u32(5), 5u32);
     assert_eq!(bool_match_u32(true, 1, 2), 1u32);
     assert_eq!(bool_match_u32(false, 1, 2), 2u32);
     assert_eq!(some_u32(4), Some(4u32));
@@ -42,6 +51,12 @@ fn surface_evaluator_matches_extracted_rust() {
         shift_point_x(Point { x: u32::MAX, y: 7 }, 1),
         Point { x: 0u32, y: 7u32 }
     );
+    assert_eq!(boxed_u32(9), BoxedU32 { value: 9u32 });
+    assert_eq!(boxed_value_u32(BoxedU32 { value: 9 }), 9u32);
+    assert_eq!(tagged_missing_u32(()), TaggedU32::Missing);
+    assert_eq!(tagged_present_u32(6), TaggedU32::Present(6u32));
+    assert_eq!(tagged_default_u32(TaggedU32::Missing, 7), 7u32);
+    assert_eq!(tagged_default_u32(TaggedU32::Present(6), 7), 6u32);
     assert_eq!(step_stay(()), Step::Stay);
     assert_eq!(step_jump(12), Step::Jump(12u32));
     assert_eq!(step_amount_or(Step::Stay, 9), 9u32);
@@ -62,12 +77,33 @@ fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(option_default_u64(Some(55), 77), 55u64);
     assert_eq!(generic_identity__u32(11), 11u32);
     assert_eq!(auto_identity_u32(12), 12u32);
-    assert_eq!(generic_choose__point(true, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }), Point { x: 1u32, y: 2u32 });
-    assert_eq!(generic_choose__point(false, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }), Point { x: 3u32, y: 4u32 });
-    assert_eq!(auto_choose_point(true, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }), Point { x: 1u32, y: 2u32 });
-    assert_eq!(auto_choose_point(false, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }), Point { x: 3u32, y: 4u32 });
+    assert_eq!(
+        generic_choose__point(true, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }),
+        Point { x: 1u32, y: 2u32 }
+    );
+    assert_eq!(
+        generic_choose__point(false, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }),
+        Point { x: 3u32, y: 4u32 }
+    );
+    assert_eq!(
+        auto_choose_point(true, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }),
+        Point { x: 1u32, y: 2u32 }
+    );
+    assert_eq!(
+        auto_choose_point(false, Point { x: 1, y: 2 }, Point { x: 3, y: 4 }),
+        Point { x: 3u32, y: 4u32 }
+    );
     assert_eq!(generic_option_default__step(None, Step::Stay), Step::Stay);
-    assert_eq!(generic_option_default__step(Some(Step::Jump(7)), Step::Stay), Step::Jump(7u32));
-    assert_eq!(auto_option_default_step(None, Step::Jump(5)), Step::Jump(5u32));
-    assert_eq!(auto_option_default_step(Some(Step::Stay), Step::Jump(5)), Step::Stay);
+    assert_eq!(
+        generic_option_default__step(Some(Step::Jump(7)), Step::Stay),
+        Step::Jump(7u32)
+    );
+    assert_eq!(
+        auto_option_default_step(None, Step::Jump(5)),
+        Step::Jump(5u32)
+    );
+    assert_eq!(
+        auto_option_default_step(Some(Step::Stay), Step::Jump(5)),
+        Step::Stay
+    );
 }

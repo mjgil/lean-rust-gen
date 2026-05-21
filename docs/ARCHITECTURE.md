@@ -30,7 +30,8 @@ There is no core/app split in this scaffold. The app is **Lean emits Rust**.
 
 `LeanRustCore.Extract.typeOfLeanM` now recognizes:
 
-- `Nat` as the original `u32` arithmetic model,
+- `Nat` as an explicit opt-in `u32` wrapping boundary via
+  `@[rust_nat_wrapping_u32]`,
 - `UInt32` / `UInt64`,
 - `Int32` / `Int64`,
 - `Unit` and `Bool`,
@@ -98,12 +99,13 @@ def auto_choose_point (flag : Bool) (left right : Point) : Point :=
 ## Completed step 6: structured compatibility reporting
 
 `rust_emit_exports_with_report` emits Rust for every supported export and also
-defines a JSON compatibility report. Unsupported tagged declarations are not
+defines a JSON compatibility report. `rust_emit_exports_with_report_and_surface`
+adds a checked `List SurfaceFun` artifact for differential validation. Unsupported tagged declarations are not
 silently accepted and no longer abort the whole generation pass; they appear as
 `unsupported-declaration` diagnostics in `rust/compatibility-report.json`.
 
 ```lean
-rust_emit_exports_with_report generatedRust generatedCompatibilityReport
+rust_emit_exports_with_report_and_surface generatedRust generatedCompatibilityReport extractedSurfaceFunctions
 ```
 
 ## Completed step 7: Lean-evaluator differential tests
@@ -160,10 +162,11 @@ extracted expression family: scalar values, `let`, `if`, Bool/Option/enum
 matches, wrapping arithmetic, structs, fields, enum payload constructors,
 `Option`, `Result`, and first-order calls.
 
-`LeanRustCore.Differential` now uses that evaluator for the extracted surface
-fixtures instead of hard-coded expected values. The differential test suite
-covers structs, enums, `Result`, monomorphized exports, payload matches, and
-call chains against the generated Rust crate.
+`LeanRustCore.Differential` now uses that evaluator for the extractor-owned
+`extractedSurfaceFunctions` artifact instead of hand-mirrored `SurfaceFun`
+fixtures or hard-coded expected values. The differential test suite covers
+structs, enums, `Result`, monomorphized exports, payload matches, and call chains
+against the generated Rust crate.
 
 ## Newly completed: Rust identifier hygiene and parser-backed validation
 
@@ -194,3 +197,33 @@ extraction. The extractor creates deterministic generated Rust names such as
 `generic_identity__u32`, `generic_choose__point`, and
 `generic_option_default__step`, emits those concrete instances, and lowers the
 original exported function to a normal first-order Rust call.
+
+## Large-subset roadmap
+
+`docs/LARGE_SUBSET_PLAN.md` records the practical largest direct safe-Rust target:
+a proof-erased, monomorphized executable Lean subset with recursion,
+parameterized data, standard containers, controlled higher-order support, and
+Rust→IR semantic validation added in stages.
+
+## Phase 0-2 large-subset slice
+
+The large-subset patch keeps the existing checked surface pipeline but widens the
+runtime envelope in three concrete ways:
+
+- `rust_emit_exports_with_report_and_surface` emits generated Rust, the
+  compatibility report, and the extractor-owned `List SurfaceFun` used by the
+  differential suite. This removes hand-mirrored surface fixtures from the
+  validation path.
+- The runtime type universe now includes `Char`, `String`, `List`, `Array`,
+  `Prod`, `Sum`, unary function types, and concrete monomorphized
+  parameterized structures/enums. `List` and `Array` use owned Rust `Vec<T>` in
+  this phase.
+- Extraction can pull in first-order helper definitions reachable from exported
+  roots, erase conservative proof-shaped binders from Rust signatures, and lower
+  unary function-valued arguments to safe Rust `fn(A) -> B` pointers.
+
+`LeanRustCore.RecursionPolicy` is retained as an analyzer/strict-compatibility
+gate, but the default large-subset emission path no longer rejects generated
+first-order call cycles before emission. Closure conversion, generated typeclass
+dictionaries, and semantic Rust→IR validation are intentionally left for the
+next phase.

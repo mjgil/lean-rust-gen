@@ -1,5 +1,6 @@
 import LeanRustCore.Differential
 import LeanRustCore.RustHygiene
+import LeanRustCore.RecursionPolicy
 import LeanRustCore.Toolchain
 
 namespace LeanRustCore.RustValidation
@@ -36,9 +37,16 @@ def requiredFunctionNames : List String := [
   "echo_u64",
   "echo_i32",
   "echo_i64",
+  "echo_char",
+  "echo_string",
+  "echo_list_u32",
+  "echo_array_u32",
+  "echo_prod_u32",
+  "echo_sum_u32",
   "add_u64",
   "inc_u32",
   "inc_twice_u32",
+  "proof_erased_u32",
   "unit_roundtrip",
   "bool_match_u32",
   "option_identity_u32",
@@ -52,6 +60,11 @@ def requiredFunctionNames : List String := [
   "point_x",
   "point_y",
   "shift_point_x",
+  "boxed_u32",
+  "boxed_value_u32",
+  "tagged_missing_u32",
+  "tagged_present_u32",
+  "tagged_default_u32",
   "step_stay",
   "step_jump",
   "step_amount_or",
@@ -59,12 +72,15 @@ def requiredFunctionNames : List String := [
   "nested_none_u32",
   "result_ok_none_u32",
   "result_err_some_u32",
+  "unsupported_higher_order_u32",
   "identity_u64",
   "choose_generic_u32",
   "option_default_u64",
   "generic_identity__u32",
   "generic_choose__point",
   "generic_option_default__step",
+  "helper_inc_fixed",
+  "helper_chain_u32",
   "auto_identity_u32",
   "auto_choose_point",
   "auto_option_default_step"
@@ -73,7 +89,9 @@ def requiredFunctionNames : List String := [
 /-- Declarations that should exist before generated functions. -/
 def requiredTypeNames : List String := [
   "Point",
+  "BoxedU32",
   "Choice",
+  "TaggedU32",
   "Step"
 ]
 
@@ -120,6 +138,11 @@ def checks : List ValidationCheck := [
     detail := "the SurfaceExpr evaluator covers the current extracted struct, enum, Result, monomorphization, payload-match, and call fixtures"
   },
   {
+    name := "extractor-owned-surface-artifact",
+    status := "passed",
+    detail := "LeanRustCore.Examples.extractedSurfaceFunctions is emitted by the same extractor command as generated Rust and drives the SurfaceExpr differential expectations"
+  },
+  {
     name := "rust-identifier-hygiene",
     status := "passed",
     detail := rustHygieneSummary
@@ -138,6 +161,36 @@ def checks : List ValidationCheck := [
     name := "automatic-monomorphization",
     status := "passed",
     detail := "generic calls discovered inside concrete exported declarations enqueue and emit concrete monomorphized Rust functions before their callers"
+  },
+  {
+    name := "phase-1-recursion-policy",
+    status := "passed",
+    detail := recursionPolicySummary
+  },
+  {
+    name := "parameterized-data-lowering",
+    status := "passed",
+    detail := "index-free parameterized structures/enums are monomorphized into Rust structs/enums such as BoxedU32 and TaggedU32"
+  },
+  {
+    name := "standard-container-shapes",
+    status := "passed",
+    detail := "Char, String, List, Array, Prod, Sum, and unary function types are represented in RType and lowered to safe Rust type shapes for supported bodies"
+  },
+  {
+    name := "transitive-helper-extraction",
+    status := "passed",
+    detail := "first-order helper definitions reached from exported declarations are enqueued and emitted as auto-helper-export functions"
+  },
+  {
+    name := "proof-erased-binders",
+    status := "passed",
+    detail := "conservative proof-shaped binders such as Eq/True/False proofs are erased from Rust function signatures when their values are not used computationally"
+  },
+  {
+    name := "limited-higher-order-function-pointer",
+    status := "passed",
+    detail := "unary function-typed arguments lower to safe Rust fn-pointer arguments and SurfaceExpr.callValue nodes; closures remain a future closure-conversion layer"
   },
   {
     name := "syn-parser-backed-validation",

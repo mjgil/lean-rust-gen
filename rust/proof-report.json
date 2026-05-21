@@ -3,13 +3,16 @@
   "architecture": "direct-lean-emits-rust",
   "lean_toolchain": "leanprover/lean4:v4.22.0",
   "rust_toolchain": "1.85.0",
-  "trusted_core": ["Lean kernel", "LeanRustCore.Extract.extractConst", "LeanRustCore.Extract.extractWithDiagnostics", "LeanRustCore.Surface.typeOfExpected", "LeanRustCore.Surface.evalSurfaceFun", "LeanRustCore.RustHygiene.validateSurfaceModuleHygiene", "LeanRustCore.EmitRust.emitSurfaceRustModule", "rust/tests/parser_validation.rs", "LeanRustCore.IR.eval"],
+  "trusted_core": ["Lean kernel", "LeanRustCore.Extract.extractConst", "LeanRustCore.Extract.extractWithDiagnostics", "LeanRustCore.Extract.extractPendingAutoHelpers", "LeanRustCore.Examples.extractedSurfaceFunctions", "LeanRustCore.Surface.typeOfExpected", "LeanRustCore.Surface.evalSurfaceFun", "LeanRustCore.RustHygiene.validateSurfaceModuleHygiene", "LeanRustCore.EmitRust.emitSurfaceRustModule", "rust/tests/parser_validation.rs", "LeanRustCore.IR.eval"],
   "policy": {
     "generated_rust_unsafe": false,
     "source_string_matching": false,
     "ffi_result_lowering": "status-plus-out-params",
     "native_rust_types_at_ffi": false,
-    "release_fallback_allowed": false
+    "release_fallback_allowed": false,
+    "nat_to_u32_requires_opt_in": true,
+    "first_order_recursion_allowed": true,
+    "closure_conversion": "future-phase"
   },
   "facts": [
     { "name": "extractor_reads_elaborated_definitions", "statement": "rust_emit_exports collects @[rust_export] declarations and uses Lean constant bodies, not source-string matching" },
