@@ -65,6 +65,8 @@ fn parser_validates_generated_top_level_subset() {
         "echo_string",
         "echo_list_u32",
         "echo_array_u32",
+        "list_map_inc_u32",
+        "list_fold_sum_u32",
         "echo_prod_u32",
         "echo_sum_u32",
         "inc_twice_u32",

@@ -17,7 +17,14 @@ inductive RType where
   | u64
   | i32
   | i64
+  | char
+  | string
   | option : RType → RType
+  | list : RType → RType
+  | array : RType → RType
+  | prod : RType → RType → RType
+  | sum : RType → RType → RType
+  | func : RType → RType → RType
   | result : RType → RType → RType
   | struct : String → List (String × RType) → RType
   | enum : String → List (String × List RType) → RType
@@ -31,7 +38,14 @@ def Denote : RType → Type
   | .u64 => Nat
   | .i32 => Int
   | .i64 => Int
+  | .char => Char
+  | .string => String
   | .option t => Option (Denote t)
+  | .list t => List (Denote t)
+  | .array t => Array (Denote t)
+  | .prod a b => Denote a × Denote b
+  | .sum a b => Sum (Denote a) (Denote b)
+  | .func a b => Denote a → Denote b
   | .result ok err => Except (Denote err) (Denote ok)
   | .struct _ _ => Unit
   | .enum _ _ => Nat

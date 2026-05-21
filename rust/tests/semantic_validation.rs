@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
 use syn::{
-    BinOp, Expr, ExprBlock, ExprCall, ExprField, ExprIf, ExprLit, ExprMatch, ExprMethodCall,
-    ExprParen, ExprPath, ExprStruct, FnArg, GenericArgument, Item, ItemEnum, ItemFn, ItemStruct,
-    Lit, Member, Pat, Path, PathArguments, ReturnType, Stmt, Type,
+    BinOp, Expr, ExprBlock, ExprCall, ExprField, ExprForLoop, ExprIf, ExprLit, ExprMatch,
+    ExprMethodCall, ExprParen, ExprPath, ExprStruct, FnArg, GenericArgument, Item, ItemEnum,
+    ItemFn, ItemStruct, Lit, Member, Pat, Path, PathArguments, ReturnType, Stmt, Type,
 };
 
 const GENERATED_SOURCE: &str = include_str!("../src/generated.rs");
@@ -27,6 +27,11 @@ fn target_validation_snapshot_records_phase_3_contract() {
     assert!(TARGET_VALIDATION_SNAPSHOT.contains("FN\tunsupported_higher_order_u32"));
     assert!(TARGET_VALIDATION_SNAPSHOT.contains("call_value(var(f),var(x))"));
     assert!(TARGET_VALIDATION_SNAPSHOT.contains("TYPE\tstruct\tBoxedU32"));
+    assert!(TARGET_VALIDATION_SNAPSHOT.contains("FN\tlist_map_inc_u32"));
+    assert!(TARGET_VALIDATION_SNAPSHOT.contains("list_map(x,var(xs),add(var(x),lit(1)))"));
+    assert!(TARGET_VALIDATION_SNAPSHOT.contains("FN\tlist_fold_sum_u32"));
+    assert!(TARGET_VALIDATION_SNAPSHOT
+        .contains("list_foldl(acc,x,lit(0),var(xs),add(var(acc),var(x)))"));
 }
 
 fn snapshot_lines(snapshot: &str) -> Vec<String> {
@@ -235,7 +240,95 @@ fn block_fingerprint(block: &syn::Block, known_functions: &BTreeSet<String>) -> 
                 expr_fingerprint(body, known_functions)
             )
         }
+        [Stmt::Local(local), Stmt::Expr(Expr::ForLoop(for_loop), _), Stmt::Expr(tail, _)] => {
+            structural_loop_fingerprint(local, for_loop, tail, known_functions)
+        }
         other => panic!("unsupported generated block shape during semantic validation: {other:?}"),
+    }
+}
+
+fn structural_loop_fingerprint(
+    local: &syn::Local,
+    for_loop: &ExprForLoop,
+    tail: &Expr,
+    known_functions: &BTreeSet<String>,
+) -> String {
+    let local_name = match &local.pat {
+        Pat::Ident(ident) => ident.ident.to_string(),
+        other => panic!("unsupported structural-loop local pattern: {other:?}"),
+    };
+    let binder = pattern_binder(&for_loop.pat);
+    let target = expr_fingerprint(&for_loop.expr, known_functions);
+    let tail_name =
+        expr_path_name(tail).expect("structural loop should return its accumulator/output local");
+    assert_eq!(
+        tail_name, local_name,
+        "structural loop should return its local"
+    );
+
+    let init = local
+        .init
+        .as_ref()
+        .expect("structural loop local should have an initializer");
+
+    if is_vec_new(&init.expr) {
+        let pushed = pushed_value_from_loop_body(&for_loop.body, &local_name, known_functions);
+        format!("list_map({binder},{target},{pushed})")
+    } else {
+        let init_fingerprint = expr_fingerprint(&init.expr, known_functions);
+        let assigned = assigned_value_from_loop_body(&for_loop.body, &local_name, known_functions);
+        format!("list_foldl({local_name},{binder},{init_fingerprint},{target},{assigned})")
+    }
+}
+
+fn is_vec_new(expr: &Expr) -> bool {
+    match expr {
+        Expr::Call(call) => expr_path_name(&call.func).as_deref() == Some("Vec::new"),
+        Expr::Paren(ExprParen { expr, .. }) => is_vec_new(expr),
+        Expr::Group(group) => is_vec_new(&group.expr),
+        _ => false,
+    }
+}
+
+fn pushed_value_from_loop_body(
+    block: &syn::Block,
+    output_name: &str,
+    known_functions: &BTreeSet<String>,
+) -> String {
+    match block.stmts.as_slice() {
+        [Stmt::Expr(Expr::MethodCall(method), _)] => {
+            assert_eq!(
+                method.method.to_string(),
+                "push",
+                "List.map lowering should push mapped values"
+            );
+            assert_eq!(
+                expr_path_name(&method.receiver).as_deref(),
+                Some(output_name)
+            );
+            let args = method.args.iter().collect::<Vec<_>>();
+            assert_eq!(args.len(), 1, "push should receive the mapped value");
+            expr_fingerprint(args[0], known_functions)
+        }
+        other => {
+            panic!("unsupported List.map loop body during semantic validation: {other:?}")
+        }
+    }
+}
+
+fn assigned_value_from_loop_body(
+    block: &syn::Block,
+    acc_name: &str,
+    known_functions: &BTreeSet<String>,
+) -> String {
+    match block.stmts.as_slice() {
+        [Stmt::Expr(Expr::Assign(assign), _)] => {
+            assert_eq!(expr_path_name(&assign.left).as_deref(), Some(acc_name));
+            expr_fingerprint(&assign.right, known_functions)
+        }
+        other => {
+            panic!("unsupported List.foldl loop body during semantic validation: {other:?}")
+        }
     }
 }
 

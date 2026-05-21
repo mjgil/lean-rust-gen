@@ -1,7 +1,7 @@
 FORMAT	lean-rust-core.target-validation.v1
 ARCH	direct-lean-emits-rust
 TYPE_COUNT	5
-FN_COUNT	57
+FN_COUNT	59
 TYPE	struct	Point	x:u32,y:u32
 TYPE	struct	BoxedU32	value:u32
 TYPE	enum	Choice	First|Second
@@ -21,6 +21,8 @@ FN	echo_char	x:char	char	var(x)
 FN	echo_string	x:String	String	var(x)
 FN	echo_list_u32	xs:Vec<u32>	Vec<u32>	var(xs)
 FN	echo_array_u32	xs:Vec<u32>	Vec<u32>	var(xs)
+FN	list_map_inc_u32	xs:Vec<u32>	Vec<u32>	list_map(x,var(xs),add(var(x),lit(1)))
+FN	list_fold_sum_u32	xs:Vec<u32>	u32	list_foldl(acc,x,lit(0),var(xs),add(var(acc),var(x)))
 FN	echo_prod_u32	x:(u32, u32)	(u32, u32)	var(x)
 FN	echo_sum_u32	x:Result<u32, u32>	Result<u32, u32>	var(x)
 FN	add_u64	a:u64,b:u64	u64	add(var(a),var(b))

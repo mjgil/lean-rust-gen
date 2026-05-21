@@ -103,6 +103,16 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
       "call(" ++ rustValueIdent "generated" name ++ "," ++ joinWith "," (args.map fingerprintSurfaceExpr) ++ ")"
   | .callValue fn _ _ arg =>
       "call_value(" ++ fingerprintSurfaceExpr fn ++ "," ++ fingerprintSurfaceExpr arg ++ ")"
+  | .listMap binder _ _ target body =>
+      "list_map(" ++ rustValueIdent "value" binder ++ "," ++
+      fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .listFoldl accName elemName _ _ init target body =>
+      "list_foldl(" ++ rustValueIdent "acc" accName ++ "," ++
+      rustValueIdent "item" elemName ++ "," ++
+      fingerprintSurfaceExpr init ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .natFold idxName accName _ init n body =>
+      "nat_fold(" ++ rustValueIdent "idx" idxName ++ "," ++ rustValueIdent "acc" accName ++ "," ++
+      fingerprintSurfaceExpr init ++ "," ++ fingerprintSurfaceExpr n ++ "," ++ fingerprintSurfaceExpr body ++ ")"
 
 private def structLine (s : SurfaceStruct) : String :=
   "TYPE\tstruct\t" ++ rustTypeIdent s.name ++ "\t" ++

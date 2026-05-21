@@ -94,6 +94,14 @@ def echo_array_u32 (xs : Array UInt32) : Array UInt32 :=
   xs
 
 @[rust_export]
+def list_map_inc_u32 (xs : List UInt32) : List UInt32 :=
+  List.map (fun x => x + 1) xs
+
+@[rust_export]
+def list_fold_sum_u32 (xs : List UInt32) : UInt32 :=
+  List.foldl (fun acc x => acc + x) 0 xs
+
+@[rust_export]
 def echo_prod_u32 (x : UInt32 × UInt32) : UInt32 × UInt32 :=
   x
 

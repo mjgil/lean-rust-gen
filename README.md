@@ -81,6 +81,8 @@ pub fn echo_char(x: char) -> char
 pub fn echo_string(x: String) -> String
 pub fn echo_list_u32(xs: Vec<u32>) -> Vec<u32>
 pub fn echo_array_u32(xs: Vec<u32>) -> Vec<u32>
+pub fn list_map_inc_u32(xs: Vec<u32>) -> Vec<u32>
+pub fn list_fold_sum_u32(xs: Vec<u32>) -> u32
 pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32)
 pub fn echo_sum_u32(x: Result<u32, u32>) -> Result<u32, u32>
 pub fn add_u64(a: u64, b: u64) -> u64
@@ -219,6 +221,7 @@ Supported now:
 - struct constructors and field projection,
 - enum constructors with payload fields,
 - first-order calls to other tagged exported Lean declarations and automatically extracted first-order helper definitions,
+- `List.map` and `List.foldl` over owned `List` values, lowered to explicit safe Rust loop-shaped expressions,
 - generated first-order call cycles are allowed through Rust emission; differential evaluation remains fuel-bounded,
 - expected-type propagation through nested `Option`/`Except` constructors,
 - explicit concrete monomorphizations of generic functions,
@@ -237,7 +240,7 @@ Still intentionally out of scope:
 
 - exact mathematical `Nat`/`Int` runtime semantics unless a future exact-integer
   backend is added,
-- loop lowering for accumulator recursions and proof that emitted recursion is structurally bounded,
+- broader structural-recursion lowering beyond the current `List.map`/`List.foldl` slice, including richer accumulator recursions and proofs that emitted recursion is structurally bounded,
 - captured closures and defunctionalized local lambdas beyond unary Rust `fn` pointer arguments,
 - generated typeclass dictionaries beyond the current monomorphization/inlining-oriented path,
 - a full Rust→Lean translation validator for arbitrary Rust text beyond the generated subset.

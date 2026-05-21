@@ -29,9 +29,11 @@ Completed in this branch as the first large-subset slice:
 - Concrete exported roots can pull in first-order helper definitions transitively.
 - Conservative proof-shaped binders are erased from Rust signatures when not used computationally.
 - Unary function-valued arguments lower to Rust `fn` pointers and `SurfaceExpr.callValue`.
+- `List.map` and `List.foldl` over owned `List` values lower to explicit safe Rust loop-shaped `SurfaceExpr` nodes.
 
 Still future work for a larger phase 2+:
 
+- Broader structural recursion lowering for additional recursors, arrays, and tail-recursive helpers.
 - Closure conversion for captured lambdas.
 - Defunctionalization for known higher-order functions.
 - Generated typeclass dictionaries or aggressive typeclass instance inlining.

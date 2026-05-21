@@ -1,7 +1,7 @@
 {
   "format": "lean-rust-core.compatibility-report.v1",
   "architecture": "direct-lean-emits-rust",
-  "generated_function_count": 57,
+  "generated_function_count": 59,
   "diagnostics": [
     { "source": "LeanRustCore.Examples.clamp_u32", "rust_name": "clamp_u32", "code": "supported", "detail": "exported-nat-wrapping-u32" },
     { "source": "LeanRustCore.Examples.max_u32", "rust_name": "max_u32", "code": "supported", "detail": "exported-nat-wrapping-u32" },
@@ -17,6 +17,8 @@
     { "source": "LeanRustCore.Examples.echo_string", "rust_name": "echo_string", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.echo_list_u32", "rust_name": "echo_list_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.echo_array_u32", "rust_name": "echo_array_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.list_map_inc_u32", "rust_name": "list_map_inc_u32", "code": "supported", "detail": "exported" },
+    { "source": "LeanRustCore.Examples.list_fold_sum_u32", "rust_name": "list_fold_sum_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.echo_prod_u32", "rust_name": "echo_prod_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.echo_sum_u32", "rust_name": "echo_sum_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.add_u64", "rust_name": "add_u64", "code": "supported", "detail": "exported" },
@@ -52,12 +54,13 @@
     { "source": "LeanRustCore.Examples.auto_identity_u32", "rust_name": "auto_identity_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.auto_choose_point", "rust_name": "auto_choose_point", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.auto_option_default_step", "rust_name": "auto_option_default_step", "code": "supported", "detail": "exported" },
-    { "source": "LeanRustCore.Examples.unsupported_higher_order_u32", "rust_name": "unsupported_higher_order_u32", "code": "unsupported-declaration", "detail": "unsupported export skipped by the direct Lean-to-Rust extractor" },
+    { "source": "LeanRustCore.Examples.unsupported_higher_order_u32", "rust_name": "unsupported_higher_order_u32", "code": "supported", "detail": "exported" },
     { "source": "LeanRustCore.Examples.generic_identity[UInt64]", "rust_name": "identity_u64", "code": "supported", "detail": "explicit-monomorphized-export" },
     { "source": "LeanRustCore.Examples.generic_choose[UInt32]", "rust_name": "choose_generic_u32", "code": "supported", "detail": "explicit-monomorphized-export" },
     { "source": "LeanRustCore.Examples.generic_option_default[UInt64]", "rust_name": "option_default_u64", "code": "supported", "detail": "explicit-monomorphized-export" },
     { "source": "LeanRustCore.Examples.generic_identity[UInt32]", "rust_name": "generic_identity__u32", "code": "supported", "detail": "auto-monomorphized-export" },
     { "source": "LeanRustCore.Examples.generic_choose[Point]", "rust_name": "generic_choose__point", "code": "supported", "detail": "auto-monomorphized-export" },
-    { "source": "LeanRustCore.Examples.generic_option_default[Step]", "rust_name": "generic_option_default__step", "code": "supported", "detail": "auto-monomorphized-export" }
+    { "source": "LeanRustCore.Examples.generic_option_default[Step]", "rust_name": "generic_option_default__step", "code": "supported", "detail": "auto-monomorphized-export" },
+    { "source": "LeanRustCore.Examples.helper_inc_fixed[]", "rust_name": "helper_inc_fixed", "code": "supported", "detail": "auto-helper-export" }
   ]
 }

@@ -210,6 +210,12 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .enumVariant _ _ payload => payload.bind surfaceBinders
   | .call _ _ _ args => args.bind surfaceBinders
   | .callValue fn _ _ arg => surfaceBinders fn ++ surfaceBinders arg
+  | .listMap binder _ _ target body =>
+      surfaceBinders target ++ (binder :: surfaceBinders body)
+  | .listFoldl accName elemName _ _ init target body =>
+      surfaceBinders init ++ surfaceBinders target ++ (accName :: elemName :: surfaceBinders body)
+  | .natFold idxName accName _ init n body =>
+      surfaceBinders init ++ surfaceBinders n ++ (idxName :: accName :: surfaceBinders body)
 
 private def validateStructHygiene (s : SurfaceStruct) : List RustHygieneIssue :=
   detectNameCollisions ("struct " ++ s.name ++ " fields") (fieldNameEntries s.fields)

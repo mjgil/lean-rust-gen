@@ -29,6 +29,8 @@ fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(echo_string(String::from("hi")), String::from("hi"));
     assert_eq!(echo_list_u32(vec![1, 2]), vec![1u32, 2u32]);
     assert_eq!(echo_array_u32(vec![3, 4]), vec![3u32, 4u32]);
+    assert_eq!(list_map_inc_u32(vec![1, u32::MAX]), vec![2u32, 0u32]);
+    assert_eq!(list_fold_sum_u32(vec![1, 2, u32::MAX]), 2u32);
     assert_eq!(echo_prod_u32((5, 6)), (5u32, 6u32));
     assert_eq!(echo_sum_u32(Ok(7)), Ok(7u32));
     assert_eq!(echo_sum_u32(Err(8)), Err(8u32));

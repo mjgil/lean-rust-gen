@@ -149,6 +149,29 @@ private def isProofTypeShape (ty0 : Expr) : Bool :=
   | .const n _ => n == ``Eq || n == ``True || n == ``False
   | _ => false
 
+private partial def exprContainsConst (needle : Name) (e0 : Expr) : Bool :=
+  let e := stripMData e0
+  match e with
+  | .const n _ => n == needle
+  | .app f a => exprContainsConst needle f || exprContainsConst needle a
+  | .lam _ ty body _ => exprContainsConst needle ty || exprContainsConst needle body
+  | .forallE _ ty body _ => exprContainsConst needle ty || exprContainsConst needle body
+  | .letE _ ty value body _ =>
+      exprContainsConst needle ty || exprContainsConst needle value || exprContainsConst needle body
+  | .proj _ _ target => exprContainsConst needle target
+  | .mdata _ inner => exprContainsConst needle inner
+  | _ => false
+
+private def runtimeSignatureUsesNat (binders : List (Name × Expr)) (retTy : Expr) : Bool :=
+  let binderUsesNat := binders.any (fun binder =>
+    !isTypeParamBinder binder.2 && !isProofTypeShape binder.2 && exprContainsConst ``Nat binder.2)
+  binderUsesNat || exprContainsConst ``Nat retTy
+
+private def enforceNatBoundaryPolicy (declName : Name) (binders : List (Name × Expr)) (retTy : Expr) : CoreM Unit := do
+  let env ← getEnv
+  if runtimeSignatureUsesNat binders retTy && !LeanRustCore.Export.natWrappingU32Allowed env declName then
+    throwError "export `{declName}` uses Nat in a Rust-facing parameter or return type; add @[rust_nat_wrapping_u32] to opt into wrapping u32 semantics"
+
 private def unsupported (e : Expr) : CoreM α :=
   throwError "unsupported Lean expression in rust_export extraction: {e}"
 
@@ -486,6 +509,93 @@ where
     | some (a, b) => return ctor domain (← translateExpr typeCtx locals (some domain) a) (← translateExpr typeCtx locals (some domain) b)
     | none => unsupported e
 
+  translateUnaryLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx) (elemTy outTy : RType) (fnExpr : Expr) : CoreM (String × SurfaceExpr) := do
+    match stripMData fnExpr with
+    | .lam n ty body _ => do
+        let actualTy ← typeOfLeanWithCtx typeCtx ty
+        if actualTy == elemTy then
+          let binder := sanitizeRustIdent "item" (nameLeaf n)
+          let bodyExpr ← translateExpr (none :: typeCtx) (some { name := binder, ty := elemTy } :: locals) (some outTy) body
+          pure (binder, bodyExpr)
+        else
+          throwError "List.map lambda argument type did not match the list element type"
+    | _ => unsupported fnExpr
+
+  translateFoldlLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx) (accTy elemTy : RType) (fnExpr : Expr) : CoreM (String × String × SurfaceExpr) := do
+    match stripMData fnExpr with
+    | .lam accName accTyExpr rest _ =>
+        match stripMData rest with
+        | .lam elemName elemTyExpr body _ => do
+            let actualAccTy ← typeOfLeanWithCtx typeCtx accTyExpr
+            let actualElemTy ← typeOfLeanWithCtx (none :: typeCtx) elemTyExpr
+            if actualAccTy == accTy && actualElemTy == elemTy then
+              let accBinder := sanitizeRustIdent "acc" (nameLeaf accName)
+              let elemBinder := sanitizeRustIdent "item" (nameLeaf elemName)
+              let bodyExpr ← translateExpr (none :: none :: typeCtx)
+                (some { name := elemBinder, ty := elemTy } :: some { name := accBinder, ty := accTy } :: locals)
+                (some accTy) body
+              pure (accBinder, elemBinder, bodyExpr)
+            else
+              throwError "List.foldl lambda argument types did not match the accumulator/list element types"
+        | _ => unsupported fnExpr
+    | _ => unsupported fnExpr
+
+  translateNatStepLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx) (accTy : RType) (stepExpr : Expr) : CoreM (String × String × SurfaceExpr) := do
+    match stripMData stepExpr with
+    | .lam idxName idxTyExpr rest _ =>
+        match stripMData rest with
+        | .lam accName accTyExpr body _ => do
+            let actualIdxTy ← typeOfLeanWithCtx typeCtx idxTyExpr
+            let actualAccTy ← typeOfLeanWithCtx (none :: typeCtx) accTyExpr
+            if actualIdxTy == .u32 && actualAccTy == accTy then
+              let idxBinder := sanitizeRustIdent "idx" (nameLeaf idxName)
+              let accBinder := sanitizeRustIdent "acc" (nameLeaf accName)
+              let bodyExpr ← translateExpr (none :: none :: typeCtx)
+                (some { name := accBinder, ty := accTy } :: some { name := idxBinder, ty := .u32 } :: locals)
+                (some accTy) body
+              pure (idxBinder, accBinder, bodyExpr)
+            else
+              throwError "Nat.rec step lambda must have shape Nat → accumulator → accumulator"
+        | _ => unsupported stepExpr
+    | _ => unsupported stepExpr
+
+  translateListMap (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: beta :: fnExpr :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let outTy ← typeOfLeanWithCtx typeCtx beta
+        let target ← translateExpr typeCtx locals (some (.list elemTy)) targetExpr
+        let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy outTy fnExpr
+        return .listMap binder elemTy outTy target body
+    | _ => unsupported e
+
+  translateListFoldl (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: beta :: fnExpr :: initExpr :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let accTy ← typeOfLeanWithCtx typeCtx beta
+        match expected with
+        | some wanted =>
+            if wanted == accTy then pure () else throwError "List.foldl result type did not match the expected type"
+        | none => pure ()
+        let init ← translateExpr typeCtx locals (some accTy) initExpr
+        let target ← translateExpr typeCtx locals (some (.list elemTy)) targetExpr
+        let (accName, elemName, body) ← translateFoldlLambdaBody typeCtx locals accTy elemTy fnExpr
+        return .listFoldl accName elemName accTy elemTy init target body
+    | _ => unsupported e
+
+  translateNatRec (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match expected with
+    | none => throwError "Nat.rec lowering needs an expected accumulator type"
+    | some accTy =>
+        match args with
+        | _motive :: zeroExpr :: stepExpr :: discrExpr :: [] => do
+            let init ← translateExpr typeCtx locals (some accTy) zeroExpr
+            let n ← translateExpr typeCtx locals (some .u32) discrExpr
+            let (idxName, accName, body) ← translateNatStepLambdaBody typeCtx locals accTy stepExpr
+            return .natFold idxName accName accTy init n body
+        | _ => unsupported e
+
   translateBoolCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match args with
     | _motive :: discr :: falseCase :: trueCase :: [] =>
@@ -803,6 +913,10 @@ where
           match lastTwo args with
           | some (_, value) => return .resultErr okTy (← translateExpr typeCtx locals (some errTy) value)
           | none => unsupported e
+        else if n == ``List.map then
+          translateListMap typeCtx locals e args
+        else if n == ``List.foldl then
+          translateListFoldl typeCtx locals expected e args
         else if isNamedRecursor n "casesOn" && nameParent n == ``Bool then
           translateBoolCasesOn typeCtx locals expected e args
         else if isNamedRecursor n "rec" && nameParent n == ``Bool then
@@ -811,6 +925,8 @@ where
           translateOptionCasesOn typeCtx locals expected e args
         else if isNamedRecursor n "rec" && nameParent n == ``Option then
           translateOptionRec typeCtx locals expected e args
+        else if isNamedRecursor n "rec" && nameParent n == ``Nat then
+          translateNatRec typeCtx locals expected e args
         else if isNamedRecursor n "casesOn" then
           translateEnumCasesOn typeCtx locals expected e n args
         else if isNamedRecursor n "rec" then
@@ -911,6 +1027,7 @@ def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RTy
     | .defnInfo d => pure d
     | _ => throwError "rust_export extraction only supports ordinary definitions; got {declName}"
   let (typeBinders, retTyExpr) := peelForalls defInfo.type
+  enforceNatBoundaryPolicy declName typeBinders retTyExpr
   let (valueBinders, body) := peelLambdas defInfo.value
   if valueBinders.length != typeBinders.length then
     throwError "rust_export extraction currently requires eta-expanded definitions; `{declName}` has {typeBinders.length} type binders but {valueBinders.length} value binders"
@@ -1166,6 +1283,30 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let retTyTerm ← rTypeTerm retTy
       let argTerm ← surfaceExprTerm arg
       `(LeanRustCore.SurfaceExpr.callValue $fnTerm $argTyTerm $retTyTerm $argTerm)
+  | .listMap binder elemTy outTy target body => do
+      let binderTerm := stringTerm binder
+      let elemTyTerm ← rTypeTerm elemTy
+      let outTyTerm ← rTypeTerm outTy
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.listMap $binderTerm $elemTyTerm $outTyTerm $targetTerm $bodyTerm)
+  | .listFoldl accName elemName accTy elemTy init target body => do
+      let accNameTerm := stringTerm accName
+      let elemNameTerm := stringTerm elemName
+      let accTyTerm ← rTypeTerm accTy
+      let elemTyTerm ← rTypeTerm elemTy
+      let initTerm ← surfaceExprTerm init
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.listFoldl $accNameTerm $elemNameTerm $accTyTerm $elemTyTerm $initTerm $targetTerm $bodyTerm)
+  | .natFold idxName accName accTy init n body => do
+      let idxNameTerm := stringTerm idxName
+      let accNameTerm := stringTerm accName
+      let accTyTerm ← rTypeTerm accTy
+      let initTerm ← surfaceExprTerm init
+      let nTerm ← surfaceExprTerm n
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.natFold $idxNameTerm $accNameTerm $accTyTerm $initTerm $nTerm $bodyTerm)
 where
   enumBranchTerm (branch : String × (List String × SurfaceExpr)) : CommandElabM (TSyntax `term) := do
     let variantTerm := stringTerm branch.1
@@ -1243,11 +1384,11 @@ private def monoSpecIn (spec : MonoExportSpec) : List MonoExportSpec → Bool
 private def pendingAutoSpecs (seen : List MonoExportSpec) (all : List MonoExportSpec) : List MonoExportSpec :=
   all.filter (fun spec => !monoSpecIn spec seen)
 
-private partial def extractPendingAutoMonos (seen : List MonoExportSpec) (functions : List SurfaceFun) (diagnostics : List ExportDiagnostic) (fuel : Nat) : CoreM ExtractionResult := do
+partial def extractPendingAutoHelpers (seen : List MonoExportSpec) (functions : List SurfaceFun) (diagnostics : List ExportDiagnostic) (fuel : Nat) : CoreM ExtractionResult := do
   match fuel with
-  | 0 => pure { functions := functions, diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-monomorphization>" "<fuel>" "automatic monomorphization stopped after the fixpoint fuel was exhausted"] }
+  | 0 => pure { functions := functions, diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-helper-extraction>" "<fuel>" "automatic helper extraction stopped after the fixpoint fuel was exhausted"] }
   | fuel' + 1 => do
-      let autoSpecs ← liftIO autoMonoExportSpecsRef.get
+      let autoSpecs ← liftIO autoHelperExportSpecsRef.get
       let pending := pendingAutoSpecs seen autoSpecs
       if pending.isEmpty then
         pure { functions := functions, diagnostics := diagnostics }
@@ -1255,12 +1396,42 @@ private partial def extractPendingAutoMonos (seen : List MonoExportSpec) (functi
         let mut functions' := functions
         let mut diagnostics' := diagnostics
         for spec in pending do
+          let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec "auto-helper-export"
+          diagnostics' := diagnostics' ++ [diagnostic]
+          match maybeFun with
+          | some f => functions' := functions' ++ [f]
+          | none => pure ()
+        extractPendingAutoHelpers (seen ++ pending) functions' diagnostics' fuel'
+
+private partial def extractPendingGeneratedSpecs (seenMonos seenHelpers : List MonoExportSpec) (functions : List SurfaceFun) (diagnostics : List ExportDiagnostic) (fuel : Nat) : CoreM ExtractionResult := do
+  match fuel with
+  | 0 => pure { functions := functions, diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-generated-specs>" "<fuel>" "automatic monomorphization/helper extraction stopped after the fixpoint fuel was exhausted"] }
+  | fuel' + 1 => do
+      let autoMonos ← liftIO autoMonoExportSpecsRef.get
+      let autoHelpers ← liftIO autoHelperExportSpecsRef.get
+      let pendingMonos := pendingAutoSpecs seenMonos autoMonos
+      let pendingHelpers := pendingAutoSpecs seenHelpers autoHelpers
+      if pendingMonos.isEmpty && pendingHelpers.isEmpty then
+        pure { functions := functions, diagnostics := diagnostics }
+      else
+        let mut functions' := functions
+        let mut diagnostics' := diagnostics
+        for spec in pendingMonos do
           let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec "auto-monomorphized-export"
           diagnostics' := diagnostics' ++ [diagnostic]
           match maybeFun with
           | some f => functions' := functions' ++ [f]
           | none => pure ()
-        extractPendingAutoMonos (seen ++ pending) functions' diagnostics' fuel'
+        for spec in pendingHelpers do
+          let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec "auto-helper-export"
+          diagnostics' := diagnostics' ++ [diagnostic]
+          match maybeFun with
+          | some f => functions' := functions' ++ [f]
+          | none => pure ()
+        extractPendingGeneratedSpecs (seenMonos ++ pendingMonos) (seenHelpers ++ pendingHelpers) functions' diagnostics' fuel'
+
+private def extractPendingAutoMonos (seen : List MonoExportSpec) (functions : List SurfaceFun) (diagnostics : List ExportDiagnostic) (fuel : Nat) : CoreM ExtractionResult :=
+  extractPendingGeneratedSpecs seen [] functions diagnostics fuel
 
 /-- Tolerant extraction: successful declarations are emitted; unsupported declarations are reported. -/
 def extractWithDiagnostics (decls : List Name) (monos : List MonoExportSpec) : CoreM ExtractionResult := do
@@ -1280,7 +1451,7 @@ def extractWithDiagnostics (decls : List Name) (monos : List MonoExportSpec) : C
     match maybeFun with
     | some f => functions := functions ++ [f]
     | none => pure ()
-  extractPendingAutoMonos monos functions diagnostics (decls.length + monos.length + 16)
+  extractPendingGeneratedSpecs monos [] functions diagnostics (decls.length + monos.length + 64)
 
 /-- Register a concrete Rust export for a generic Lean definition. -/
 syntax (name := rustMonoExport) "rust_mono_export " ident " as " ident " [" ident,* "]" : command
@@ -1348,5 +1519,22 @@ elab_rules : command
       let reportLit := Syntax.mkStrLit report
       elabCommand (← `(def $out : String := $rustLit))
       elabCommand (← `(def $reportOut : String := $reportLit))
+
+/-- Emit Rust, a structured compatibility report, and the checked extractor-owned `SurfaceFun` artifact. -/
+syntax (name := rustEmitExportsWithReportAndSurface) "rust_emit_exports_with_report_and_surface " ident ident ident : command
+
+elab_rules : command
+  | `(rust_emit_exports_with_report_and_surface $out:ident $reportOut:ident $surfaceOut:ident) => do
+      let result ← currentExtractionResult
+      let rust ← match emitSurfaceRustModuleChecked result.functions with
+        | .ok source => pure source
+        | .error report => throwError "Rust identifier hygiene failed: {report.detail}"
+      let report := emitCompatibilityReport result
+      let surfaceTerm ← surfaceFunListTerm result.functions
+      let rustLit := Syntax.mkStrLit rust
+      let reportLit := Syntax.mkStrLit report
+      elabCommand (← `(def $out : String := $rustLit))
+      elabCommand (← `(def $reportOut : String := $reportLit))
+      elabCommand (← `(def $surfaceOut : List LeanRustCore.SurfaceFun := $surfaceTerm))
 
 end LeanRustCore.Extract

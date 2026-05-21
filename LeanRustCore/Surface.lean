@@ -57,6 +57,9 @@ inductive SurfaceExpr where
   | enumVariant : RType → String → List SurfaceExpr → SurfaceExpr
   | call : String → List RType → RType → List SurfaceExpr → SurfaceExpr
   | callValue : SurfaceExpr → RType → RType → SurfaceExpr → SurfaceExpr
+  | listMap : String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | listFoldl : String → String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | natFold : String → String → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
   deriving Repr, BEq
 
 /-- A checked extracted function, before packaging into proof-carrying `RFun`s. -/
@@ -303,6 +306,20 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       discard <| typeOfExpected ctx fn (some (.func argTy retTy))
       discard <| typeOfExpected ctx arg (some argTy)
       applyExpected expected retTy
+  | .listMap binder elemTy outTy target body => do
+      discard <| typeOfExpected ctx target (some (.list elemTy))
+      discard <| typeOfExpected ((binder, elemTy) :: ctx) body (some outTy)
+      applyExpected expected (.list outTy)
+  | .listFoldl accName elemName accTy elemTy init target body => do
+      discard <| typeOfExpected ctx init (some accTy)
+      discard <| typeOfExpected ctx target (some (.list elemTy))
+      discard <| typeOfExpected ((elemName, elemTy) :: (accName, accTy) :: ctx) body (some accTy)
+      applyExpected expected accTy
+  | .natFold idxName accName accTy init n body => do
+      discard <| typeOfExpected ctx init (some accTy)
+      discard <| typeOfExpected ctx n (some .u32)
+      discard <| typeOfExpected ((idxName, .u32) :: (accName, accTy) :: ctx) body (some accTy)
+      applyExpected expected accTy
 where
   checkExpected (ctx : List RArg) (expr : SurfaceExpr) (wanted : RType) : Except CompatibilityReport Unit := do
     discard <| typeOfExpected ctx expr (some wanted)
@@ -774,6 +791,43 @@ mutual
                   evalError .unsupportedType ("surface call signature for `" ++ name ++ "` does not match the function environment")
     | .callValue _ _ _ _ =>
         evalError .unsupportedExpression "surface evaluator does not interpret higher-order function values in differential tests"
+    | .listMap binder elemTy outTy target body => do
+        match (← evalSurfaceExprWithFuel fuel functions env target) with
+        | .list values => do
+            let mut out : List SurfaceValue := []
+            for value in values do
+              assertValueType value elemTy
+              let mapped ← evalSurfaceExprWithFuel fuel functions ((binder, value) :: env) body
+              assertValueType mapped outTy
+              out := out ++ [mapped]
+            pure (.list out)
+        | _ => evalError .unsupportedType "List.map target is not a List value"
+    | .listFoldl accName elemName accTy elemTy init target body => do
+        let initial ← evalSurfaceExprWithFuel fuel functions env init
+        let mut acc := initial
+        assertValueType acc accTy
+        match (← evalSurfaceExprWithFuel fuel functions env target) with
+        | .list values => do
+            for value in values do
+              assertValueType value elemTy
+              let next ← evalSurfaceExprWithFuel fuel functions ((elemName, value) :: (accName, acc) :: env) body
+              assertValueType next accTy
+              acc := next
+            pure acc
+        | _ => evalError .unsupportedType "List.foldl target is not a List value"
+    | .natFold idxName accName accTy init n body => do
+        let iterations ← checkedU32 (← evalSurfaceExprWithFuel fuel functions env n)
+        if iterations > fuel then
+          evalError .unsupportedExpression "surface evaluator structural-loop fuel exhausted during Nat.rec lowering"
+        else
+          let initial ← evalSurfaceExprWithFuel fuel functions env init
+          let mut acc := initial
+          assertValueType acc accTy
+          for idx in List.range iterations do
+            let next ← evalSurfaceExprWithFuel fuel functions ((idxName, .u32 idx) :: (accName, acc) :: env) body
+            assertValueType next accTy
+            acc := next
+          pure acc
 
   /-- Evaluate a surface function from already-evaluated argument values. -/
   partial def evalSurfaceFunWithFuel (fuel : Nat) (functions : List SurfaceFun) (f : SurfaceFun) (values : List SurfaceValue) : Except CompatibilityReport SurfaceValue := do

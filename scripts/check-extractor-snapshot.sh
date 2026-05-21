@@ -12,6 +12,11 @@ lake exe gen_compatibility_report "$tmp_report"
 diff -u rust/compatibility-report.json "$tmp_report"
 rm -f "$tmp_report"
 
+tmp_proof="$(mktemp)"
+lake exe gen_proof_report "$tmp_proof"
+diff -u rust/proof-report.json "$tmp_proof"
+rm -f "$tmp_proof"
+
 tmp_diff="$(mktemp)"
 lake exe gen_differential_tests "$tmp_diff"
 diff -u rust/tests/differential_generated.rs "$tmp_diff"

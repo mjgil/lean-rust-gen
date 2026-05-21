@@ -17,6 +17,19 @@ for path in "${required_files[@]}"; do
   test -f "$path"
 done
 
+python3 - <<'PY'
+import json
+import pathlib
+
+for path in [
+    "rust/validation-report.json",
+    "rust/compatibility-report.json",
+    "rust/proof-report.json",
+    "rust/build-metadata.json",
+]:
+    json.loads(pathlib.Path(path).read_text())
+PY
+
 # The direct Lean-emits-Rust lane should emit ordinary safe Rust only. Raw FFI
 # wrappers are generated separately under rust/src/ffi_generated.rs and stay out of this path.
 ! grep -n -E '(^|[^A-Za-z0-9_])unsafe([^A-Za-z0-9_]|$)|extern "C"|panic!|todo!|unimplemented!|/\* malformed|unsupported wrapping op' "$generated"
@@ -27,10 +40,11 @@ grep -q '"name": "lean-evaluator-differential-tests"' "$validation_report"
 grep -q '"name": "safe-rust-subset-gate"' "$validation_report"
 grep -q '"name": "rust-identifier-hygiene"' "$validation_report"
 grep -q '"name": "syn-parser-backed-validation"' "$validation_report"
+grep -q '"name": "json-artifact-parse-validation"' "$validation_report"
+grep -q '"name": "compatibility-report-output-consistency"' "$validation_report"
 grep -q '"name": "payload-enum-match-lowering"' "$validation_report"
 grep -q '"name": "first-order-call-lowering"' "$validation_report"
 grep -q '"name": "surface-evaluator-extracted-subset-tests"' "$validation_report"
-grep -q '"name": "extractor-owned-surface-artifact"' "$validation_report"
 grep -q '"name": "extractor-owned-surface-artifact"' "$validation_report"
 grep -q '"name": "exact-toolchain-pins"' "$validation_report"
 grep -q '"name": "release-fallback-ban"' "$validation_report"
@@ -44,6 +58,7 @@ grep -q '"name": "ffi-result-status-out-params"' "$validation_report"
 grep -q '"name": "phase-1-recursion-policy"' "$validation_report"
 grep -q '"name": "parameterized-data-lowering"' "$validation_report"
 grep -q '"name": "standard-container-shapes"' "$validation_report"
+grep -q '"name": "structural-recursion-lowering"' "$validation_report"
 grep -q '"name": "transitive-helper-extraction"' "$validation_report"
 grep -q '"name": "proof-erased-binders"' "$validation_report"
 grep -q '"name": "limited-higher-order-function-pointer"' "$validation_report"
@@ -63,6 +78,8 @@ grep -q 'auto_option_default_step(Some(Step::Stay)' "$differential_tests"
 grep -q 'make_point(3, 4)' "$differential_tests"
 grep -q 'result_err_some_u32(44)' "$differential_tests"
 grep -q 'echo_string(String::from' "$differential_tests"
+grep -q 'list_map_inc_u32(vec!' "$differential_tests"
+grep -q 'list_fold_sum_u32(vec!' "$differential_tests"
 grep -q 'helper_chain_u32(40)' "$differential_tests"
 grep -q 'echo_prod_u32((5, 6))' "$differential_tests"
 grep -q 'echo_sum_u32(Ok(7))' "$differential_tests"
@@ -74,6 +91,10 @@ grep -q 'FORMAT[[:space:]]lean-rust-core.target-validation.v1' "$target_validati
 grep -q '^TYPE[[:space:]]struct[[:space:]]BoxedU32' "$target_validation"
 grep -q '^FN[[:space:]]unsupported_higher_order_u32' "$target_validation"
 grep -q 'call_value(var(f),var(x))' "$target_validation"
+grep -q '^FN[[:space:]]list_map_inc_u32' "$target_validation"
+grep -q 'list_map(x,var(xs),add(var(x),lit(1)))' "$target_validation"
+grep -q '^FN[[:space:]]list_fold_sum_u32' "$target_validation"
+grep -q 'list_foldl(acc,x,lit(0),var(xs),add(var(acc),var(x)))' "$target_validation"
 grep -q 'target_validation_snapshot_matches_generated_rust_ast' "$semantic_validation_tests"
 grep -q 'syn::parse_file' "$semantic_validation_tests"
 

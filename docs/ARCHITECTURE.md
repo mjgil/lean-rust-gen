@@ -219,8 +219,9 @@ runtime envelope in three concrete ways:
   parameterized structures/enums. `List` and `Array` use owned Rust `Vec<T>` in
   this phase.
 - Extraction can pull in first-order helper definitions reachable from exported
-  roots, erase conservative proof-shaped binders from Rust signatures, and lower
-  unary function-valued arguments to safe Rust `fn(A) -> B` pointers.
+  roots, erase conservative proof-shaped binders from Rust signatures, lower
+  unary function-valued arguments to safe Rust `fn(A) -> B` pointers, and lower
+  the initial `List.map`/`List.foldl` structural-recursion slice to explicit safe Rust loops.
 
 `LeanRustCore.RecursionPolicy` is retained as an analyzer/strict-compatibility
 gate, but the default large-subset emission path no longer rejects generated

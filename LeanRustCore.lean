@@ -9,6 +9,7 @@ import LeanRustCore.ChimeraBoundary
 import LeanRustCore.Examples
 import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport
+import LeanRustCore.RecursionPolicy
 import LeanRustCore.ProofReport
 import LeanRustCore.Differential
 import LeanRustCore.RustValidation

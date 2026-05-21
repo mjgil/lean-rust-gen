@@ -46,6 +46,8 @@ fn expanded_scalar_types_round_trip() {
 fn standard_container_shapes_round_trip() {
     assert_eq!(echo_list_u32(vec![1, 2, 3]), vec![1, 2, 3]);
     assert_eq!(echo_array_u32(vec![4, 5]), vec![4, 5]);
+    assert_eq!(list_map_inc_u32(vec![1, u32::MAX]), vec![2, 0]);
+    assert_eq!(list_fold_sum_u32(vec![1, 2, u32::MAX]), 2);
     assert_eq!(echo_prod_u32((1, 2)), (1, 2));
     assert_eq!(echo_sum_u32(Ok(3)), Ok(3));
     assert_eq!(echo_sum_u32(Err(4)), Err(4));

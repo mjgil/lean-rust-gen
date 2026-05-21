@@ -60,14 +60,14 @@ arguments and return values are built from:
 The body subset includes variables, literals, `if`, `let`, scalar comparisons,
 wrapping arithmetic, `Option`/`Except` constructors, struct literals, field
 projection, enum payload constructors, payload enum pattern matching, and
-first-order calls to other tagged exported Lean declarations or automatically extracted first-order helper definitions. Explicit concrete
+first-order calls to other tagged exported Lean declarations or automatically extracted first-order helper definitions, and the initial structural-recursion slice for `List.map`/`List.foldl`. Explicit concrete
 monomorphizations are registered with `rust_mono_export`, and generic calls inside concrete exported declarations are automatically monomorphized.
 
 `LeanRustCore.Surface.evalSurfaceFun` now gives this extracted surface subset a
 dynamic Lean semantics used by the differential suite. It covers the same
 expression families as the emitter and bounds call evaluation with explicit fuel, which now also protects recursive or helper-expanded call graphs during tests.
 
-The next milestones are loop lowering for common structural recursions, captured-closure conversion, generated typeclass dictionaries, exact `Nat`/`Int` backends, and semantic Rust→Lean translation validation beyond the current generated-subset `syn` parser gate. See `docs/LARGE_SUBSET_PLAN.md` for the staged large-subset plan.
+The next milestones are broader structural recursion lowering beyond the current `List.map`/`List.foldl` slice, captured-closure conversion, generated typeclass dictionaries, exact `Nat`/`Int` backends, and semantic Rust→Lean translation validation beyond the current generated-subset `syn` parser gate. See `docs/LARGE_SUBSET_PLAN.md` for the staged large-subset plan.
 
 ## Differential and validation additions
 

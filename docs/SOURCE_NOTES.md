@@ -40,9 +40,11 @@ The phase-1/2 large-subset slice widens runtime lowering without changing the
 safe direct-emission lane: parameterized index-free data is monomorphized to
 stable Rust type names, `Char`/`String`/`List`/`Array`/`Prod`/`Sum` are available
 as owned runtime shapes, first-order helpers can be pulled in transitively, and
-simple unary higher-order arguments lower to Rust `fn` pointers. Recursive call
-graphs are no longer rejected by the default emitter; `RecursionPolicy` remains
-available as an analyzer or strict compatibility gate.
+simple unary higher-order arguments lower to Rust `fn` pointers. The initial
+structural-recursion slice recognizes `List.map`, `List.foldl`, and a loop-shaped
+`Nat.rec` path. Recursive call graphs are no longer rejected by the default
+emitter; `RecursionPolicy` remains available as an analyzer or strict
+compatibility gate.
 
 Phase 3 adds a target-validation sidecar. `LeanRustCore.TargetValidation` emits
 Rust-facing signatures and expression fingerprints from the checked surface IR,

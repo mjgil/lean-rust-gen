@@ -160,6 +160,8 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "echo_string(String::from(\"hi\"))" (surfaceExpected "echo_string" [vString "hi"]),
   assertion "echo_list_u32(vec![1, 2])" (surfaceExpected "echo_list_u32" [vList [vU32 1, vU32 2]]),
   assertion "echo_array_u32(vec![3, 4])" (surfaceExpected "echo_array_u32" [vArray [vU32 3, vU32 4]]),
+  assertion "list_map_inc_u32(vec![1, u32::MAX])" (surfaceExpected "list_map_inc_u32" [vList [vU32 1, vU32 (u32Modulus - 1)]]),
+  assertion "list_fold_sum_u32(vec![1, 2, u32::MAX])" (surfaceExpected "list_fold_sum_u32" [vList [vU32 1, vU32 2, vU32 (u32Modulus - 1)]]),
   assertion "echo_prod_u32((5, 6))" (surfaceExpected "echo_prod_u32" [vProd (vU32 5) (vU32 6)]),
   assertion "echo_sum_u32(Ok(7))" (surfaceExpected "echo_sum_u32" [vSumInr (vU32 7)]),
   assertion "echo_sum_u32(Err(8))" (surfaceExpected "echo_sum_u32" [vSumInl (vU32 8)]),

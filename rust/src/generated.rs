@@ -72,6 +72,14 @@ pub fn echo_array_u32(xs: Vec<u32>) -> Vec<u32> {
     xs
 }
 
+pub fn list_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
+    { let mut __lrc_out = Vec::new(); for x in xs { __lrc_out.push((x).wrapping_add(1)); } __lrc_out }
+}
+
+pub fn list_fold_sum_u32(xs: Vec<u32>) -> u32 {
+    { let mut acc = 0; for x in xs { acc = (acc).wrapping_add(x); } acc }
+}
+
 pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32) {
     x
 }

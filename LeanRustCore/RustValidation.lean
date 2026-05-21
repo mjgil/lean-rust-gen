@@ -43,6 +43,8 @@ def requiredFunctionNames : List String := [
   "echo_string",
   "echo_list_u32",
   "echo_array_u32",
+  "list_map_inc_u32",
+  "list_fold_sum_u32",
   "echo_prod_u32",
   "echo_sum_u32",
   "add_u64",
@@ -107,7 +109,7 @@ def checks : List ValidationCheck := [
   {
     name := "snapshot-reproducibility",
     status := "passed",
-    detail := "scripts/check-extractor-snapshot.sh diffs generated.rs, differential tests, compatibility report, validation report, and build metadata against Lean output"
+    detail := "scripts/check-extractor-snapshot.sh diffs generated.rs, differential tests, compatibility report, validation report, build metadata, target validation, and FFI wrappers against Lean output"
   },
   {
     name := "lean-evaluator-differential-tests",
@@ -137,7 +139,7 @@ def checks : List ValidationCheck := [
   {
     name := "surface-evaluator-extracted-subset-tests",
     status := "passed",
-    detail := "the SurfaceExpr evaluator covers the current extracted struct, enum, Result, monomorphization, payload-match, and call fixtures"
+    detail := "the SurfaceExpr evaluator covers the current extracted struct, enum, Result, monomorphization, payload-match, structural recursion, and call fixtures"
   },
   {
     name := "extractor-owned-surface-artifact",
@@ -180,6 +182,11 @@ def checks : List ValidationCheck := [
     detail := "Char, String, List, Array, Prod, Sum, and unary function types are represented in RType and lowered to safe Rust type shapes for supported bodies"
   },
   {
+    name := "structural-recursion-lowering",
+    status := "passed",
+    detail := "recognized List.map, List.foldl, and Nat.rec shapes lower to explicit safe Rust loop-shaped SurfaceExpr nodes with evaluator and target-validation fingerprints"
+  },
+  {
     name := "transitive-helper-extraction",
     status := "passed",
     detail := "first-order helper definitions reached from exported declarations are enqueued and emitted as auto-helper-export functions"
@@ -208,7 +215,7 @@ def checks : List ValidationCheck := [
   {
     name := "property-differential-seeds",
     status := "passed",
-    detail := "rust/tests/generated.rs and the Lean-generated differential suite include boundary seeds for wrapping arithmetic, payload matches, helper calls, containers, and function-pointer arguments"
+    detail := "rust/tests/generated.rs and the Lean-generated differential suite include boundary seeds for wrapping arithmetic, payload matches, helper calls, containers, structural List loops, and function-pointer arguments"
   },
   {
     name := "ffi-boundary-exporter",
@@ -229,6 +236,16 @@ def checks : List ValidationCheck := [
     name := "syn-parser-backed-validation",
     status := "passed",
     detail := "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset by AST instead of relying only on text grep"
+  },
+  {
+    name := "json-artifact-parse-validation",
+    status := "passed",
+    detail := "rust/tests/validation_report.rs parses validation, compatibility, proof, and build-metadata JSON artifacts with serde_json"
+  },
+  {
+    name := "compatibility-report-output-consistency",
+    status := "passed",
+    detail := "rust/tests/validation_report.rs compares compatibility diagnostics and generated function counts against the parsed generated.rs AST"
   }
 ]
 
