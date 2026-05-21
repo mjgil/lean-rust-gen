@@ -262,6 +262,9 @@ fn target_validation_snapshot_records_generated_subset() {
 }
 
 #[test]
+assert!(snapshot.contains("FN\tlist_filter_nonzero_u32"));
+assert!(snapshot.contains("FN\tnat_sum_to_u32"));
+assert!(snapshot.contains("FN\tvector_echo3_u32"));
 fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
     let ffi = include_str!("../src/ffi_generated.rs");
     let lib = include_str!("../src/lib.rs");

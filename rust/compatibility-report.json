@@ -5,6 +5,7 @@
   "diagnostics": [
     { "source": "LeanRustCore.Examples.clamp_u32", "rust_name": "clamp_u32", "code": "supported", "detail": "exported-nat-wrapping-u32" },
     { "source": "LeanRustCore.Examples.max_u32", "rust_name": "max_u32", "code": "supported", "detail": "exported-nat-wrapping-u32" },
+  "generated_function_count": 77,
     { "source": "LeanRustCore.Examples.is_nonzero_u32", "rust_name": "is_nonzero_u32", "code": "supported", "detail": "exported-nat-wrapping-u32" },
     { "source": "LeanRustCore.Examples.add_u32", "rust_name": "add_u32", "code": "supported", "detail": "exported-nat-wrapping-u32" },
     { "source": "LeanRustCore.Examples.mul_u32", "rust_name": "mul_u32", "code": "supported", "detail": "exported-nat-wrapping-u32" },

@@ -11,6 +11,9 @@ fn primitive_ffi_wrappers_call_generated_functions() {
     assert_eq!(lrc_bool_match_u32(0, 7, 9), 9);
     assert_eq!(lrc_helper_chain_u32(40), 42);
 }
+assert_eq!(lrc_nat_sum_to_u32(5), 10);
+assert_eq!(lrc_subtype_val_u32(42), 42);
+assert_eq!(lrc_fin_val10_u32(7), 7);
 
 #[test]
 fn result_ffi_wrappers_lower_to_status_and_out_params() {

@@ -54,6 +54,7 @@ arguments and return values are built from:
 - `Option`,
 - `Except`,
 - `List` and `Array` as owned Rust `Vec<T>` values,
+- erased `Subtype`, `Fin n`, and `Vector α n` runtime shapes,
 - unary function-pointer arguments,
 - index-free structures and inductive enums, including concrete monomorphized parameterized data.
 

@@ -22,6 +22,9 @@ def supportedRustType : RType → Bool
   | .prod a b => supportedRustType a && supportedRustType b
   | .sum a b => supportedRustType a && supportedRustType b
   | .func a b => supportedRustType a && supportedRustType b
+  | .subtype t => supportedRustType t
+  | .fin _ => true
+  | .vector t _ => supportedRustType t
   | .struct _ fields => fields.all (fun field => supportedRustType field.2)
   | .enum _ variants => variants.all (fun variant => variant.2.all supportedRustType)
 

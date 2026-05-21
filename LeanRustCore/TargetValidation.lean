@@ -106,10 +106,40 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
   | .listMap binder _ _ target body =>
       "list_map(" ++ rustValueIdent "value" binder ++ "," ++
       fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .listFilter binder _ target predicate =>
+      "list_filter(" ++ rustValueIdent "value" binder ++ "," ++
+      fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr predicate ++ ")"
   | .listFoldl accName elemName _ _ init target body =>
       "list_foldl(" ++ rustValueIdent "acc" accName ++ "," ++
       rustValueIdent "item" elemName ++ "," ++
       fingerprintSurfaceExpr init ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .listFoldr elemName accName _ _ target init body =>
+      "list_foldr(" ++ rustValueIdent "item" elemName ++ "," ++ rustValueIdent "acc" accName ++ "," ++
+      fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr init ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .listAny binder _ target predicate =>
+      "list_any(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr predicate ++ ")"
+  | .listAll binder _ target predicate =>
+      "list_all(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr predicate ++ ")"
+  | .arrayMap binder _ _ target body =>
+      "list_map(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .arrayFoldl accName elemName _ _ init target body =>
+      "list_foldl(" ++ rustValueIdent "acc" accName ++ "," ++ rustValueIdent "item" elemName ++ "," ++
+      fingerprintSurfaceExpr init ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .optionMap binder _ _ target body =>
+      "match_option(" ++ fingerprintSurfaceExpr target ++ ",none=>none|some(" ++ rustValueIdent "value" binder ++ ")=>some(" ++ fingerprintSurfaceExpr body ++ "))"
+  | .optionBind binder _ _ target body =>
+      "match_option(" ++ fingerprintSurfaceExpr target ++ ",none=>none|some(" ++ rustValueIdent "value" binder ++ ")=>" ++ fingerprintSurfaceExpr body ++ ")"
+  | .resultMapOk binder _ _ _ target body =>
+      "match_enum(" ++ fingerprintSurfaceExpr target ++ ",Err(__lrc_err)=>err(var(__lrc_err))|Ok(" ++ rustValueIdent "value" binder ++ ")=>ok(" ++ fingerprintSurfaceExpr body ++ "))"
+  | .resultBind binder _ _ _ target body =>
+      "match_enum(" ++ fingerprintSurfaceExpr target ++ ",Err(__lrc_err)=>err(var(__lrc_err))|Ok(" ++ rustValueIdent "value" binder ++ ")=>" ++ fingerprintSurfaceExpr body ++ ")"
+  | .subtypeErase _ value => fingerprintSurfaceExpr value
+  | .subtypeVal _ value => fingerprintSurfaceExpr value
+  | .finCheck bound value =>
+      "if(lt(" ++ fingerprintSurfaceExpr value ++ ",lit(" ++ Nat.toString bound ++ ")),some(" ++ fingerprintSurfaceExpr value ++ "),none)"
+  | .finVal _ value => fingerprintSurfaceExpr value
+  | .vectorCheck elemTy bound value =>
+      "vector_check(" ++ rustType elemTy ++ "," ++ Nat.toString bound ++ "," ++ fingerprintSurfaceExpr value ++ ")"
   | .natFold idxName accName _ init n body =>
       "nat_fold(" ++ rustValueIdent "idx" idxName ++ "," ++ rustValueIdent "acc" accName ++ "," ++
       fingerprintSurfaceExpr init ++ "," ++ fingerprintSurfaceExpr n ++ "," ++ fingerprintSurfaceExpr body ++ ")"

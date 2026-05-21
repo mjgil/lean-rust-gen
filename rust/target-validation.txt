@@ -5,6 +5,7 @@ FN_COUNT	59
 TYPE	struct	Point	x:u32,y:u32
 TYPE	struct	BoxedU32	value:u32
 TYPE	enum	Choice	First|Second
+FN_COUNT	77
 TYPE	enum	TaggedU32	Missing|Present(u32)
 TYPE	enum	Step	Stay|Jump(u32)
 FN	clamp_u32	lo:u32,hi:u32,x:u32	u32	if(lt(var(x),var(lo)),var(lo),if(lt(var(hi),var(x)),var(hi),var(x)))

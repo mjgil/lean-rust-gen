@@ -101,6 +101,80 @@ def list_map_inc_u32 (xs : List UInt32) : List UInt32 :=
 def list_fold_sum_u32 (xs : List UInt32) : UInt32 :=
   List.foldl (fun acc x => acc + x) 0 xs
 
+
+@[rust_export]
+def list_map_add_capture_u32 (delta : UInt32) (xs : List UInt32) : List UInt32 :=
+  List.map (fun x => x + delta) xs
+
+@[rust_export]
+def list_filter_nonzero_u32 (xs : List UInt32) : List UInt32 :=
+  List.filter (fun x => x > 0) xs
+
+@[rust_export]
+def list_foldr_sum_u32 (xs : List UInt32) : UInt32 :=
+  List.foldr (fun x acc => x + acc) 0 xs
+
+@[rust_export]
+def list_any_nonzero_u32 (xs : List UInt32) : Bool :=
+  List.any xs (fun x => x > 0)
+
+@[rust_export]
+def list_all_nonzero_u32 (xs : List UInt32) : Bool :=
+  List.all xs (fun x => x > 0)
+
+@[rust_export]
+def array_map_inc_u32 (xs : Array UInt32) : Array UInt32 :=
+  xs.map (fun x => x + 1)
+
+@[rust_export]
+def array_fold_sum_u32 (xs : Array UInt32) : UInt32 :=
+  xs.foldl (fun acc x => acc + x) 0
+
+@[rust_export]
+def option_map_inc_u32 (x : Option UInt32) : Option UInt32 :=
+  Option.map (fun y => y + 1) x
+
+@[rust_export]
+def option_bind_inc_u32 (x : Option UInt32) : Option UInt32 :=
+  Option.bind x (fun y => some (y + 1))
+
+@[rust_export]
+def result_bind_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
+  Except.bind x (fun y => Except.ok (y + 1))
+
+@[rust_export, rust_nat_wrapping_u32]
+def nat_sum_to_u32 (n : Nat) : Nat :=
+  Nat.rec 0 (fun k acc => acc + k) n
+
+@[rust_export]
+def subtype_val_u32 (x : { n : UInt32 // True }) : UInt32 :=
+  x.val
+
+@[rust_export, rust_nat_wrapping_u32]
+def fin_val10_u32 (i : Fin 10) : Nat :=
+  i.val
+
+@[rust_export]
+def vector_echo3_u32 (xs : Vector UInt32 3) : Vector UInt32 3 :=
+  xs
+
+@[rust_export, rust_nat_exact]
+def exact_nat_add (a b : Nat) : Nat :=
+  a + b
+
+@[rust_export, rust_nat_exact]
+def exact_nat_mul (a b : Nat) : Nat :=
+  a * b
+
+@[rust_export, rust_nat_exact]
+def exact_int_add (a b : Int) : Int :=
+  a + b
+
+@[rust_export, rust_nat_exact]
+def exact_int_mul (a b : Int) : Int :=
+  a * b
+
+
 @[rust_export]
 def echo_prod_u32 (x : UInt32 × UInt32) : UInt32 × UInt32 :=
   x

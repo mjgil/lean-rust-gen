@@ -88,6 +88,19 @@ pub fn echo_array_u32(xs: Vec<u32>) -> Vec<u32>
 pub fn list_map_inc_u32(xs: Vec<u32>) -> Vec<u32>
 pub fn list_fold_sum_u32(xs: Vec<u32>) -> u32
 pub fn list_map_add_capture_u32(delta: u32, xs: Vec<u32>) -> Vec<u32>
+pub fn list_filter_nonzero_u32(xs: Vec<u32>) -> Vec<u32>
+pub fn list_foldr_sum_u32(xs: Vec<u32>) -> u32
+pub fn list_any_nonzero_u32(xs: Vec<u32>) -> bool
+pub fn list_all_nonzero_u32(xs: Vec<u32>) -> bool
+pub fn array_map_inc_u32(xs: Vec<u32>) -> Vec<u32>
+pub fn array_fold_sum_u32(xs: Vec<u32>) -> u32
+pub fn option_map_inc_u32(x: Option<u32>) -> Option<u32>
+pub fn option_bind_inc_u32(x: Option<u32>) -> Option<u32>
+pub fn result_bind_inc_u32(x: Result<u32, u32>) -> Result<u32, u32>
+pub fn nat_sum_to_u32(n: u32) -> u32
+pub fn subtype_val_u32(x: u32) -> u32
+pub fn fin_val10_u32(i: u32) -> u32
+pub fn vector_echo3_u32(xs: Vec<u32>) -> Vec<u32>
 pub fn exact_nat_add(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint
 pub fn exact_nat_mul(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint
 pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt

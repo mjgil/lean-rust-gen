@@ -110,6 +110,8 @@ grep -q 'extern "C" fn lrc_add_u32' "$ffi_generated"
 grep -q 'unsafe extern "C" fn lrc_result_ok_u32' "$ffi_generated"
 grep -q 'lower_result_u32_u32' rust/src/abi.rs
 grep -q 'lrc_result_err_u32' "$ffi_boundary_tests"
+grep -q 'lrc_nat_sum_to_u32' "$ffi_generated"
+grep -q 'lrc_fin_val10_u32' "$ffi_generated"
 
 # Build metadata records exact pins and release fallback policy.
 grep -q '"format": "lean-rust-core.build-metadata.v1"' "$build_metadata"

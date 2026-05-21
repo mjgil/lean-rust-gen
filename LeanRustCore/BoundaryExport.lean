@@ -23,6 +23,8 @@ private def abiScalarType : RType → Option String
   | .u64 => some "u64"
   | .i32 => some "i32"
   | .i64 => some "i64"
+  | .subtype t => abiScalarType t
+  | .fin _ => some "u32"
   | _ => none
 
 private def abiArgDecl (arg : RArg) : Option String := do

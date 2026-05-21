@@ -210,6 +210,9 @@ private partial def rTypeRuntimeSuffix : RType → String
   | .prod a b => "prod_" ++ rTypeRuntimeSuffix a ++ "_" ++ rTypeRuntimeSuffix b
   | .sum a b => "sum_" ++ rTypeRuntimeSuffix a ++ "_" ++ rTypeRuntimeSuffix b
   | .func a b => "fn_" ++ rTypeRuntimeSuffix a ++ "_" ++ rTypeRuntimeSuffix b
+  | .subtype t => "subtype_" ++ rTypeRuntimeSuffix t
+  | .fin n => "fin_" ++ Nat.toString n
+  | .vector t n => "vector_" ++ rTypeRuntimeSuffix t ++ "_" ++ Nat.toString n
   | .struct name _ => sanitizeRustIdent "struct" (lowerRuntimeTypeString name)
   | .enum name _ => sanitizeRustIdent "enum" (lowerRuntimeTypeString name)
 
@@ -283,6 +286,24 @@ mutual
                 match args with
                 | [a, b] => return .sum (← typeOfLeanWithCtx typeCtx a) (← typeOfLeanWithCtx typeCtx b)
                 | _ => throwError "unsupported Sum type shape in rust_export extraction"
+              else if n == ``Subtype then
+                match args with
+                | [inner, _pred] => return .subtype (← typeOfLeanWithCtx typeCtx inner)
+                | _ => throwError "unsupported Subtype shape in rust_export extraction"
+              else if n == ``Fin then
+                match args with
+                | [boundExpr] =>
+                    match natLiteral? boundExpr with
+                    | some bound => return .fin bound
+                    | none => throwError "Fin bounds must be numeral literals in the current rust_export subset"
+                | _ => throwError "unsupported Fin type shape in rust_export extraction"
+              else if n == ``Vector then
+                match args with
+                | [inner, boundExpr] =>
+                    match natLiteral? boundExpr with
+                    | some bound => return .vector (← typeOfLeanWithCtx typeCtx inner) bound
+                    | none => throwError "Vector length indices must be numeral literals in the current rust_export subset"
+                | _ => throwError "unsupported Vector type shape in rust_export extraction"
               else
                 match (← getEnv).find? n with
                 | some (.inductInfo info) => do
@@ -412,6 +433,9 @@ private partial def rTypeMonoSuffix : RType → String
   | .prod a b => "prod_" ++ rTypeMonoSuffix a ++ "_" ++ rTypeMonoSuffix b
   | .sum a b => "sum_" ++ rTypeMonoSuffix a ++ "_" ++ rTypeMonoSuffix b
   | .func a b => "fn_" ++ rTypeMonoSuffix a ++ "_" ++ rTypeMonoSuffix b
+  | .subtype t => "subtype_" ++ rTypeMonoSuffix t
+  | .fin n => "fin_" ++ Nat.toString n
+  | .vector t n => "vector_" ++ rTypeMonoSuffix t ++ "_" ++ Nat.toString n
   | .struct name _ => sanitizeRustIdent "struct" (lowerMonoString name)
   | .enum name _ => sanitizeRustIdent "enum" (lowerMonoString name)
 
@@ -497,6 +521,23 @@ private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expec
       let valueExpr ← translateExpr typeCtx locals (some valueTy) value
       let bodyExpr ← translateExpr (none :: typeCtx) (some { name := rustName, ty := valueTy } :: locals) expected body
       return .letIn rustName valueExpr bodyExpr
+  | .proj structName fieldIdx target =>
+      if nameLeaf structName == "Subtype" && fieldIdx == 0 then
+        match expected with
+        | some inner => return .subtypeVal inner (← translateExpr typeCtx locals (some (.subtype inner)) target)
+        | none => throwError "Subtype.val projection needs an expected erased runtime type"
+      else if nameLeaf structName == "Fin" && fieldIdx == 0 then
+        match stripMData target with
+        | .bvar idx =>
+            match localAt locals idx with
+            | .ok local =>
+                match local.ty with
+                | .fin bound => return .finVal bound (← translateExpr typeCtx locals (some (.fin bound)) target)
+                | _ => throwError "Fin.val target was not typed as Fin in the local context"
+            | .error msg => throwError msg
+        | _ => throwError "Fin.val projection currently supports local Fin variables only"
+      else
+        unsupported e
   | .app .. => translateApp typeCtx locals expected e
   | .mdata _ inner => translateExpr typeCtx locals expected inner
   | _ => unsupported e
@@ -539,6 +580,145 @@ where
               throwError "List.foldl lambda argument types did not match the accumulator/list element types"
         | _ => unsupported fnExpr
     | _ => unsupported fnExpr
+
+  translateFoldrLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx) (elemTy accTy : RType) (fnExpr : Expr) : CoreM (String × String × SurfaceExpr) := do
+    match stripMData fnExpr with
+    | .lam elemName elemTyExpr rest _ =>
+        match stripMData rest with
+        | .lam accName accTyExpr body _ => do
+            let actualElemTy ← typeOfLeanWithCtx typeCtx elemTyExpr
+            let actualAccTy ← typeOfLeanWithCtx (none :: typeCtx) accTyExpr
+            if actualElemTy == elemTy && actualAccTy == accTy then
+              let elemBinder := sanitizeRustIdent "item" (nameLeaf elemName)
+              let accBinder := sanitizeRustIdent "acc" (nameLeaf accName)
+              let bodyExpr ← translateExpr (none :: none :: typeCtx)
+                (some { name := accBinder, ty := accTy } :: some { name := elemBinder, ty := elemTy } :: locals)
+                (some accTy) body
+              pure (elemBinder, accBinder, bodyExpr)
+            else
+              throwError "List.foldr lambda argument types did not match the element/accumulator types"
+        | _ => unsupported fnExpr
+    | _ => unsupported fnExpr
+
+  translateListFilter (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: predExpr :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let target ← translateExpr typeCtx locals (some (.list elemTy)) targetExpr
+        let (binder, predicate) ← translateUnaryLambdaBody typeCtx locals elemTy .bool predExpr
+        return .listFilter binder elemTy target predicate
+    | alpha :: predExpr :: _decider :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let target ← translateExpr typeCtx locals (some (.list elemTy)) targetExpr
+        let (binder, predicate) ← translateUnaryLambdaBody typeCtx locals elemTy .bool predExpr
+        return .listFilter binder elemTy target predicate
+    | _ => unsupported e
+
+  translateListFoldr (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: beta :: fnExpr :: initExpr :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let accTy ← typeOfLeanWithCtx typeCtx beta
+        match expected with
+        | some wanted => if wanted == accTy then pure () else throwError "List.foldr result type did not match the expected type"
+        | none => pure ()
+        let target ← translateExpr typeCtx locals (some (.list elemTy)) targetExpr
+        let init ← translateExpr typeCtx locals (some accTy) initExpr
+        let (elemName, accName, body) ← translateFoldrLambdaBody typeCtx locals elemTy accTy fnExpr
+        return .listFoldr elemName accName elemTy accTy target init body
+    | _ => unsupported e
+
+  translateListAnyAll (wantAll : Bool) (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    let finish (alpha predExpr targetExpr : Expr) : CoreM SurfaceExpr := do
+      let elemTy ← typeOfLeanWithCtx typeCtx alpha
+      let target ← translateExpr typeCtx locals (some (.list elemTy)) targetExpr
+      let (binder, predicate) ← translateUnaryLambdaBody typeCtx locals elemTy .bool predExpr
+      if wantAll then return .listAll binder elemTy target predicate else return .listAny binder elemTy target predicate
+    match args with
+    | alpha :: predExpr :: targetExpr :: [] => finish alpha predExpr targetExpr
+    | alpha :: targetExpr :: predExpr :: [] => finish alpha predExpr targetExpr
+    | _ => unsupported e
+
+  translateArrayMap (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: beta :: fnExpr :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let outTy ← typeOfLeanWithCtx typeCtx beta
+        let target ← translateExpr typeCtx locals (some (.array elemTy)) targetExpr
+        let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy outTy fnExpr
+        return .arrayMap binder elemTy outTy target body
+    | alpha :: beta :: targetExpr :: fnExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let outTy ← typeOfLeanWithCtx typeCtx beta
+        let target ← translateExpr typeCtx locals (some (.array elemTy)) targetExpr
+        let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy outTy fnExpr
+        return .arrayMap binder elemTy outTy target body
+    | _ => unsupported e
+
+  translateArrayFoldl (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: beta :: fnExpr :: initExpr :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let accTy ← typeOfLeanWithCtx typeCtx beta
+        match expected with
+        | some wanted => if wanted == accTy then pure () else throwError "Array.foldl result type did not match the expected type"
+        | none => pure ()
+        let init ← translateExpr typeCtx locals (some accTy) initExpr
+        let target ← translateExpr typeCtx locals (some (.array elemTy)) targetExpr
+        let (accName, elemName, body) ← translateFoldlLambdaBody typeCtx locals accTy elemTy fnExpr
+        return .arrayFoldl accName elemName accTy elemTy init target body
+    | _ => unsupported e
+
+  translateOptionMap (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: beta :: fnExpr :: targetExpr :: [] => do
+        let innerTy ← typeOfLeanWithCtx typeCtx alpha
+        let outTy ← typeOfLeanWithCtx typeCtx beta
+        let target ← translateExpr typeCtx locals (some (.option innerTy)) targetExpr
+        let (binder, body) ← translateUnaryLambdaBody typeCtx locals innerTy outTy fnExpr
+        return .optionMap binder innerTy outTy target body
+    | _ => unsupported e
+
+  translateOptionBind (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: beta :: targetExpr :: fnExpr :: [] => do
+        let innerTy ← typeOfLeanWithCtx typeCtx alpha
+        let outTy ← typeOfLeanWithCtx typeCtx beta
+        match expected with
+        | some (.option wanted) => if wanted == outTy then pure () else throwError "Option.bind result type did not match the expected Option type"
+        | some _ => throwError "Option.bind expected type was not Option"
+        | none => pure ()
+        let target ← translateExpr typeCtx locals (some (.option innerTy)) targetExpr
+        let (binder, body) ← translateUnaryLambdaBody typeCtx locals innerTy (.option outTy) fnExpr
+        return .optionBind binder innerTy outTy target body
+    | _ => unsupported e
+
+  translateExceptMap (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | errExpr :: okExpr :: outExpr :: fnExpr :: targetExpr :: [] => do
+        let errTy ← typeOfLeanWithCtx typeCtx errExpr
+        let okTy ← typeOfLeanWithCtx typeCtx okExpr
+        let outTy ← typeOfLeanWithCtx typeCtx outExpr
+        let target ← translateExpr typeCtx locals (some (.result okTy errTy)) targetExpr
+        let (binder, body) ← translateUnaryLambdaBody typeCtx locals okTy outTy fnExpr
+        return .resultMapOk binder errTy okTy outTy target body
+    | _ => unsupported e
+
+  translateExceptBind (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | errExpr :: okExpr :: outExpr :: targetExpr :: fnExpr :: [] => do
+        let errTy ← typeOfLeanWithCtx typeCtx errExpr
+        let okTy ← typeOfLeanWithCtx typeCtx okExpr
+        let outTy ← typeOfLeanWithCtx typeCtx outExpr
+        match expected with
+        | some (.result wantedOk wantedErr) =>
+            if wantedOk == outTy && wantedErr == errTy then pure () else throwError "Except.bind result type did not match the expected Result type"
+        | some _ => throwError "Except.bind expected type was not Result"
+        | none => pure ()
+        let target ← translateExpr typeCtx locals (some (.result okTy errTy)) targetExpr
+        let (binder, body) ← translateUnaryLambdaBody typeCtx locals okTy (.result outTy errTy) fnExpr
+        return .resultBind binder errTy okTy outTy target body
+    | _ => unsupported e
 
   translateNatStepLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx) (accTy : RType) (stepExpr : Expr) : CoreM (String × String × SurfaceExpr) := do
     match stripMData stepExpr with
@@ -915,8 +1095,48 @@ where
           | none => unsupported e
         else if n == ``List.map then
           translateListMap typeCtx locals e args
+        else if n == ``List.filter then
+          translateListFilter typeCtx locals e args
         else if n == ``List.foldl then
           translateListFoldl typeCtx locals expected e args
+        else if n == ``List.foldr then
+          translateListFoldr typeCtx locals expected e args
+        else if n == ``List.any then
+          translateListAnyAll false typeCtx locals e args
+        else if n == ``List.all then
+          translateListAnyAll true typeCtx locals e args
+        else if n == ``Array.map then
+          translateArrayMap typeCtx locals e args
+        else if n == ``Array.foldl then
+          translateArrayFoldl typeCtx locals expected e args
+        else if n == ``Option.map then
+          translateOptionMap typeCtx locals e args
+        else if n == ``Option.bind then
+          translateOptionBind typeCtx locals expected e args
+        else if n == ``Except.map then
+          translateExceptMap typeCtx locals e args
+        else if n == ``Except.bind then
+          translateExceptBind typeCtx locals expected e args
+        else if n == ``Subtype.val then
+          match expected with
+          | some inner =>
+              match last? args with
+              | some target => return .subtypeVal inner (← translateExpr typeCtx locals (some (.subtype inner)) target)
+              | none => unsupported e
+          | none => throwError "Subtype.val extraction needs an expected runtime type"
+        else if n == ``Fin.val then
+          match last? args with
+          | some target =>
+              match stripMData target with
+              | .bvar idx =>
+                  match localAt locals idx with
+                  | .ok local =>
+                      match local.ty with
+                      | .fin bound => return .finVal bound (← translateExpr typeCtx locals (some (.fin bound)) target)
+                      | _ => throwError "Fin.val target was not typed as Fin in the local context"
+                  | .error msg => throwError msg
+              | _ => throwError "Fin.val extraction currently supports local Fin variables only"
+          | none => unsupported e
         else if isNamedRecursor n "casesOn" && nameParent n == ``Bool then
           translateBoolCasesOn typeCtx locals expected e args
         else if isNamedRecursor n "rec" && nameParent n == ``Bool then
@@ -983,6 +1203,9 @@ private def rTypeReportLabel : RType → String
   | .prod a b => "Prod " ++ rTypeReportLabel a ++ " " ++ rTypeReportLabel b
   | .sum a b => "Sum " ++ rTypeReportLabel a ++ " " ++ rTypeReportLabel b
   | .func a b => "Function " ++ rTypeReportLabel a ++ " -> " ++ rTypeReportLabel b
+  | .subtype t => "Subtype " ++ rTypeReportLabel t
+  | .fin n => "Fin " ++ Nat.toString n
+  | .vector t n => "Vector " ++ rTypeReportLabel t ++ " " ++ Nat.toString n
   | .struct name _ => name
   | .enum name _ => name
 
@@ -1148,6 +1371,16 @@ private partial def rTypeTerm : RType → CommandElabM (TSyntax `term)
       let aTerm ← rTypeTerm a
       let bTerm ← rTypeTerm b
       `(LeanRustCore.RType.func $aTerm $bTerm)
+  | .subtype ty => do
+      let tyTerm ← rTypeTerm ty
+      `(LeanRustCore.RType.subtype $tyTerm)
+  | .fin n => do
+      let nTerm := natTerm n
+      `(LeanRustCore.RType.fin $nTerm)
+  | .vector ty n => do
+      let tyTerm ← rTypeTerm ty
+      let nTerm := natTerm n
+      `(LeanRustCore.RType.vector $tyTerm $nTerm)
   | .struct name fields => do
       let nameTerm := stringTerm name
       let fieldTerms ← fields.mapM rArgTerm
@@ -1290,6 +1523,12 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let targetTerm ← surfaceExprTerm target
       let bodyTerm ← surfaceExprTerm body
       `(LeanRustCore.SurfaceExpr.listMap $binderTerm $elemTyTerm $outTyTerm $targetTerm $bodyTerm)
+  | .listFilter binder elemTy target predicate => do
+      let binderTerm := stringTerm binder
+      let elemTyTerm ← rTypeTerm elemTy
+      let targetTerm ← surfaceExprTerm target
+      let predicateTerm ← surfaceExprTerm predicate
+      `(LeanRustCore.SurfaceExpr.listFilter $binderTerm $elemTyTerm $targetTerm $predicateTerm)
   | .listFoldl accName elemName accTy elemTy init target body => do
       let accNameTerm := stringTerm accName
       let elemNameTerm := stringTerm elemName
@@ -1299,6 +1538,94 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let targetTerm ← surfaceExprTerm target
       let bodyTerm ← surfaceExprTerm body
       `(LeanRustCore.SurfaceExpr.listFoldl $accNameTerm $elemNameTerm $accTyTerm $elemTyTerm $initTerm $targetTerm $bodyTerm)
+  | .listFoldr elemName accName elemTy accTy target init body => do
+      let elemNameTerm := stringTerm elemName
+      let accNameTerm := stringTerm accName
+      let elemTyTerm ← rTypeTerm elemTy
+      let accTyTerm ← rTypeTerm accTy
+      let targetTerm ← surfaceExprTerm target
+      let initTerm ← surfaceExprTerm init
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.listFoldr $elemNameTerm $accNameTerm $elemTyTerm $accTyTerm $targetTerm $initTerm $bodyTerm)
+  | .listAny binder elemTy target predicate => do
+      let binderTerm := stringTerm binder
+      let elemTyTerm ← rTypeTerm elemTy
+      let targetTerm ← surfaceExprTerm target
+      let predicateTerm ← surfaceExprTerm predicate
+      `(LeanRustCore.SurfaceExpr.listAny $binderTerm $elemTyTerm $targetTerm $predicateTerm)
+  | .listAll binder elemTy target predicate => do
+      let binderTerm := stringTerm binder
+      let elemTyTerm ← rTypeTerm elemTy
+      let targetTerm ← surfaceExprTerm target
+      let predicateTerm ← surfaceExprTerm predicate
+      `(LeanRustCore.SurfaceExpr.listAll $binderTerm $elemTyTerm $targetTerm $predicateTerm)
+  | .arrayMap binder elemTy outTy target body => do
+      let binderTerm := stringTerm binder
+      let elemTyTerm ← rTypeTerm elemTy
+      let outTyTerm ← rTypeTerm outTy
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.arrayMap $binderTerm $elemTyTerm $outTyTerm $targetTerm $bodyTerm)
+  | .arrayFoldl accName elemName accTy elemTy init target body => do
+      let accNameTerm := stringTerm accName
+      let elemNameTerm := stringTerm elemName
+      let accTyTerm ← rTypeTerm accTy
+      let elemTyTerm ← rTypeTerm elemTy
+      let initTerm ← surfaceExprTerm init
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.arrayFoldl $accNameTerm $elemNameTerm $accTyTerm $elemTyTerm $initTerm $targetTerm $bodyTerm)
+  | .optionMap binder innerTy outTy target body => do
+      let binderTerm := stringTerm binder
+      let innerTyTerm ← rTypeTerm innerTy
+      let outTyTerm ← rTypeTerm outTy
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.optionMap $binderTerm $innerTyTerm $outTyTerm $targetTerm $bodyTerm)
+  | .optionBind binder innerTy outTy target body => do
+      let binderTerm := stringTerm binder
+      let innerTyTerm ← rTypeTerm innerTy
+      let outTyTerm ← rTypeTerm outTy
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.optionBind $binderTerm $innerTyTerm $outTyTerm $targetTerm $bodyTerm)
+  | .resultMapOk binder errTy okTy outTy target body => do
+      let binderTerm := stringTerm binder
+      let errTyTerm ← rTypeTerm errTy
+      let okTyTerm ← rTypeTerm okTy
+      let outTyTerm ← rTypeTerm outTy
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.resultMapOk $binderTerm $errTyTerm $okTyTerm $outTyTerm $targetTerm $bodyTerm)
+  | .resultBind binder errTy okTy outTy target body => do
+      let binderTerm := stringTerm binder
+      let errTyTerm ← rTypeTerm errTy
+      let okTyTerm ← rTypeTerm okTy
+      let outTyTerm ← rTypeTerm outTy
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.resultBind $binderTerm $errTyTerm $okTyTerm $outTyTerm $targetTerm $bodyTerm)
+  | .subtypeErase inner value => do
+      let innerTerm ← rTypeTerm inner
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.subtypeErase $innerTerm $valueTerm)
+  | .subtypeVal inner value => do
+      let innerTerm ← rTypeTerm inner
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.subtypeVal $innerTerm $valueTerm)
+  | .finCheck bound value => do
+      let boundTerm := natTerm bound
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.finCheck $boundTerm $valueTerm)
+  | .finVal bound value => do
+      let boundTerm := natTerm bound
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.finVal $boundTerm $valueTerm)
+  | .vectorCheck elemTy bound value => do
+      let elemTyTerm ← rTypeTerm elemTy
+      let boundTerm := natTerm bound
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.vectorCheck $elemTyTerm $boundTerm $valueTerm)
   | .natFold idxName accName accTy init n body => do
       let idxNameTerm := stringTerm idxName
       let accNameTerm := stringTerm accName

@@ -210,6 +210,23 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .enumVariant _ _ payload => payload.bind surfaceBinders
   | .call _ _ _ args => args.bind surfaceBinders
   | .callValue fn _ _ arg => surfaceBinders fn ++ surfaceBinders arg
+  | .listMap binder _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
+  | .listFilter binder _ target predicate => binder :: surfaceBinders target ++ surfaceBinders predicate
+  | .listFoldl accName elemName _ _ init target body => accName :: elemName :: surfaceBinders init ++ surfaceBinders target ++ surfaceBinders body
+  | .listFoldr elemName accName _ _ target init body => elemName :: accName :: surfaceBinders target ++ surfaceBinders init ++ surfaceBinders body
+  | .listAny binder _ target predicate => binder :: surfaceBinders target ++ surfaceBinders predicate
+  | .listAll binder _ target predicate => binder :: surfaceBinders target ++ surfaceBinders predicate
+  | .arrayMap binder _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
+  | .arrayFoldl accName elemName _ _ init target body => accName :: elemName :: surfaceBinders init ++ surfaceBinders target ++ surfaceBinders body
+  | .optionMap binder _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
+  | .optionBind binder _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
+  | .resultMapOk binder _ _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
+  | .resultBind binder _ _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
+  | .subtypeErase _ value => surfaceBinders value
+  | .subtypeVal _ value => surfaceBinders value
+  | .finCheck _ value => surfaceBinders value
+  | .finVal _ value => surfaceBinders value
+  | .vectorCheck _ _ value => surfaceBinders value
   | .listMap binder _ _ target body =>
       surfaceBinders target ++ (binder :: surfaceBinders body)
   | .listFoldl accName elemName _ _ init target body =>

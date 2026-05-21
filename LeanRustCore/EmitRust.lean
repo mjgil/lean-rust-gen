@@ -27,6 +27,9 @@ def rustType : RType → String
   | .prod a b => "(" ++ rustType a ++ ", " ++ rustType b ++ ")"
   | .sum a b => "Result<" ++ rustType b ++ ", " ++ rustType a ++ ">"
   | .func a b => "fn(" ++ rustType a ++ ") -> " ++ rustType b
+  | .subtype t => rustType t
+  | .fin _ => "u32"
+  | .vector t _ => "Vec<" ++ rustType t ++ ">"
   | .struct name _ => rustTypeIdent name
   | .enum name _ => rustTypeIdent name
 
@@ -147,10 +150,54 @@ partial def emitSurfaceExpr : SurfaceExpr → String
       let outName := "__lrc_out"
       let binderName := rustValueIdent "value" binder
       "{ let mut " ++ outName ++ " = Vec::new(); for " ++ binderName ++ " in " ++ emitSurfaceExpr target ++ " { " ++ outName ++ ".push(" ++ emitSurfaceExpr body ++ "); } " ++ outName ++ " }"
+  | .listFilter binder _ target predicate =>
+      let outName := "__lrc_out"
+      let binderName := rustValueIdent "value" binder
+      "{ let mut " ++ outName ++ " = Vec::new(); for " ++ binderName ++ " in " ++ emitSurfaceExpr target ++ " { if " ++ emitSurfaceExpr predicate ++ " { " ++ outName ++ ".push(" ++ binderName ++ "); } } " ++ outName ++ " }"
   | .listFoldl accName elemName _ _ init target body =>
       let acc := rustValueIdent "acc" accName
       let elem := rustValueIdent "item" elemName
       "{ let mut " ++ acc ++ " = " ++ emitSurfaceExpr init ++ "; for " ++ elem ++ " in " ++ emitSurfaceExpr target ++ " { " ++ acc ++ " = " ++ emitSurfaceExpr body ++ "; } " ++ acc ++ " }"
+  | .listFoldr elemName accName _ _ target init body =>
+      let elem := rustValueIdent "item" elemName
+      let acc := rustValueIdent "acc" accName
+      "{ let mut " ++ acc ++ " = " ++ emitSurfaceExpr init ++ "; for " ++ elem ++ " in (" ++ emitSurfaceExpr target ++ ").into_iter().rev() { " ++ acc ++ " = " ++ emitSurfaceExpr body ++ "; } " ++ acc ++ " }"
+  | .listAny binder _ target predicate =>
+      let outName := "__lrc_any"
+      let binderName := rustValueIdent "value" binder
+      "{ let mut " ++ outName ++ " = false; for " ++ binderName ++ " in " ++ emitSurfaceExpr target ++ " { if " ++ emitSurfaceExpr predicate ++ " { " ++ outName ++ " = true; break; } } " ++ outName ++ " }"
+  | .listAll binder _ target predicate =>
+      let outName := "__lrc_all"
+      let binderName := rustValueIdent "value" binder
+      "{ let mut " ++ outName ++ " = true; for " ++ binderName ++ " in " ++ emitSurfaceExpr target ++ " { if !(" ++ emitSurfaceExpr predicate ++ ") { " ++ outName ++ " = false; break; } } " ++ outName ++ " }"
+  | .arrayMap binder _ _ target body =>
+      let outName := "__lrc_out"
+      let binderName := rustValueIdent "value" binder
+      "{ let mut " ++ outName ++ " = Vec::new(); for " ++ binderName ++ " in " ++ emitSurfaceExpr target ++ " { " ++ outName ++ ".push(" ++ emitSurfaceExpr body ++ "); } " ++ outName ++ " }"
+  | .arrayFoldl accName elemName _ _ init target body =>
+      let acc := rustValueIdent "acc" accName
+      let elem := rustValueIdent "item" elemName
+      "{ let mut " ++ acc ++ " = " ++ emitSurfaceExpr init ++ "; for " ++ elem ++ " in " ++ emitSurfaceExpr target ++ " { " ++ acc ++ " = " ++ emitSurfaceExpr body ++ "; } " ++ acc ++ " }"
+  | .optionMap binder _ outTy target body =>
+      let name := rustValueIdent "value" binder
+      "match " ++ emitSurfaceExpr target ++ " { None => None::<" ++ rustType outTy ++ ">, Some(" ++ name ++ ") => Some(" ++ emitSurfaceExpr body ++ ") }"
+  | .optionBind binder _ outTy target body =>
+      let name := rustValueIdent "value" binder
+      "match " ++ emitSurfaceExpr target ++ " { None => None::<" ++ rustType outTy ++ ">, Some(" ++ name ++ ") => " ++ emitSurfaceExpr body ++ " }"
+  | .resultMapOk binder errTy _ _ target body =>
+      let name := rustValueIdent "value" binder
+      "match " ++ emitSurfaceExpr target ++ " { Err(__lrc_err) => Err::<_, " ++ rustType errTy ++ ">(__lrc_err), Ok(" ++ name ++ ") => Ok(" ++ emitSurfaceExpr body ++ ") }"
+  | .resultBind binder errTy _ _ target body =>
+      let name := rustValueIdent "value" binder
+      "match " ++ emitSurfaceExpr target ++ " { Err(__lrc_err) => Err::<_, " ++ rustType errTy ++ ">(__lrc_err), Ok(" ++ name ++ ") => " ++ emitSurfaceExpr body ++ " }"
+  | .subtypeErase _ value => emitSurfaceExpr value
+  | .subtypeVal _ value => emitSurfaceExpr value
+  | .finCheck bound value =>
+      "if " ++ emitSurfaceExpr value ++ " < " ++ Nat.toString bound ++ " { Some(" ++ emitSurfaceExpr value ++ ") } else { None }"
+  | .finVal _ value => emitSurfaceExpr value
+  | .vectorCheck elemTy bound value =>
+      let vecName := "__lrc_vec"
+      "{ let " ++ vecName ++ " = " ++ emitSurfaceExpr value ++ "; if " ++ vecName ++ ".len() == " ++ Nat.toString bound ++ " { Some(" ++ vecName ++ ") } else { None::<" ++ rustType (.vector elemTy bound) ++ "> } }"
   | .natFold idxName accName _ init n body =>
       let idx := rustValueIdent "idx" idxName
       let acc := rustValueIdent "acc" accName
@@ -178,6 +225,9 @@ private def collectTypeStructs : RType → List SurfaceStruct
   | .prod a b => collectTypeStructs a ++ collectTypeStructs b
   | .sum a b => collectTypeStructs a ++ collectTypeStructs b
   | .func a b => collectTypeStructs a ++ collectTypeStructs b
+  | .subtype t => collectTypeStructs t
+  | .fin _ => []
+  | .vector t _ => collectTypeStructs t
   | s@(.struct name fields) =>
       { name := name, fields := fields } :: fields.bind (fun field => collectTypeStructs field.2)
   | .enum _ variants => variants.bind (fun variant => variant.2.bind collectTypeStructs)
@@ -191,6 +241,9 @@ private def collectTypeEnums : RType → List SurfaceEnum
   | .prod a b => collectTypeEnums a ++ collectTypeEnums b
   | .sum a b => collectTypeEnums a ++ collectTypeEnums b
   | .func a b => collectTypeEnums a ++ collectTypeEnums b
+  | .subtype t => collectTypeEnums t
+  | .fin _ => []
+  | .vector t _ => collectTypeEnums t
   | .struct _ fields => fields.bind (fun field => collectTypeEnums field.2)
   | .enum name variants =>
       { name := name, variants := variants } :: variants.bind (fun variant => variant.2.bind collectTypeEnums)
@@ -235,8 +288,33 @@ partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
   | .callValue fn argTy retTy arg => collectSurfaceStructs fn ++ collectTypeStructs argTy ++ collectTypeStructs retTy ++ collectSurfaceStructs arg
   | .listMap _ elemTy outTy target body =>
       collectTypeStructs elemTy ++ collectTypeStructs outTy ++ collectSurfaceStructs target ++ collectSurfaceStructs body
+  | .listFilter _ elemTy target predicate =>
+      collectTypeStructs elemTy ++ collectSurfaceStructs target ++ collectSurfaceStructs predicate
   | .listFoldl _ _ accTy elemTy init target body =>
       collectTypeStructs accTy ++ collectTypeStructs elemTy ++ collectSurfaceStructs init ++ collectSurfaceStructs target ++ collectSurfaceStructs body
+  | .listFoldr _ _ elemTy accTy target init body =>
+      collectTypeStructs elemTy ++ collectTypeStructs accTy ++ collectSurfaceStructs target ++ collectSurfaceStructs init ++ collectSurfaceStructs body
+  | .listAny _ elemTy target predicate =>
+      collectTypeStructs elemTy ++ collectSurfaceStructs target ++ collectSurfaceStructs predicate
+  | .listAll _ elemTy target predicate =>
+      collectTypeStructs elemTy ++ collectSurfaceStructs target ++ collectSurfaceStructs predicate
+  | .arrayMap _ elemTy outTy target body =>
+      collectTypeStructs elemTy ++ collectTypeStructs outTy ++ collectSurfaceStructs target ++ collectSurfaceStructs body
+  | .arrayFoldl _ _ accTy elemTy init target body =>
+      collectTypeStructs accTy ++ collectTypeStructs elemTy ++ collectSurfaceStructs init ++ collectSurfaceStructs target ++ collectSurfaceStructs body
+  | .optionMap _ innerTy outTy target body =>
+      collectTypeStructs innerTy ++ collectTypeStructs outTy ++ collectSurfaceStructs target ++ collectSurfaceStructs body
+  | .optionBind _ innerTy outTy target body =>
+      collectTypeStructs innerTy ++ collectTypeStructs outTy ++ collectSurfaceStructs target ++ collectSurfaceStructs body
+  | .resultMapOk _ errTy okTy outTy target body =>
+      collectTypeStructs errTy ++ collectTypeStructs okTy ++ collectTypeStructs outTy ++ collectSurfaceStructs target ++ collectSurfaceStructs body
+  | .resultBind _ errTy okTy outTy target body =>
+      collectTypeStructs errTy ++ collectTypeStructs okTy ++ collectTypeStructs outTy ++ collectSurfaceStructs target ++ collectSurfaceStructs body
+  | .subtypeErase inner value => collectTypeStructs inner ++ collectSurfaceStructs value
+  | .subtypeVal inner value => collectTypeStructs inner ++ collectSurfaceStructs value
+  | .finCheck _ value => collectSurfaceStructs value
+  | .finVal _ value => collectSurfaceStructs value
+  | .vectorCheck elemTy _ value => collectTypeStructs elemTy ++ collectSurfaceStructs value
   | .natFold _ _ accTy init n body =>
       collectTypeStructs accTy ++ collectSurfaceStructs init ++ collectSurfaceStructs n ++ collectSurfaceStructs body
 
@@ -279,8 +357,33 @@ partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .callValue fn argTy retTy arg => collectSurfaceEnums fn ++ collectTypeEnums argTy ++ collectTypeEnums retTy ++ collectSurfaceEnums arg
   | .listMap _ elemTy outTy target body =>
       collectTypeEnums elemTy ++ collectTypeEnums outTy ++ collectSurfaceEnums target ++ collectSurfaceEnums body
+  | .listFilter _ elemTy target predicate =>
+      collectTypeEnums elemTy ++ collectSurfaceEnums target ++ collectSurfaceEnums predicate
   | .listFoldl _ _ accTy elemTy init target body =>
       collectTypeEnums accTy ++ collectTypeEnums elemTy ++ collectSurfaceEnums init ++ collectSurfaceEnums target ++ collectSurfaceEnums body
+  | .listFoldr _ _ elemTy accTy target init body =>
+      collectTypeEnums elemTy ++ collectTypeEnums accTy ++ collectSurfaceEnums target ++ collectSurfaceEnums init ++ collectSurfaceEnums body
+  | .listAny _ elemTy target predicate =>
+      collectTypeEnums elemTy ++ collectSurfaceEnums target ++ collectSurfaceEnums predicate
+  | .listAll _ elemTy target predicate =>
+      collectTypeEnums elemTy ++ collectSurfaceEnums target ++ collectSurfaceEnums predicate
+  | .arrayMap _ elemTy outTy target body =>
+      collectTypeEnums elemTy ++ collectTypeEnums outTy ++ collectSurfaceEnums target ++ collectSurfaceEnums body
+  | .arrayFoldl _ _ accTy elemTy init target body =>
+      collectTypeEnums accTy ++ collectTypeEnums elemTy ++ collectSurfaceEnums init ++ collectSurfaceEnums target ++ collectSurfaceEnums body
+  | .optionMap _ innerTy outTy target body =>
+      collectTypeEnums innerTy ++ collectTypeEnums outTy ++ collectSurfaceEnums target ++ collectSurfaceEnums body
+  | .optionBind _ innerTy outTy target body =>
+      collectTypeEnums innerTy ++ collectTypeEnums outTy ++ collectSurfaceEnums target ++ collectSurfaceEnums body
+  | .resultMapOk _ errTy okTy outTy target body =>
+      collectTypeEnums errTy ++ collectTypeEnums okTy ++ collectTypeEnums outTy ++ collectSurfaceEnums target ++ collectSurfaceEnums body
+  | .resultBind _ errTy okTy outTy target body =>
+      collectTypeEnums errTy ++ collectTypeEnums okTy ++ collectTypeEnums outTy ++ collectSurfaceEnums target ++ collectSurfaceEnums body
+  | .subtypeErase inner value => collectTypeEnums inner ++ collectSurfaceEnums value
+  | .subtypeVal inner value => collectTypeEnums inner ++ collectSurfaceEnums value
+  | .finCheck _ value => collectSurfaceEnums value
+  | .finVal _ value => collectSurfaceEnums value
+  | .vectorCheck elemTy _ value => collectTypeEnums elemTy ++ collectSurfaceEnums value
   | .natFold _ _ accTy init n body =>
       collectTypeEnums accTy ++ collectSurfaceEnums init ++ collectSurfaceEnums n ++ collectSurfaceEnums body
 
@@ -322,7 +425,22 @@ partial def collectSurfaceCalls : SurfaceExpr → List String
   | .call name _ _ args => name :: args.bind collectSurfaceCalls
   | .callValue fn _ _ arg => collectSurfaceCalls fn ++ collectSurfaceCalls arg
   | .listMap _ _ _ target body => collectSurfaceCalls target ++ collectSurfaceCalls body
+  | .listFilter _ _ target predicate => collectSurfaceCalls target ++ collectSurfaceCalls predicate
   | .listFoldl _ _ _ _ init target body => collectSurfaceCalls init ++ collectSurfaceCalls target ++ collectSurfaceCalls body
+  | .listFoldr _ _ _ _ target init body => collectSurfaceCalls target ++ collectSurfaceCalls init ++ collectSurfaceCalls body
+  | .listAny _ _ target predicate => collectSurfaceCalls target ++ collectSurfaceCalls predicate
+  | .listAll _ _ target predicate => collectSurfaceCalls target ++ collectSurfaceCalls predicate
+  | .arrayMap _ _ _ target body => collectSurfaceCalls target ++ collectSurfaceCalls body
+  | .arrayFoldl _ _ _ _ init target body => collectSurfaceCalls init ++ collectSurfaceCalls target ++ collectSurfaceCalls body
+  | .optionMap _ _ _ target body => collectSurfaceCalls target ++ collectSurfaceCalls body
+  | .optionBind _ _ _ target body => collectSurfaceCalls target ++ collectSurfaceCalls body
+  | .resultMapOk _ _ _ _ target body => collectSurfaceCalls target ++ collectSurfaceCalls body
+  | .resultBind _ _ _ _ target body => collectSurfaceCalls target ++ collectSurfaceCalls body
+  | .subtypeErase _ value => collectSurfaceCalls value
+  | .subtypeVal _ value => collectSurfaceCalls value
+  | .finCheck _ value => collectSurfaceCalls value
+  | .finVal _ value => collectSurfaceCalls value
+  | .vectorCheck _ _ value => collectSurfaceCalls value
   | .natFold _ _ _ init n body => collectSurfaceCalls init ++ collectSurfaceCalls n ++ collectSurfaceCalls body
 
 private def collectFunStructs (f : SurfaceFun) : List SurfaceStruct :=
