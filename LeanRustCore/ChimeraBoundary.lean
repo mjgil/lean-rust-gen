@@ -19,6 +19,7 @@ inductive ChType where
   | unit
   | bool
   | i32
+  | i64
   | u32
   | u64
   | status
@@ -33,12 +34,12 @@ namespace ChType
 
 /-- Primitive types accepted directly at the boundary. -/
 def isPrimitive : ChType → Bool
-  | .bool | .i32 | .u32 | .u64 | .status => true
+  | .bool | .i32 | .i64 | .u32 | .u64 | .status => true
   | _ => false
 
 /-- C-compatible values in this first pass. -/
 def isCCompatible : ChType → Bool
-  | .unit | .bool | .i32 | .u32 | .u64 | .status | .ptr _ => true
+  | .unit | .bool | .i32 | .i64 | .u32 | .u64 | .status | .ptr _ => true
   | _ => false
 
 end ChType
@@ -92,6 +93,7 @@ inductive PanicPolicy where
 inductive PhysicalType where
   | void
   | i32
+  | i64
   | u32
   | u64
   | ptr
@@ -106,6 +108,7 @@ def lowerType : ChType → Except String PhysicalType
   | .unit => .ok .void
   | .bool => .ok .u32
   | .i32 => .ok .i32
+  | .i64 => .ok .i64
   | .u32 => .ok .u32
   | .u64 => .ok .u64
   | .status => .ok .i32

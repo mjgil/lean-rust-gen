@@ -27,3 +27,13 @@ tmp_metadata="$(mktemp)"
 lake exe gen_build_metadata "$tmp_metadata"
 diff -u rust/build-metadata.json "$tmp_metadata"
 rm -f "$tmp_metadata"
+
+tmp_target_validation="$(mktemp)"
+lake exe gen_target_validation "$tmp_target_validation"
+diff -u rust/target-validation.txt "$tmp_target_validation"
+rm -f "$tmp_target_validation"
+
+tmp_boundary="$(mktemp)"
+lake exe gen_boundary_exports "$tmp_boundary"
+diff -u rust/src/ffi_generated.rs "$tmp_boundary"
+rm -f "$tmp_boundary"

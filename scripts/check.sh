@@ -7,4 +7,4 @@ cd "$(dirname "$0")/.."
 lake build
 ./scripts/check-extractor-snapshot.sh
 ./scripts/check-rust-validation.sh
-(cd rust && cargo fmt --check && cargo clippy -- -D warnings && cargo test)
+(cd rust && cargo fmt --check && cargo clippy -- -D warnings && cargo test && cargo test --features ffi)

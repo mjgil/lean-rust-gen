@@ -15,11 +15,15 @@
 - `LeanRustCore.Surface.evalSurfaceFun`
 - `LeanRustCore.RustHygiene.validateSurfaceModuleHygiene`
 - `LeanRustCore.EmitRust.emitSurfaceRustModule`
+- `LeanRustCore.TargetValidation.targetValidationSnapshot`
+- `LeanRustCore.BoundaryExport.generatedBoundaryRust`
 - `LeanRustCore.IR.RType`
 - `LeanRustCore.IR.RExpr`
 - `LeanRustCore.IR.eval`
 - `LeanRustCore.ChimeraBoundary.lowerResultSignature`
 - `rust/tests/parser_validation.rs`
+- `rust/tests/semantic_validation.rs`
+- `rust/tests/ffi_boundary.rs`
 - `LeanRustCore.Toolchain.buildMetadataJson`
 - `rust/build.rs` fallback policy
 
@@ -34,6 +38,7 @@ lake build
 cd rust && cargo fmt --check
 cd rust && cargo clippy -- -D warnings
 cd rust && cargo test
+cd rust && cargo test --features ffi
 ```
 
 The snapshot gate is important: it proves the checked-in Rust fallback is exactly
@@ -112,3 +117,31 @@ in the compatibility report.
 ## Phase 0-2 large-subset gates
 
 The current large-subset slice treats `LeanRustCore.RecursionPolicy` as an analyzer instead of the default rejection path. Generated Rust may contain first-order recursive calls, while validation and differential evaluation remain fuel-bounded. Parameterized data is accepted only after concrete monomorphization to Rust-facing type names. Proof-shaped binders are erased conservatively, and higher-order support is limited to unary Rust `fn` pointer arguments until closure conversion is added.
+
+## Phase 3 target-validation trusted surface
+
+Additional generated/trusted artifacts:
+
+- `LeanRustCore.TargetValidation.targetValidationSnapshot`
+- `TargetValidationMain.lean`
+- `rust/target-validation.txt`
+- `rust/tests/semantic_validation.rs`
+
+The semantic validation test parses generated Rust with `syn`, reconstructs the
+approved generated-subset target fingerprint, and compares it to the Lean-side
+snapshot. This turns target validation from parse-only checking into an explicit
+Rust AST → target-fingerprint reconstruction gate.
+
+## Phase 4 boundary-export trusted surface
+
+Additional generated/trusted artifacts:
+
+- `LeanRustCore.BoundaryExport.generatedBoundaryRust`
+- `BoundaryMain.lean`
+- `rust/src/ffi_generated.rs`
+- `rust/tests/ffi_boundary.rs`
+- `rust/src/abi.rs` result-lowering helpers under the `ffi` feature
+
+The direct lane still checks `rust/src/generated.rs` for absence of `unsafe` and
+raw `extern "C"` items. Raw ABI wrappers live in `rust/src/ffi_generated.rs` and
+are included only when the Rust `ffi` feature is enabled.

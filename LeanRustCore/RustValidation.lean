@@ -2,6 +2,8 @@ import LeanRustCore.Differential
 import LeanRustCore.RustHygiene
 import LeanRustCore.RecursionPolicy
 import LeanRustCore.Toolchain
+import LeanRustCore.TargetValidation
+import LeanRustCore.BoundaryExport
 
 namespace LeanRustCore.RustValidation
 
@@ -192,6 +194,37 @@ def checks : List ValidationCheck := [
     status := "passed",
     detail := "unary function-typed arguments lower to safe Rust fn-pointer arguments and SurfaceExpr.callValue nodes; closures remain a future closure-conversion layer"
   },
+
+  {
+    name := "rust-to-target-ir-translation-validation",
+    status := "passed",
+    detail := "rust/tests/semantic_validation.rs parses generated.rs with syn, reconstructs the generated-subset target IR, and compares it with LeanRustCore.TargetValidation.targetValidationSnapshot"
+  },
+  {
+    name := "target-validation-snapshot",
+    status := "passed",
+    detail := "rust/target-validation.txt records the Lean-side SurfaceExpr fingerprints, Rust-facing declarations, and function signatures used by target validation"
+  },
+  {
+    name := "property-differential-seeds",
+    status := "passed",
+    detail := "rust/tests/generated.rs and the Lean-generated differential suite include boundary seeds for wrapping arithmetic, payload matches, helper calls, containers, and function-pointer arguments"
+  },
+  {
+    name := "ffi-boundary-exporter",
+    status := "passed",
+    detail := "LeanRustCore.BoundaryExport emits optional C ABI wrappers for the conservative primitive/result subset; generated wrapper count: " ++ Nat.toString LeanRustCore.BoundaryExport.boundaryExportCount
+  },
+  {
+    name := "ffi-feature-isolation",
+    status := "passed",
+    detail := "rust/src/ffi_generated.rs is included only under the Rust ffi feature, while default builds continue to compile the direct lane with unsafe_code forbidden"
+  },
+  {
+    name := "ffi-result-status-out-params",
+    status := "passed",
+    detail := "Result<u32,u32> raw ABI wrappers lower through ChStatus plus out_ok/out_err pointers instead of exposing native Rust Result across FFI"
+  },
   {
     name := "syn-parser-backed-validation",
     status := "passed",
@@ -231,6 +264,8 @@ def validationReportJson : String :=
   "  \"generated_function_count\": " ++ Nat.toString requiredFunctionNames.length ++ ",\n" ++
   "  \"generated_type_count\": " ++ Nat.toString requiredTypeNames.length ++ ",\n" ++
   "  \"differential_assertion_count\": " ++ Nat.toString (evaluatorAssertions.length + extractedDeclarationAssertions.length) ++ ",\n" ++
+  "  \"target_validation_format\": " ++ jsonString LeanRustCore.TargetValidation.targetValidationFormat ++ ",\n" ++
+  "  \"ffi_boundary_export_count\": " ++ Nat.toString LeanRustCore.BoundaryExport.boundaryExportCount ++ ",\n" ++
   "  \"required_functions\": " ++ jsonArray requiredFunctionNames ++ ",\n" ++
   "  \"required_types\": " ++ jsonArray requiredTypeNames ++ ",\n" ++
   "  \"checks\": [\n" ++

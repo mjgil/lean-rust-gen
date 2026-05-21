@@ -11,6 +11,8 @@
     "rust/compatibility-report.json",
     "rust/tests/differential_generated.rs",
     "rust/validation-report.json",
+    "rust/target-validation.txt",
+    "rust/src/ffi_generated.rs",
     "rust/build-metadata.json"
   ]
 }

@@ -21,6 +21,13 @@ fn validation_report_records_current_subset_gates() {
     assert!(report.contains("transitive-helper-extraction"));
     assert!(report.contains("proof-erased-binders"));
     assert!(report.contains("limited-higher-order-function-pointer"));
+    assert!(report.contains("rust-to-target-ir-translation-validation"));
+    assert!(report.contains("target-validation-snapshot"));
+    assert!(report.contains("property-differential-seeds"));
+    assert!(report.contains("ffi-boundary-exporter"));
+    assert!(report.contains("ffi-feature-isolation"));
+    assert!(report.contains("ffi-result-status-out-params"));
+    assert!(report.contains("lean-rust-core.target-validation.v1"));
     assert!(report.contains("leanprover/lean4:v4.22.0"));
     assert!(report.contains("1.85.0"));
     assert!(!report.contains("\"status\": \"failed\""));
@@ -89,4 +96,28 @@ fn build_metadata_records_pins_and_fallback_policy() {
     assert!(metadata.contains("leanprover/lean4:v4.22.0"));
     assert!(metadata.contains("1.85.0"));
     assert!(metadata.contains("LEAN_RUST_CORE_ALLOW_FALLBACK"));
+    assert!(metadata.contains("rust/target-validation.txt"));
+    assert!(metadata.contains("rust/src/ffi_generated.rs"));
+}
+
+#[test]
+fn target_validation_snapshot_records_generated_subset() {
+    let snapshot = include_str!("../target-validation.txt");
+
+    assert!(snapshot.contains("FORMAT\tlean-rust-core.target-validation.v1"));
+    assert!(snapshot.contains("TYPE\tstruct\tBoxedU32"));
+    assert!(snapshot.contains("FN\tclamp_u32"));
+    assert!(snapshot.contains("FN\tunsupported_higher_order_u32"));
+    assert!(snapshot.contains("call_value(var(f),var(x))"));
+}
+
+#[test]
+fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
+    let ffi = include_str!("../src/ffi_generated.rs");
+    let lib = include_str!("../src/lib.rs");
+
+    assert!(lib.contains("#[cfg(feature = \"ffi\")]"));
+    assert!(ffi.contains("extern \"C\" fn lrc_add_u32"));
+    assert!(ffi.contains("unsafe extern \"C\" fn lrc_result_ok_u32"));
+    assert!(ffi.contains("lower_result_u32_u32"));
 }

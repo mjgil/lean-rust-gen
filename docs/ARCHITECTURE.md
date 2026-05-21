@@ -227,3 +227,33 @@ gate, but the default large-subset emission path no longer rejects generated
 first-order call cycles before emission. Closure conversion, generated typeclass
 dictionaries, and semantic Rust→IR validation are intentionally left for the
 next phase.
+
+## Phase 3 completed: Rust→target semantic validation
+
+`LeanRustCore.TargetValidation` emits `rust/target-validation.txt` from the same
+extractor-owned `SurfaceFun` artifact that drives generated Rust and differential
+tests. The snapshot records Rust-facing type declarations, function signatures,
+and normalized expression fingerprints.
+
+`rust/tests/semantic_validation.rs` parses `rust/src/generated.rs` with `syn`,
+reconstructs the generated-subset target fingerprints from the Rust AST, and
+compares that reconstruction with the Lean-generated snapshot. This is stronger
+than the previous parser-only gate: the Rust source must now be both parseable
+and semantically reconstructible into the approved generated target subset.
+
+## Phase 4 completed: optional raw ABI boundary exporter
+
+`LeanRustCore.BoundaryExport` emits `rust/src/ffi_generated.rs` for a conservative
+C-compatible subset. This file is feature-gated by `rust/src/lib.rs` under the
+Rust `ffi` feature and is not part of the default safe direct-emission lane.
+
+The boundary policy is intentionally narrow:
+
+- primitive integers cross directly,
+- `Bool` crosses as `u32`,
+- `Result<u32,u32>` lowers to `ChStatus` plus `out_ok`/`out_err` pointers,
+- Rust-native containers, strings, structs, enums, and `Option` do not cross the
+  raw ABI boundary in this phase.
+
+Default builds retain `unsafe_code` forbiddance. The optional boundary lane is
+checked with `cargo test --features ffi`.

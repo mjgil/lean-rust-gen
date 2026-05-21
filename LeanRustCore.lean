@@ -7,6 +7,8 @@ import LeanRustCore.Extract
 import LeanRustCore.Lowering
 import LeanRustCore.ChimeraBoundary
 import LeanRustCore.Examples
+import LeanRustCore.TargetValidation
+import LeanRustCore.BoundaryExport
 import LeanRustCore.ProofReport
 import LeanRustCore.Differential
 import LeanRustCore.RustValidation
@@ -24,8 +26,10 @@ A self-contained direct **Lean emits Rust** workflow:
 * unsupported exports produce a structured compatibility report instead of aborting generation,
 * Lean-generated differential tests compare evaluator results with emitted Rust,
 * generated Rust validation reports and shell gates check the current safe subset,
+* phase-3 target validation compares Lean surface fingerprints with parsed Rust AST fingerprints,
+* phase-4 raw ABI wrappers are emitted only in a feature-gated boundary module,
 * payload enum branches, first-order calls, structs, enums, Result, parameterized data, containers, and monomorphized extracted surface artifacts are covered by differential tests,
 * Lean `Nat` to Rust `u32` requires explicit wrapping opt-in at exported boundaries,
 * first-order helper extraction, conservative proof erasure, and unary Rust `fn` pointer arguments support the phase-2 large-subset slice,
-* a compact Chimera-inspired boundary model is retained only for later FFI edges.
+* a compact Chimera-inspired boundary model and feature-gated raw ABI exporter cover the optional boundary lane.
 -/

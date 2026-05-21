@@ -2,7 +2,7 @@
 
 A self-contained direct **Lean → Rust** workflow.
 
-This pass extends the direct Lean emits Rust implementation through the baseline validation work and the phase-0/1/2 large-subset slice: payload enum pattern matching, first-order call lowering, a SurfaceExpr evaluator, expanded differential tests, Rust hygiene, syn-backed parser validation, exact toolchain pins, automatic monomorphization, explicit Nat-to-u32 opt-in, extractor-owned surface artifacts, parameterized data, standard owned containers, transitive helper extraction, proof-binder erasure, and limited function-pointer higher-order support. The larger roadmap is in `docs/LARGE_SUBSET_PLAN.md`:
+This pass extends the direct Lean emits Rust implementation through the baseline validation work and the phase-0/1/2 large-subset slice: payload enum pattern matching, first-order call lowering, a SurfaceExpr evaluator, expanded differential tests, Rust hygiene, syn-backed parser validation, exact toolchain pins, automatic monomorphization, explicit Nat-to-u32 opt-in, extractor-owned surface artifacts, parameterized data, standard owned containers, transitive helper extraction, proof-binder erasure, and limited function-pointer higher-order support, phase-3 target validation, and phase-4 feature-gated raw ABI wrappers. The larger roadmap is in `docs/LARGE_SUBSET_PLAN.md`:
 
 1. Export extraction accepts `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`,
    `Option`, `Except`, and closed inductive/structure types in addition to
@@ -44,6 +44,8 @@ This pass extends the direct Lean emits Rust implementation through the baseline
 17. Exported roots can pull in first-order helper definitions automatically.
 18. Conservative proof-shaped binders are erased from Rust signatures.
 19. Unary function-valued arguments lower to safe Rust `fn` pointer arguments.
+20. `rust/target-validation.txt` records Lean-side target fingerprints and `rust/tests/semantic_validation.rs` compares them against a parsed Rust AST reconstruction.
+21. `LeanRustCore.BoundaryExport` emits optional `ffi`-feature raw ABI wrappers in `rust/src/ffi_generated.rs`, separate from the default safe lane.
 
 ## What is generated
 
@@ -153,12 +155,16 @@ LeanRustCore/
   ProofReport.lean       proof-sidecar JSON model
   Differential.lean      Lean IR + SurfaceExpr differential test generation
   RustValidation.lean    validation report for the current emitted subset
+  TargetValidation.lean  Lean-side Rust target fingerprint snapshot
+  BoundaryExport.lean    optional feature-gated raw ABI wrapper generation
   Toolchain.lean         exact toolchain/build-metadata policy
 Main.lean                `lake exe gen_rust`
 ProofReportMain.lean     `lake exe gen_proof_report`
 CompatibilityReportMain.lean `lake exe gen_compatibility_report`
 DifferentialMain.lean    `lake exe gen_differential_tests`
 ValidationReportMain.lean `lake exe gen_validation_report`
+TargetValidationMain.lean `lake exe gen_target_validation`
+BoundaryMain.lean        `lake exe gen_boundary_exports`
 BuildMetadataMain.lean   `lake exe gen_build_metadata`
 rust/
   build.rs               runs Lean generator; dev fallback requires LEAN_RUST_CORE_ALLOW_FALLBACK=1
@@ -166,7 +172,10 @@ rust/
   tests/generated.rs     Rust tests for generated functions
   tests/differential_generated.rs Lean-generated differential tests
   tests/parser_validation.rs syn-backed AST validation for generated Rust
+  tests/semantic_validation.rs Rust→target fingerprint validation
+  tests/ffi_boundary.rs optional ffi-feature boundary tests
   validation-report.json Rust-validation manifest for the emitted subset
+  target-validation.txt  Lean-side target validation snapshot
   build-metadata.json    exact toolchain and fallback-policy metadata
 scripts/
   gen.sh                 regenerate Rust, reports, and differential tests
@@ -183,11 +192,13 @@ scripts/
 ./scripts/check.sh
 ```
 
-The Rust crate forbids safe-code escape hatches with:
+The default Rust crate forbids safe-code escape hatches with a feature gate:
 
 ```rust
-#![forbid(unsafe_code)]
+#![cfg_attr(not(feature = "ffi"), forbid(unsafe_code))]
 ```
+
+The optional `ffi` feature enables a separate raw ABI wrapper module. It is not included in the default direct safe-Rust lane.
 
 ## Current extraction subset
 
@@ -217,6 +228,8 @@ Supported now:
 - validation reports and repository gates for the current safe Rust subset,
 - Rust identifier hygiene and collision detection before emission,
 - parser-backed generated Rust validation through `syn`,
+- Rust→target-IR fingerprint validation against `rust/target-validation.txt`,
+- optional feature-gated raw ABI wrappers for a primitive/result subset,
 - conservative proof-shaped binder erasure for exported runtime signatures,
 - unary function-pointer arguments for simple higher-order exports.
 
@@ -236,11 +249,14 @@ The step 7/8 gates are:
 ```bash
 lake exe gen_differential_tests rust/tests/differential_generated.rs
 lake exe gen_validation_report rust/validation-report.json
+lake exe gen_target_validation rust/target-validation.txt
+lake exe gen_boundary_exports rust/src/ffi_generated.rs
 lake exe gen_build_metadata rust/build-metadata.json
 ./scripts/check-toolchain-pins.sh
 ./scripts/check-extractor-snapshot.sh
 ./scripts/check-rust-validation.sh
 cd rust && cargo test
+cd rust && cargo test --features ffi
 ```
 
 `rust/tests/differential_generated.rs` is generated by Lean and uses expected
@@ -249,16 +265,13 @@ values computed from `LeanRustCore.IR.eval` and `LeanRustCore.Surface.evalSurfac
 rejects unsafe, raw FFI, panic/todo/unimplemented, malformed-emitter markers,
 and missing parser-validation coverage in the generated Rust snapshot. The toolchain gate checks exact Lean/Rust pins and the release fallback policy. The Rust
 `parser_validation` integration test additionally parses `generated.rs` with `syn`
-and checks the generated top-level AST shape.
+and checks the generated top-level AST shape. The Rust `semantic_validation` integration test parses generated Rust into a generated-subset target fingerprint and compares it with the Lean-generated `rust/target-validation.txt` snapshot. Optional raw ABI wrappers are generated in `rust/src/ffi_generated.rs` and tested only under `cargo test --features ffi`.
 
 ## Large-subset implementation steps remaining
 
 The full staged plan is in `docs/LARGE_SUBSET_PLAN.md`. The next high-leverage
 items are:
 
-1. Add loop lowering and termination/stack policy for structurally accepted recursive definitions.
-2. Extend automatic monomorphization through recursive generic functions and richer nested generic shapes.
-3. Add generated typeclass dictionaries or instance inlining for typeclass-heavy APIs.
-4. Replace the current generated-subset `syn` validator with a Rust→Lean
-   translation validator or a full formal semantics for the generated Rust subset.
+4. Strengthen the current Rust→target fingerprint validator into a proved Rust-subset semantics or Rust→Lean translation validator.
 5. Add closure conversion/defunctionalization for captured lambdas and known top-level function values.
+6. Expand the raw ABI lane with handles for strings, slices, structs, enums, and generated C headers.

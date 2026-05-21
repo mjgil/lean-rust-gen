@@ -6,6 +6,8 @@
   "generated_function_count": 57,
   "generated_type_count": 5,
   "differential_assertion_count": 73,
+  "target_validation_format": "lean-rust-core.target-validation.v1",
+  "ffi_boundary_export_count": 23,
   "required_functions": ["clamp_u32", "max_u32", "is_nonzero_u32", "add_u32", "mul_u32", "bounded_bump_u32", "echo_u32", "echo_u64", "echo_i32", "echo_i64", "echo_char", "echo_string", "echo_list_u32", "echo_array_u32", "echo_prod_u32", "echo_sum_u32", "add_u64", "inc_u32", "inc_twice_u32", "proof_erased_u32", "unit_roundtrip", "bool_match_u32", "option_identity_u32", "none_u32", "some_u32", "option_default_u32", "result_ok_u32", "result_err_u32", "choose_by_enum", "make_point", "point_x", "point_y", "shift_point_x", "boxed_u32", "boxed_value_u32", "tagged_missing_u32", "tagged_present_u32", "tagged_default_u32", "step_stay", "step_jump", "step_amount_or", "step_amount_plus_one_or", "nested_none_u32", "result_ok_none_u32", "result_err_some_u32", "unsupported_higher_order_u32", "identity_u64", "choose_generic_u32", "option_default_u64", "generic_identity__u32", "generic_choose__point", "generic_option_default__step", "helper_inc_fixed", "helper_chain_u32", "auto_identity_u32", "auto_choose_point", "auto_option_default_step"],
   "required_types": ["Point", "BoxedU32", "Choice", "TaggedU32", "Step"],
   "checks": [
@@ -24,3 +26,9 @@
     { "name": "syn-parser-backed-validation", "status": "passed", "detail": "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset by AST instead of relying only on text grep" }
   ]
 }
+    { "name": "rust-to-target-ir-translation-validation", "status": "passed", "detail": "rust/tests/semantic_validation.rs parses generated.rs with syn, reconstructs the generated-subset target IR, and compares it with LeanRustCore.TargetValidation.targetValidationSnapshot" },
+    { "name": "target-validation-snapshot", "status": "passed", "detail": "rust/target-validation.txt records the Lean-side SurfaceExpr fingerprints, Rust-facing declarations, and function signatures used by target validation" },
+    { "name": "property-differential-seeds", "status": "passed", "detail": "rust/tests/generated.rs and the Lean-generated differential suite include boundary seeds for wrapping arithmetic, payload matches, helper calls, containers, and function-pointer arguments" },
+    { "name": "ffi-boundary-exporter", "status": "passed", "detail": "LeanRustCore.BoundaryExport emits optional C ABI wrappers for the conservative primitive/result subset; generated wrapper count: 23" },
+    { "name": "ffi-feature-isolation", "status": "passed", "detail": "rust/src/ffi_generated.rs is included only under the Rust ffi feature, while default builds continue to compile the direct lane with unsafe_code forbidden" },
+    { "name": "ffi-result-status-out-params", "status": "passed", "detail": "Result<u32,u32> raw ABI wrappers lower through ChStatus plus out_ok/out_err pointers instead of exposing native Rust Result across FFI" },

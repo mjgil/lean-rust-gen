@@ -9,6 +9,10 @@ license = "MIT OR Apache-2.0"
 name = "lean_rust_core_generated"
 path = "src/lib.rs"
 
+[features]
+default = []
+ffi = []
+
 [dependencies]
 
 [dev-dependencies]

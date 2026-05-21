@@ -1,6 +1,8 @@
 import LeanRustCore.Examples
 import LeanRustCore.ChimeraBoundary
 import LeanRustCore.Toolchain
+import LeanRustCore.TargetValidation
+import LeanRustCore.BoundaryExport
 
 namespace LeanRustCore.ProofReport
 
@@ -47,6 +49,10 @@ def facts : List ProofFact := [
   { name := "expanded_surface_differential", statement := "Lean-generated differential tests compute extracted struct, enum, Result, call, and monomorphization expectations with evalSurfaceFun" },
   { name := "rust_identifier_hygiene", statement := "validateSurfaceModuleHygiene rejects generated modules whose sanitized Rust identifiers collide" },
   { name := "syn_parser_backed_validation", statement := "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset" },
+  { name := "rust_to_target_ir_validation", statement := "rust/tests/semantic_validation.rs parses generated.rs, reconstructs target fingerprints, and compares them to LeanRustCore.TargetValidation.targetValidationSnapshot" },
+  { name := "target_validation_snapshot", statement := "LeanRustCore.TargetValidation.targetValidationSnapshot is generated from the extractor-owned SurfaceFun artifact" },
+  { name := "ffi_boundary_exporter", statement := "LeanRustCore.BoundaryExport.generatedBoundaryRust emits optional feature-gated raw ABI wrappers for primitive and Result<u32,u32> exports" },
+  { name := "ffi_feature_isolation", statement := "raw ABI wrappers are isolated under the Rust ffi feature and are not emitted into rust/src/generated.rs" },
   { name := "rust_adapter_owned_rejected", statement := "owned Rust values cannot cross the raw FFI boundary" },
   { name := "result_u32_i32_lowering", statement := "Result<u32,i32> lowers to status plus two out parameters" }
 ]
@@ -72,7 +78,7 @@ def reportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
   "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"rust/tests/parser_validation.rs\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"LeanRustCore.IR.eval\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
@@ -81,6 +87,8 @@ def reportJson : String :=
   "    \"release_fallback_allowed\": false,\n" ++
   "    \"nat_to_u32_requires_opt_in\": true,\n" ++
   "    \"first_order_recursion_allowed\": true,\n" ++
+  "    \"target_validation_snapshot\": \"" ++ LeanRustCore.TargetValidation.targetValidationFormat ++ "\",\n" ++
+  "    \"ffi_wrappers_feature_gated\": true,\n" ++
   "    \"closure_conversion\": \"future-phase\"\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++

@@ -7,14 +7,18 @@ validation_report="rust/validation-report.json"
 differential_tests="rust/tests/differential_generated.rs"
 parser_validation_tests="rust/tests/parser_validation.rs"
 build_metadata="rust/build-metadata.json"
+target_validation="rust/target-validation.txt"
+semantic_validation_tests="rust/tests/semantic_validation.rs"
+ffi_generated="rust/src/ffi_generated.rs"
+ffi_boundary_tests="rust/tests/ffi_boundary.rs"
 
-required_files=("$generated" "$validation_report" "$differential_tests" "$parser_validation_tests" "$build_metadata")
+required_files=("$generated" "$validation_report" "$differential_tests" "$parser_validation_tests" "$semantic_validation_tests" "$target_validation" "$ffi_generated" "$ffi_boundary_tests" "$build_metadata")
 for path in "${required_files[@]}"; do
   test -f "$path"
 done
 
 # The direct Lean-emits-Rust lane should emit ordinary safe Rust only. Raw FFI
-# wrappers stay out of this path until an explicit boundary exporter is added.
+# wrappers are generated separately under rust/src/ffi_generated.rs and stay out of this path.
 ! grep -n -E '(^|[^A-Za-z0-9_])unsafe([^A-Za-z0-9_]|$)|extern "C"|panic!|todo!|unimplemented!|/\* malformed|unsupported wrapping op' "$generated"
 
 grep -q '"format": "lean-rust-core.rust-validation.v1"' "$validation_report"
@@ -31,6 +35,12 @@ grep -q '"name": "extractor-owned-surface-artifact"' "$validation_report"
 grep -q '"name": "exact-toolchain-pins"' "$validation_report"
 grep -q '"name": "release-fallback-ban"' "$validation_report"
 grep -q '"name": "automatic-monomorphization"' "$validation_report"
+grep -q '"name": "rust-to-target-ir-translation-validation"' "$validation_report"
+grep -q '"name": "target-validation-snapshot"' "$validation_report"
+grep -q '"name": "property-differential-seeds"' "$validation_report"
+grep -q '"name": "ffi-boundary-exporter"' "$validation_report"
+grep -q '"name": "ffi-feature-isolation"' "$validation_report"
+grep -q '"name": "ffi-result-status-out-params"' "$validation_report"
 grep -q '"name": "phase-1-recursion-policy"' "$validation_report"
 grep -q '"name": "parameterized-data-lowering"' "$validation_report"
 grep -q '"name": "standard-container-shapes"' "$validation_report"
@@ -59,16 +69,34 @@ grep -q 'echo_sum_u32(Ok(7))' "$differential_tests"
 grep -q 'boxed_u32(9)' "$differential_tests"
 grep -q 'tagged_default_u32(TaggedU32::Present' "$differential_tests"
 
+# Target translation validation compares the Lean-side snapshot to a parsed Rust AST fingerprint.
+grep -q 'FORMAT[[:space:]]lean-rust-core.target-validation.v1' "$target_validation"
+grep -q '^TYPE[[:space:]]struct[[:space:]]BoxedU32' "$target_validation"
+grep -q '^FN[[:space:]]unsupported_higher_order_u32' "$target_validation"
+grep -q 'call_value(var(f),var(x))' "$target_validation"
+grep -q 'target_validation_snapshot_matches_generated_rust_ast' "$semantic_validation_tests"
+grep -q 'syn::parse_file' "$semantic_validation_tests"
+
 # Parser-backed validation is enforced by rust/tests/parser_validation.rs during cargo test.
 grep -q 'syn::parse_file' "$parser_validation_tests"
 grep -q 'parser_validates_generated_top_level_subset' "$parser_validation_tests"
 grep -q 'parser_rejects_raw_boundary_or_panic_constructs' "$parser_validation_tests"
+
+# Optional raw ABI wrappers are present but isolated from the default safe direct-emission lane.
+grep -q '#\[cfg(feature = "ffi")\]' rust/src/lib.rs
+grep -q 'ffi = \[\]' rust/Cargo.toml
+grep -q 'extern "C" fn lrc_add_u32' "$ffi_generated"
+grep -q 'unsafe extern "C" fn lrc_result_ok_u32' "$ffi_generated"
+grep -q 'lower_result_u32_u32' rust/src/abi.rs
+grep -q 'lrc_result_err_u32' "$ffi_boundary_tests"
 
 # Build metadata records exact pins and release fallback policy.
 grep -q '"format": "lean-rust-core.build-metadata.v1"' "$build_metadata"
 grep -q '"lean_toolchain": "leanprover/lean4:v4.22.0"' "$build_metadata"
 grep -q '"rust_toolchain": "1.85.0"' "$build_metadata"
 grep -q 'LEAN_RUST_CORE_ALLOW_FALLBACK' "$build_metadata"
+grep -q 'rust/target-validation.txt' "$build_metadata"
+grep -q 'rust/src/ffi_generated.rs' "$build_metadata"
 
 # The Rust build script must not silently fallback in release/CI.
 grep -q 'development_fallback_allowed' rust/build.rs

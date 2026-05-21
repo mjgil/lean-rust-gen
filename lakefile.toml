@@ -28,3 +28,11 @@ root = "ValidationReportMain"
 [[lean_exe]]
 name = "gen_build_metadata"
 root = "BuildMetadataMain"
+
+[[lean_exe]]
+name = "gen_target_validation"
+root = "TargetValidationMain"
+
+[[lean_exe]]
+name = "gen_boundary_exports"
+root = "BoundaryMain"

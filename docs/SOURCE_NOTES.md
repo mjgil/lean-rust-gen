@@ -43,3 +43,13 @@ as owned runtime shapes, first-order helpers can be pulled in transitively, and
 simple unary higher-order arguments lower to Rust `fn` pointers. Recursive call
 graphs are no longer rejected by the default emitter; `RecursionPolicy` remains
 available as an analyzer or strict compatibility gate.
+
+Phase 3 adds a target-validation sidecar. `LeanRustCore.TargetValidation` emits
+Rust-facing signatures and expression fingerprints from the checked surface IR,
+and `rust/tests/semantic_validation.rs` independently reconstructs those
+fingerprints from a parsed Rust AST.
+
+Phase 4 adds a separate optional boundary exporter. `LeanRustCore.BoundaryExport`
+generates primitive/result raw ABI wrappers in `rust/src/ffi_generated.rs`; the
+file is compiled only under the Rust `ffi` feature so the default direct lane
+keeps safe Rust emission isolated from raw FFI.
