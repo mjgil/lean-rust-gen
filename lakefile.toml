@@ -36,3 +36,7 @@ root = "TargetValidationMain"
 [[lean_exe]]
 name = "gen_boundary_exports"
 root = "BoundaryMain"
+
+[[lean_exe]]
+name = "gen_coverage_dashboard"
+root = "CoverageDashboardMain"

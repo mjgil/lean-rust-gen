@@ -12,8 +12,10 @@ semantic_validation_tests="rust/tests/semantic_validation.rs"
 target_interpreter_tests="rust/tests/target_interpreter.rs"
 ffi_generated="rust/src/ffi_generated.rs"
 ffi_boundary_tests="rust/tests/ffi_boundary.rs"
+coverage_dashboard="rust/coverage-dashboard.json"
+property_validation_tests="rust/tests/property_validation.rs"
 
-required_files=("$generated" "$validation_report" "$differential_tests" "$parser_validation_tests" "$semantic_validation_tests" "$target_interpreter_tests" "$target_validation" "$ffi_generated" "$ffi_boundary_tests" "$build_metadata")
+required_files=("$generated" "$validation_report" "$differential_tests" "$parser_validation_tests" "$semantic_validation_tests" "$target_interpreter_tests" "$target_validation" "$ffi_generated" "$ffi_boundary_tests" "$build_metadata" "$coverage_dashboard" "$property_validation_tests")
 for path in "${required_files[@]}"; do
   test -f "$path"
 done
@@ -30,6 +32,7 @@ for path in [
     "rust/compatibility-report.json",
     "rust/proof-report.json",
     "rust/build-metadata.json",
+    "rust/coverage-dashboard.json",
 ]:
     json.loads(pathlib.Path(path).read_text())
 PY
@@ -77,6 +80,9 @@ grep -q '"name": "exact-integer-modes"' "$validation_report"
 grep -q '"name": "captured-closure-conversion"' "$validation_report"
 grep -q '"name": "closure-converted-environment-lowering"' "$validation_report"
 grep -q '"name": "finite-defunctionalization"' "$validation_report"
+grep -q '"name": "recursive-user-data-box-layout"' "$validation_report"
+grep -q '"name": "target-validation-v2-coverage-dashboard"' "$validation_report"
+grep -q '"name": "coverage-dashboard-json-parse-validation"' "$validation_report"
 grep -q '"name": "typeclass-dictionary-erasure"' "$validation_report"
 grep -q '"name": "target-fingerprint-interpreter"' "$validation_report"
 grep -q '"name": "transitive-helper-extraction"' "$validation_report"
@@ -121,6 +127,8 @@ grep -q 'FORMAT[[:space:]]lean-rust-core.target-validation.v2' "$target_validati
 grep -q '^TYPE[[:space:]]struct[[:space:]]BoxedU32' "$target_validation"
 grep -q '^TYPE[[:space:]]struct[[:space:]]AddDeltaU32Env' "$target_validation"
 grep -q '^TYPE[[:space:]]enum[[:space:]]U32FnCase' "$target_validation"
+grep -q '^TYPE[[:space:]]enum[[:space:]]BinaryTreeU32' "$target_validation"
+grep -q '^TYPE[[:space:]]enum[[:space:]]ExprU32' "$target_validation"
 grep -q '^FN[[:space:]]unsupported_higher_order_u32' "$target_validation"
 grep -q 'call_value(var(f),var(x))' "$target_validation"
 grep -q '^FN[[:space:]]list_map_inc_u32' "$target_validation"
@@ -129,6 +137,11 @@ grep -q '^FN[[:space:]]list_fold_sum_u32' "$target_validation"
 grep -q 'list_foldl(acc,x,lit(0),var(xs),add(var(acc),var(x)))' "$target_validation"
 grep -q '^FN[[:space:]]closure_env_apply_add_delta_u32' "$target_validation"
 grep -q '^FN[[:space:]]defun_apply_u32' "$target_validation"
+grep -q '^FN[[:space:]]tree_size_u32' "$target_validation"
+grep -q '^FN[[:space:]]tree_sum_u32' "$target_validation"
+grep -q '^FN[[:space:]]expr_eval_u32' "$target_validation"
+grep -q 'box(var(left))' "$target_validation"
+grep -q 'deref(var(left))' "$target_validation"
 grep -q '^TYPE[[:space:]]struct[[:space:]]BoundedProof' "$target_validation"
 grep -q '^FN[[:space:]]bounded_proof_make_u32' "$target_validation"
 grep -q '^FN[[:space:]]subtype_inc_u32' "$target_validation"
@@ -139,6 +152,15 @@ grep -q '^FN[[:space:]]list_length_u32' "$target_validation"
 grep -q 'list_length(var(xs))' "$target_validation"
 grep -q '^FN[[:space:]]tail_sum_down_u32' "$target_validation"
 grep -q 'tail_rec_nat(k,acc,var(n),lit(0),add(var(acc),var(k)))' "$target_validation"
+grep -q 'pub enum BinaryTreeU32' "$generated"
+grep -q 'pub enum ExprU32' "$generated"
+grep -q 'pub fn tree_size_u32' "$generated"
+grep -q 'pub fn expr_eval_u32' "$generated"
+grep -q 'recursive_user_data_uses_owned_box_layout' rust/tests/generated.rs
+grep -q 'deterministic_recursive_tree_property_seeds' "$property_validation_tests"
+grep -q 'deterministic_expr_property_seeds' "$property_validation_tests"
+grep -q 'recursive-owned-box-data' "$coverage_dashboard"
+grep -q 'target-validation-v2' "$coverage_dashboard"
 grep -q 'target_validation_snapshot_matches_generated_rust_ast' "$semantic_validation_tests"
 grep -q 'syn::parse_file' "$semantic_validation_tests"
 
@@ -179,6 +201,7 @@ grep -q '"rust_toolchain": "1.85.0"' "$build_metadata"
 grep -q 'LEAN_RUST_CORE_ALLOW_FALLBACK' "$build_metadata"
 grep -q 'rust/target-validation.txt' "$build_metadata"
 grep -q 'rust/src/ffi_generated.rs' "$build_metadata"
+grep -q 'rust/coverage-dashboard.json' "$build_metadata"
 
 # The Rust build script must not silently fallback in release/CI.
 grep -q 'development_fallback_allowed' rust/build.rs

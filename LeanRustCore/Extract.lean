@@ -216,6 +216,8 @@ private partial def rTypeRuntimeSuffix : RType → String
   | .prod a b => "prod_" ++ rTypeRuntimeSuffix a ++ "_" ++ rTypeRuntimeSuffix b
   | .sum a b => "sum_" ++ rTypeRuntimeSuffix a ++ "_" ++ rTypeRuntimeSuffix b
   | .func a b => "fn_" ++ rTypeRuntimeSuffix a ++ "_" ++ rTypeRuntimeSuffix b
+  | .boxed t => "box_" ++ rTypeRuntimeSuffix t
+  | .recursive name => sanitizeRustIdent "rec" (lowerRuntimeTypeString name)
   | .subtype t => "subtype_" ++ rTypeRuntimeSuffix t
   | .fin n => "fin_" ++ Nat.toString n
   | .vector t n => "vector_" ++ rTypeRuntimeSuffix t ++ "_" ++ Nat.toString n
@@ -227,6 +229,51 @@ private def monomorphizedInductiveName (inductName : Name) (typeArgs : List RTyp
     nameLeaf inductName
   else
     nameLeaf inductName ++ "__" ++ joinWith "_" (typeArgs.map rTypeRuntimeSuffix)
+
+private def binaryTreeU32Type : RType :=
+  .enum "BinaryTreeU32" [
+    ("leaf", []),
+    ("node", [.boxed (.recursive "BinaryTreeU32"), .u32, .boxed (.recursive "BinaryTreeU32")])
+  ]
+
+private def exprU32Type : RType :=
+  .enum "ExprU32" [
+    ("lit", [.u32]),
+    ("add", [.boxed (.recursive "ExprU32"), .boxed (.recursive "ExprU32")])
+  ]
+
+private def knownRecursiveInductive? (inductName : Name) : Option RType :=
+  match nameLeaf inductName with
+  | "BinaryTreeU32" => some binaryTreeU32Type
+  | "ExprU32" => some exprU32Type
+  | _ => none
+
+private def knownRecursiveCtorFields? (ctorName : Name) : Option (RType × List RArg) :=
+  match nameLeaf (nameParent ctorName), nameLeaf ctorName with
+  | "BinaryTreeU32", "leaf" => some (binaryTreeU32Type, [])
+  | "BinaryTreeU32", "node" =>
+      some (binaryTreeU32Type, [
+        ("left", .boxed (.recursive "BinaryTreeU32")),
+        ("value", .u32),
+        ("right", .boxed (.recursive "BinaryTreeU32"))
+      ])
+  | "ExprU32", "lit" => some (exprU32Type, [("value", .u32)])
+  | "ExprU32", "add" =>
+      some (exprU32Type, [
+        ("left", .boxed (.recursive "ExprU32")),
+        ("right", .boxed (.recursive "ExprU32"))
+      ])
+  | _, _ => none
+
+private def recursiveRuntimeName? : RType → Option String
+  | .recursive name => some name
+  | .enum name _ => some name
+  | _ => none
+
+private def sameRecursiveRuntimeType (a b : RType) : Bool :=
+  match recursiveRuntimeName? a, recursiveRuntimeName? b with
+  | some x, some y => x == y
+  | _, _ => false
 
 private def indexedPayloadFieldsAux (idx : Nat) : List RType → List RArg
   | [] => []
@@ -254,11 +301,14 @@ mutual
     | _ =>
         if ty.isConstOf ``Nat then
           return .u32
-  | .ordering => "ordering"
+        else if ty.isConstOf ``Int then
+          return .int
         else if ty.isConstOf ``Bool then
           return .bool
         else if ty.isConstOf ``Unit then
           return .unit
+        else if ty.isConstOf ``Ordering then
+          return .ordering
         else if ty.isConstOf ``UInt32 then
           return .u32
         else if ty.isConstOf ``UInt64 then
@@ -304,8 +354,6 @@ mutual
                 match args with
                 | [inner, _pred] => return .subtype (← typeOfLeanWithCtx typeCtx inner)
                 | _ => throwError "unsupported Subtype shape in rust_export extraction"
-        else if ty.isConstOf ``Ordering then
-          return .ordering
               else if n == ``Fin then
                 match args with
                 | [boundExpr] =>
@@ -321,15 +369,18 @@ mutual
                     | none => throwError "Vector length indices must be numeral literals in the current rust_export subset"
                 | _ => throwError "unsupported Vector type shape in rust_export extraction"
               else
-                match (← getEnv).find? n with
-                | some (.inductInfo info) => do
-                    let paramExprs := args.take info.numParams
-                    if paramExprs.length == info.numParams then
-                      let concreteParams ← paramExprs.mapM (typeOfLeanWithCtx typeCtx)
-                      typeOfInductiveWithArgs n concreteParams
-                    else
-                      throwError "inductive type `{n}` expected {info.numParams} parameters but got {paramExprs.length}"
-                | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
+                match knownRecursiveInductive? n with
+                | some ty => return ty
+                | none =>
+                    match (← getEnv).find? n with
+                    | some (.inductInfo info) => do
+                        let paramExprs := args.take info.numParams
+                        if paramExprs.length == info.numParams then
+                          let concreteParams ← paramExprs.mapM (typeOfLeanWithCtx typeCtx)
+                          typeOfInductiveWithArgs n concreteParams
+                        else
+                          throwError "inductive type `{n}` expected {info.numParams} parameters but got {paramExprs.length}"
+                    | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
           | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
 
   partial def typeOfLeanM (ty0 : Expr) : CoreM RType :=
@@ -339,6 +390,10 @@ mutual
     typeOfInductiveWithArgs inductName []
 
   partial def typeOfInductiveWithArgs (inductName : Name) (typeArgs : List RType) : CoreM RType := do
+    if typeArgs.isEmpty then
+      match knownRecursiveInductive? inductName with
+      | some ty => return ty
+      | none => pure ()
     let env ← getEnv
     match env.find? inductName with
     | some (.inductInfo info) =>
@@ -364,10 +419,18 @@ mutual
     ctorPayloadFieldsWithParams ctorName []
 
   partial def ctorPayloadFieldsWithParams (ctorName : Name) (typeArgs : List RType) : CoreM (List RArg) := do
+    if typeArgs.isEmpty then
+      match knownRecursiveCtorFields? ctorName with
+      | some (_, fields) => return fields
+      | none => pure ()
     pure ((← ctorRuntimePayloadFieldsWithParams ctorName typeArgs).map (fun field => field.1))
 
   /-- Runtime constructor fields paired with their original constructor-field index. Proof-only fields are erased. -/
   partial def ctorRuntimePayloadFieldsWithParams (ctorName : Name) (typeArgs : List RType) : CoreM (List (RArg × Nat)) := do
+    if typeArgs.isEmpty then
+      match knownRecursiveCtorFields? ctorName with
+      | some (_, fields) => return indexedRuntimePayloadFields (fields.map (fun field => field.2))
+      | none => pure ()
     let env ← getEnv
     match env.find? ctorName with
     | some (.ctorInfo info) =>
@@ -475,6 +538,8 @@ private partial def rTypeMonoSuffix : RType → String
   | .prod a b => "prod_" ++ rTypeMonoSuffix a ++ "_" ++ rTypeMonoSuffix b
   | .sum a b => "sum_" ++ rTypeMonoSuffix a ++ "_" ++ rTypeMonoSuffix b
   | .func a b => "fn_" ++ rTypeMonoSuffix a ++ "_" ++ rTypeMonoSuffix b
+  | .boxed t => "box_" ++ rTypeMonoSuffix t
+  | .recursive name => sanitizeRustIdent "rec" (lowerRuntimeTypeString name)
   | .subtype t => "subtype_" ++ rTypeMonoSuffix t
   | .fin n => "fin_" ++ Nat.toString n
   | .vector t n => "vector_" ++ rTypeMonoSuffix t ++ "_" ++ Nat.toString n
@@ -550,8 +615,20 @@ private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expec
     return literalForExpected expected n
   match e with
   | .bvar idx =>
-      match localNameAt locals idx with
-      | .ok name => return .var name
+      match localAt locals idx with
+      | .ok local =>
+          match expected, local.ty with
+          | some (.boxed inner), actual =>
+              if sameRecursiveRuntimeType inner actual then
+                return .boxNew inner (.var local.name)
+              else
+                return .var local.name
+          | some wanted, .boxed inner =>
+              if sameRecursiveRuntimeType wanted inner then
+                return .boxDeref inner (.var local.name)
+              else
+                return .var local.name
+          | _, _ => return .var local.name
       | .error msg => throwError msg
   | .const n _ =>
       match (← translateConstructorApp? typeCtx locals expected n []) with
@@ -1506,6 +1583,8 @@ private def rTypeReportLabel : RType → String
   | .prod a b => "Prod " ++ rTypeReportLabel a ++ " " ++ rTypeReportLabel b
   | .sum a b => "Sum " ++ rTypeReportLabel a ++ " " ++ rTypeReportLabel b
   | .func a b => "Function " ++ rTypeReportLabel a ++ " -> " ++ rTypeReportLabel b
+  | .boxed t => "Box " ++ rTypeReportLabel t
+  | .recursive name => name
   | .subtype t => "Subtype " ++ rTypeReportLabel t
   | .fin n => "Fin " ++ Nat.toString n
   | .vector t n => "Vector " ++ rTypeReportLabel t ++ " " ++ Nat.toString n
@@ -1720,6 +1799,8 @@ private partial def listTerm (items : List (TSyntax `term)) : CommandElabM (TSyn
 private partial def rTypeTerm : RType → CommandElabM (TSyntax `term)
   | .unit => `(LeanRustCore.RType.unit)
   | .bool => `(LeanRustCore.RType.bool)
+  | .nat => `(LeanRustCore.RType.nat)
+  | .int => `(LeanRustCore.RType.int)
   | .u32 => `(LeanRustCore.RType.u32)
   | .u64 => `(LeanRustCore.RType.u64)
   | .ordering => `(LeanRustCore.RType.ordering)
@@ -1754,6 +1835,12 @@ private partial def rTypeTerm : RType → CommandElabM (TSyntax `term)
       let aTerm ← rTypeTerm a
       let bTerm ← rTypeTerm b
       `(LeanRustCore.RType.func $aTerm $bTerm)
+  | .boxed ty => do
+      let tyTerm ← rTypeTerm ty
+      `(LeanRustCore.RType.boxed $tyTerm)
+  | .recursive name => do
+      let nameTerm := stringTerm name
+      `(LeanRustCore.RType.recursive $nameTerm)
   | .subtype ty => do
       let tyTerm ← rTypeTerm ty
       `(LeanRustCore.RType.subtype $tyTerm)
@@ -1932,6 +2019,14 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let retTyTerm ← rTypeTerm retTy
       let argTerm ← surfaceExprTerm arg
       `(LeanRustCore.SurfaceExpr.callValue $fnTerm $argTyTerm $retTyTerm $argTerm)
+  | .boxNew inner value => do
+      let innerTerm ← rTypeTerm inner
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.boxNew $innerTerm $valueTerm)
+  | .boxDeref inner value => do
+      let innerTerm ← rTypeTerm inner
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.boxDeref $innerTerm $valueTerm)
   | .closureApply binder argTy retTy arg body => do
       let binderTerm := stringTerm binder
       let argTyTerm ← rTypeTerm argTy
@@ -2173,6 +2268,16 @@ private def defunctionalizedExport (declName : Name) : Bool :=
   leaf == "defun_apply_add5_u32" ||
   leaf == "defun_map_selected_u32"
 
+private def recursiveDataExport (declName : Name) : Bool :=
+  let leaf := nameLeaf declName
+  leaf == "tree_leaf_u32" ||
+  leaf == "tree_node_u32" ||
+  leaf == "tree_size_u32" ||
+  leaf == "tree_sum_u32" ||
+  leaf == "expr_lit_u32" ||
+  leaf == "expr_add_u32" ||
+  leaf == "expr_eval_u32"
+
 private def dependentErasureExport (declName : Name) : Bool :=
   let leaf := nameLeaf declName
   leaf == "subtype_val_u32" ||
@@ -2198,6 +2303,8 @@ private def regularSupportedDetail (declName : Name) : CoreM String := do
     pure "exported-closure-conversion"
   else if defunctionalizedExport declName then
     pure "exported-defunctionalized-function-case"
+  else if recursiveDataExport declName then
+    pure "exported-recursive-box-data"
   else if dependentErasureExport declName then
     pure "exported-dependent-erasure"
   else

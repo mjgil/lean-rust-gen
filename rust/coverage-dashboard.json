@@ -1,0 +1,44 @@
+{
+  "format": "lean-rust-core.coverage-dashboard.v1",
+  "architecture": "direct-lean-emits-rust",
+  "lean_toolchain": "leanprover/lean4:v4.22.0",
+  "rust_toolchain": "1.85.0",
+  "target_validation_format": "lean-rust-core.target-validation.v2",
+  "recursive_data_policy": "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work",
+  "entries": [
+    {
+      "feature": "recursive-owned-box-data",
+      "status": "supported-known-slice",
+      "examples": [
+        "BinaryTreeU32",
+        "ExprU32",
+        "tree_size_u32",
+        "expr_eval_u32"
+      ]
+    },
+    {
+      "feature": "target-validation-v2",
+      "status": "supported",
+      "examples": [
+        "FORMAT lean-rust-core.target-validation.v2",
+        "box/deref fingerprints"
+      ]
+    },
+    {
+      "feature": "property-seed-validation",
+      "status": "supported-deterministic-seeds",
+      "examples": [
+        "recursive tree size/sum",
+        "expression evaluation",
+        "closure/defun regression"
+      ]
+    },
+    {
+      "feature": "coverage-dashboard",
+      "status": "supported",
+      "examples": [
+        "rust/coverage-dashboard.json"
+      ]
+    }
+  ]
+}

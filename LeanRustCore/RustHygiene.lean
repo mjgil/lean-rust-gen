@@ -229,6 +229,8 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .enumVariant _ _ payload => concatLists (payload.map surfaceBinders)
   | .call _ _ _ args => concatLists (args.map surfaceBinders)
   | .callValue fn _ _ arg => surfaceBinders fn ++ surfaceBinders arg
+  | .boxNew _ value => surfaceBinders value
+  | .boxDeref _ value => surfaceBinders value
   | .closureApply binder _ _ arg body => surfaceBinders arg ++ (binder :: surfaceBinders body)
   | .defaultValue _ => []
   | .toStringValue _ value => surfaceBinders value

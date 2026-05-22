@@ -4,6 +4,8 @@ import LeanRustCore.RecursionPolicy
 import LeanRustCore.Toolchain
 import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport
+import LeanRustCore.RecursiveData
+import LeanRustCore.ValidationV2
 import LeanRustCore.ClosureConversion
 import LeanRustCore.PureEffects
 import LeanRustCore.Pattern
@@ -71,8 +73,46 @@ def requiredFunctionNames : List String := [
   "fin_succ_checked10_u32",
   "vector_echo3_u32",
   "vector_map_inc3_u32",
+  "general_bool_match_u32",
+  "general_option_match_u32",
+  "general_step_match_u32",
+  "pair_sum_match_u32",
+  "list_length_u32",
+  "tail_sum_down_u32",
+  "decidable_eq_u32",
+  "inhabited_default_u32",
+  "to_string_u32",
+  "repr_u32",
+  "ord_compare_u32",
+  "option_do_inc_u32",
+  "closure_apply_capture_u32",
+  "closure_env_apply_add_delta_u32",
+  "closure_env_map_add_delta_u32",
+  "defun_apply_u32",
+  "defun_compose_inc_double_u32",
+  "defun_apply_add5_u32",
+  "defun_map_selected_u32",
+  "tree_leaf_u32",
+  "tree_node_u32",
+  "tree_size_u32",
+  "tree_sum_u32",
+  "expr_lit_u32",
+  "expr_add_u32",
+  "expr_eval_u32",
+  "list_append_u32",
+  "list_find_nonzero_u32",
+  "array_push_u32",
+  "option_getd_u32",
+  "result_map_err_inc_u32",
+  "except_do_inc_u32",
+  "reader_add_env_u32",
+  "state_tick_u32",
   "echo_prod_u32",
   "echo_sum_u32",
+  "exact_nat_add",
+  "exact_nat_mul",
+  "exact_int_add",
+  "exact_int_mul",
   "add_u64",
   "inc_u32",
   "inc_twice_u32",
@@ -89,31 +129,6 @@ def requiredFunctionNames : List String := [
   "make_point",
   "point_x",
   "point_y",
-  "decidable_eq_u32",
-  "inhabited_default_u32",
-  "to_string_u32",
-  "repr_u32",
-  "ord_compare_u32",
-  "option_do_inc_u32",
-  "closure_apply_capture_u32",
-  "closure_env_apply_add_delta_u32",
-  "closure_env_map_add_delta_u32",
-  "defun_apply_u32",
-  "defun_compose_inc_double_u32",
-  "defun_apply_add5_u32",
-  "defun_map_selected_u32",
-  "exact_int_mul",
-  "exact_int_add",
-  "exact_nat_mul",
-  "exact_nat_add",
-  "state_tick_u32",
-  "reader_add_env_u32",
-  "except_do_inc_u32",
-  "result_map_err_inc_u32",
-  "option_getd_u32",
-  "array_push_u32",
-  "list_find_nonzero_u32",
-  "list_append_u32",
   "shift_point_x",
   "bounded_proof_make_u32",
   "bounded_proof_value_u32",
@@ -134,6 +149,7 @@ def requiredFunctionNames : List String := [
   "identity_u64",
   "choose_generic_u32",
   "option_default_u64",
+  "generic_beq_u32",
   "generic_identity__u32",
   "generic_choose__point",
   "generic_option_default__step",
@@ -141,13 +157,7 @@ def requiredFunctionNames : List String := [
   "helper_chain_u32",
   "auto_identity_u32",
   "auto_choose_point",
-  "auto_option_default_step",
-  "general_bool_match_u32",
-  "general_option_match_u32",
-  "general_step_match_u32",
-  "pair_sum_match_u32",
-  "list_length_u32",
-  "tail_sum_down_u32"
+  "auto_option_default_step"
 ]
 
 /-- Declarations that should exist before generated functions. -/
@@ -160,6 +170,8 @@ def requiredTypeNames : List String := [
   "TaggedU32",
   "Step",
   "U32FnCase",
+  "BinaryTreeU32",
+  "ExprU32",
   "Ordering"
 ]
 
@@ -351,6 +363,22 @@ def checks : List ValidationCheck := [
     status := "passed",
     detail := "rust/tests/semantic_validation.rs parses generated.rs with syn, reconstructs the generated-subset target IR, and compares it with LeanRustCore.TargetValidation.targetValidationSnapshot"
   },
+
+  {
+    name := "recursive-user-data-box-layout",
+    status := "passed",
+    detail := LeanRustCore.RecursiveData.recursiveDataSummary
+  },
+  {
+    name := "target-validation-v2-coverage-dashboard",
+    status := "passed",
+    detail := LeanRustCore.ValidationV2.validationV2Summary
+  },
+  {
+    name := "coverage-dashboard-json-parse-validation",
+    status := "passed",
+    detail := "rust/coverage-dashboard.json parses as JSON and records target-validation-v2 feature-family coverage"
+  },
   {
     name := "target-validation-snapshot",
     status := "passed",
@@ -364,7 +392,7 @@ def checks : List ValidationCheck := [
   {
     name := "property-differential-seeds",
     status := "passed",
-    detail := "rust/tests/generated.rs and the Lean-generated differential suite include boundary seeds for wrapping arithmetic, payload matches, helper calls, containers, structural List loops, and function-pointer arguments"
+    detail := "rust/tests/generated.rs, rust/tests/property_validation.rs, and the Lean-generated differential suite include boundary seeds for wrapping arithmetic, payload matches, helper calls, containers, structural List loops, closure environments, defunctionalized cases, recursive Box-owned data, validation-v2 coverage seeds, and function-pointer arguments"
   },
   {
     name := "ffi-boundary-exporter",

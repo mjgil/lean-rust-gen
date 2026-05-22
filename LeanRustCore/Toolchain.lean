@@ -50,7 +50,8 @@ def buildMetadataJson : String :=
   "    \"rust/validation-report.json\",\n" ++
   "    \"rust/target-validation.txt\",\n" ++
   "    \"rust/src/ffi_generated.rs\",\n" ++
-  "    \"rust/build-metadata.json\"\n" ++
+  "    \"rust/build-metadata.json\",\n" ++
+  "    \"rust/coverage-dashboard.json\"\n" ++
   "  ]\n" ++
   "}\n"
 

@@ -136,3 +136,25 @@ subset:
 The new examples exercise additional `List`/`Array`/`Option`/`Except` APIs plus
 Reader/State-shaped pure effects without introducing unsafe Rust in
 `generated.rs`.
+
+## Phase 5 — recursive user data with owned `Box` layout
+
+Completed in this sprint slice:
+
+- Known recursive, index-free user inductives can lower recursive payload fields through owned `Box<T>`.
+- `BinaryTreeU32` and `ExprU32` exercise recursive enum construction and recursive pattern matching in the safe Rust lane.
+- Target-validation v2 records `box(...)` and `deref(...)` fingerprints for these lowered recursive payloads.
+
+Future phase-5 expansion:
+
+- General recursive inductive discovery beyond the current known fixture lane.
+- Mutually recursive SCC layout.
+- Optional `Rc`/arena policies for sharing-heavy data.
+
+## Phase 6 — validation-v2 dashboard and deterministic property seeds
+
+Completed in this sprint slice:
+
+- `rust/target-validation.txt` now uses `lean-rust-core.target-validation.v2`.
+- `LeanRustCore.ValidationV2` emits `rust/coverage-dashboard.json` for machine-readable feature-family coverage.
+- `rust/tests/property_validation.rs` adds deterministic property-style seeds for recursive tree size/sum, expression evaluation, and closure/defunctionalization regression cases.

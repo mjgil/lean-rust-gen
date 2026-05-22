@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use syn::{
     BinOp, Expr, ExprBlock, ExprCall, ExprField, ExprIf, ExprLit, ExprMatch, ExprMethodCall,
-    ExprParen, ExprPath, ExprReference, ExprStruct, Lit, Member, Pat,
+    ExprParen, ExprPath, ExprReference, ExprStruct, ExprUnary, Lit, Member, Pat,
 };
 
 use crate::{block_fingerprint, escape_snapshot_string, path_to_string};
@@ -24,7 +24,7 @@ pub(crate) fn expr_fingerprint(expr: &Expr, known_functions: &BTreeSet<String>) 
                 .collect::<Vec<_>>()
                 .join(",")
         ),
-        Expr::Unary(unary) => format!("not({})", expr_fingerprint(&unary.expr, known_functions)),
+        Expr::Unary(unary) => unary_fingerprint(unary, known_functions),
         Expr::If(expr_if) => if_fingerprint(expr_if, known_functions),
         Expr::Binary(binary) => binary_fingerprint(binary, known_functions),
         Expr::MethodCall(method) => method_call_fingerprint(method, known_functions),
@@ -56,6 +56,14 @@ fn literal_fingerprint(lit: &ExprLit) -> String {
         Lit::Char(value) => format!("char({})", value.value() as u32),
         Lit::Str(value) => format!("string({})", escape_snapshot_string(&value.value())),
         other => panic!("unsupported generated literal during semantic validation: {other:?}"),
+    }
+}
+
+fn unary_fingerprint(item: &ExprUnary, known_functions: &BTreeSet<String>) -> String {
+    match &item.op {
+        syn::UnOp::Deref(_) => format!("deref({})", expr_fingerprint(&item.expr, known_functions)),
+        syn::UnOp::Not(_) => format!("not({})", expr_fingerprint(&item.expr, known_functions)),
+        other => panic!("unsupported generated unary op during semantic validation: {other:?}"),
     }
 }
 
@@ -144,6 +152,10 @@ fn call_fingerprint(item: &ExprCall, known_functions: &BTreeSet<String>) -> Stri
             "Some" => return format!("some({})", args.join(",")),
             "Ok" => return format!("ok({})", args.join(",")),
             "Err" => return format!("err({})", args.join(",")),
+            "Box::new" => {
+                assert_eq!(args.len(), 1, "Box::new should receive one generated value");
+                return format!("box({})", args[0]);
+            }
             _ if path.contains("::") => {
                 if args.is_empty() {
                     return format!("enum({path})");

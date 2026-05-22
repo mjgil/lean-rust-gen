@@ -28,6 +28,8 @@ inductive RType where
   | prod : RType → RType → RType
   | sum : RType → RType → RType
   | func : RType → RType → RType
+  | boxed : RType → RType
+  | recursive : String → RType
   | subtype : RType → RType
   | fin : Nat → RType
   | vector : RType → Nat → RType
@@ -55,6 +57,8 @@ def Denote : RType → Type
   | .prod a b => Denote a × Denote b
   | .sum a b => Sum (Denote a) (Denote b)
   | .func a b => Denote a → Denote b
+  | .boxed t => Denote t
+  | .recursive _ => Unit
   | .subtype t => Denote t
   | .fin _ => Nat
   | .vector t _ => List (Denote t)

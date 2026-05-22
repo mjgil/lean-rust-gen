@@ -41,6 +41,7 @@ def check_json_artifacts(functions: list[str], types: list[str]) -> None:
     compatibility = load_json("rust/compatibility-report.json")
     proof = load_json("rust/proof-report.json")
     metadata = load_json("rust/build-metadata.json")
+    coverage = load_json("rust/coverage-dashboard.json")
 
     require(validation["generated_function_count"] == len(functions), "validation-report function count is stale")
     require(validation["generated_type_count"] == len(types), "validation-report type count is stale")
@@ -48,6 +49,7 @@ def check_json_artifacts(functions: list[str], types: list[str]) -> None:
     require(validation["required_types"] == types, "validation-report required_types differs from generated.rs order")
     require(validation["target_validation_format"] == "lean-rust-core.target-validation.v2", "validation report target format is stale")
     require("feature_summary" in validation, "validation report is missing Sprint-2 feature_summary")
+    require(coverage["target_validation_format"] == "lean-rust-core.target-validation.v2", "coverage dashboard target format is stale")
 
     supported = [d["rust_name"] for d in compatibility["diagnostics"] if d["code"] == "supported"]
     require(compatibility["generated_function_count"] == len(functions), "compatibility-report function count is stale")
@@ -59,6 +61,7 @@ def check_json_artifacts(functions: list[str], types: list[str]) -> None:
     require("LeanRustCore.ExtractIR.functionFeatures" in proof["trusted_core"], "proof report missing ExtractIR trusted-core entry")
     require(proof["policy"].get("corpus_harness") is True, "proof report missing corpus_harness policy")
     require("rust/target-validation.txt" in metadata["generated_artifacts"], "build metadata missing target validation artifact")
+    require("rust/coverage-dashboard.json" in metadata["generated_artifacts"], "build metadata missing coverage dashboard artifact")
 
 
 def check_target_validation(functions: list[str], types: list[str]) -> None:

@@ -26,6 +26,12 @@ pub enum Step { Stay, Jump(u32) }
 pub enum U32FnCase { Inc, Double, Add(u32) }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BinaryTreeU32 { Leaf, Node(Box<BinaryTreeU32>, u32, Box<BinaryTreeU32>) }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ExprU32 { Lit(u32), Add(Box<ExprU32>, Box<ExprU32>) }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Ordering { Lt, Eq, Gt }
 
 pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
@@ -266,6 +272,47 @@ pub fn defun_map_selected_u32(use_double: bool, xs: Vec<u32>) -> Vec<u32> {
         });
     }
     out
+}
+
+pub fn tree_leaf_u32(_x: ()) -> BinaryTreeU32 {
+    BinaryTreeU32::Leaf
+}
+
+pub fn tree_node_u32(left: BinaryTreeU32, value: u32, right: BinaryTreeU32) -> BinaryTreeU32 {
+    BinaryTreeU32::Node(Box::new(left), value, Box::new(right))
+}
+
+pub fn tree_size_u32(t: BinaryTreeU32) -> u32 {
+    match t {
+        BinaryTreeU32::Leaf => 0,
+        BinaryTreeU32::Node(left, _value, right) => {
+            (tree_size_u32(*left)).wrapping_add(1).wrapping_add(tree_size_u32(*right))
+        }
+    }
+}
+
+pub fn tree_sum_u32(t: BinaryTreeU32) -> u32 {
+    match t {
+        BinaryTreeU32::Leaf => 0,
+        BinaryTreeU32::Node(left, value, right) => {
+            (tree_sum_u32(*left)).wrapping_add(value).wrapping_add(tree_sum_u32(*right))
+        }
+    }
+}
+
+pub fn expr_lit_u32(value: u32) -> ExprU32 {
+    ExprU32::Lit(value)
+}
+
+pub fn expr_add_u32(left: ExprU32, right: ExprU32) -> ExprU32 {
+    ExprU32::Add(Box::new(left), Box::new(right))
+}
+
+pub fn expr_eval_u32(e: ExprU32) -> u32 {
+    match e {
+        ExprU32::Lit(value) => value,
+        ExprU32::Add(left, right) => (expr_eval_u32(*left)).wrapping_add(expr_eval_u32(*right)),
+    }
 }
 
 

@@ -1,7 +1,7 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
-TYPE_COUNT	9
-FN_COUNT	112
+TYPE_COUNT	11
+FN_COUNT	119
 TYPE	struct	Point	x:u32,y:u32
 TYPE	struct	BoundedProof	value:u32
 TYPE	struct	BoxedU32	value:u32
@@ -10,6 +10,8 @@ TYPE	enum	Choice	First|Second
 TYPE	enum	TaggedU32	Missing|Present(u32)
 TYPE	enum	Step	Stay|Jump(u32)
 TYPE	enum	U32FnCase	Inc|Double|Add(u32)
+TYPE	enum	BinaryTreeU32	Leaf|Node(Box<BinaryTreeU32>,u32,Box<BinaryTreeU32>)
+TYPE	enum	ExprU32	Lit(u32)|Add(Box<ExprU32>,Box<ExprU32>)
 TYPE	enum	Ordering	Lt|Eq|Gt
 FN	clamp_u32	lo:u32,hi:u32,x:u32	u32	if(lt(var(x),var(lo)),var(lo),if(lt(var(hi),var(x)),var(hi),var(x)))
 FN	max_u32	a:u32,b:u32	u32	if(lt(var(a),var(b)),var(b),var(a))
@@ -64,6 +66,13 @@ FN	defun_apply_u32	f:U32FnCase,x:u32	u32	match_enum(var(f),U32FnCase::Inc()=>add
 FN	defun_compose_inc_double_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Double),call(defun_apply_u32,enum(U32FnCase::Inc),var(x)))
 FN	defun_apply_add5_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Add,lit(5)),var(x))
 FN	defun_map_selected_u32	use_double:bool,xs:Vec<u32>	Vec<u32>	list_map(x,var(xs),if(var(use_double),call(defun_apply_u32,enum(U32FnCase::Double),var(x)),call(defun_apply_u32,enum(U32FnCase::Inc),var(x))))
+FN	tree_leaf_u32	_x:()	BinaryTreeU32	enum(BinaryTreeU32::Leaf)
+FN	tree_node_u32	left:BinaryTreeU32,value:u32,right:BinaryTreeU32	BinaryTreeU32	enum(BinaryTreeU32::Node,box(var(left)),var(value),box(var(right)))
+FN	tree_size_u32	t:BinaryTreeU32	u32	match_enum(var(t),BinaryTreeU32::Leaf()=>lit(0)|BinaryTreeU32::Node(left,_value,right)=>add(add(call(tree_size_u32,deref(var(left))),lit(1)),call(tree_size_u32,deref(var(right)))))
+FN	tree_sum_u32	t:BinaryTreeU32	u32	match_enum(var(t),BinaryTreeU32::Leaf()=>lit(0)|BinaryTreeU32::Node(left,value,right)=>add(add(call(tree_sum_u32,deref(var(left))),var(value)),call(tree_sum_u32,deref(var(right)))))
+FN	expr_lit_u32	value:u32	ExprU32	enum(ExprU32::Lit,var(value))
+FN	expr_add_u32	left:ExprU32,right:ExprU32	ExprU32	enum(ExprU32::Add,box(var(left)),box(var(right)))
+FN	expr_eval_u32	e:ExprU32	u32	match_enum(var(e),ExprU32::Lit(value)=>var(value)|ExprU32::Add(left,right)=>add(call(expr_eval_u32,deref(var(left))),call(expr_eval_u32,deref(var(right)))))
 FN	list_append_u32	xs:Vec<u32>,ys:Vec<u32>	Vec<u32>	list_append(var(xs),var(ys))
 FN	list_find_nonzero_u32	xs:Vec<u32>	Option<u32>	list_find(x,var(xs),lt(lit(0),var(x)))
 FN	array_push_u32	xs:Vec<u32>,x:u32	Vec<u32>	array_push(var(xs),var(x))

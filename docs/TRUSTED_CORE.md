@@ -17,6 +17,8 @@
 - `LeanRustCore.RustHygiene.validateSurfaceModuleHygiene`
 - `LeanRustCore.EmitRust.emitSurfaceRustModule`
 - `LeanRustCore.TargetValidation.targetValidationSnapshot`
+- `LeanRustCore.ValidationV2.coverageDashboardJson`
+- `LeanRustCore.RecursiveData.recursiveDataSummary`
 - `LeanRustCore.BoundaryExport.generatedBoundaryRust`
 - `LeanRustCore.IR.RType`
 - `LeanRustCore.IR.RExpr`
@@ -129,6 +131,8 @@ The current large-subset slice treats `LeanRustCore.RecursionPolicy` as an analy
 Additional generated/trusted artifacts:
 
 - `LeanRustCore.TargetValidation.targetValidationSnapshot`
+- `LeanRustCore.ValidationV2.coverageDashboardJson`
+- `LeanRustCore.RecursiveData.recursiveDataSummary`
 - `TargetValidationMain.lean`
 - `rust/target-validation.txt`
 - `rust/tests/semantic_validation.rs`
@@ -172,3 +176,15 @@ Additional trusted/generated surfaces:
 These are still subset checks rather than a full Lean pattern/compiler-correctness
 proof. They strengthen the direct safe-Rust lane by making pattern and recursion
 lowering explicit, typed, and covered by generated reports/tests.
+
+## Phase 5/6 recursive data and validation-v2 trusted surface
+
+Additional generated/trusted artifacts:
+
+- `LeanRustCore.RecursiveData.recursiveDataSummary`
+- `LeanRustCore.ValidationV2.coverageDashboardJson`
+- `CoverageDashboardMain.lean`
+- `rust/coverage-dashboard.json`
+- `rust/tests/property_validation.rs`
+
+Recursive user data currently uses a conservative owned `Box<T>` layout for known index-free recursive fixtures. The validation-v2 dashboard records this feature family and the target-validation format used by downstream checks.

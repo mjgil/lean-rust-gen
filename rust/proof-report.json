@@ -14,6 +14,8 @@
     "LeanRustCore.RustHygiene.validateSurfaceModuleHygiene",
     "LeanRustCore.EmitRust.emitSurfaceRustModule",
     "LeanRustCore.TargetValidation.targetValidationSnapshot",
+    "LeanRustCore.RecursiveData.recursiveDataSummary",
+    "LeanRustCore.ValidationV2.coverageDashboardJson",
     "LeanRustCore.BoundaryExport.generatedBoundaryRust",
     "LeanRustCore.DependentErasure.dependentErasureSummary",
     "LeanRustCore.ExtractIR.functionFeatures",
@@ -45,7 +47,9 @@
     "corpus_harness": true,
     "std_lowering_policy": true,
     "pure_effect_lowering": true,
-    "typeclass_specialization_policy": true
+    "typeclass_specialization_policy": true,
+    "recursive_data_layout": "owned-box",
+    "coverage_dashboard": "rust/coverage-dashboard.json"
   },
   "facts": [
     {
@@ -78,7 +82,7 @@
     },
     {
       "name": "dependent_shape_erasure",
-      "statement": "Sprint 10–12 dependent erasure supports Subtype/Fin/Vector runtime carriers and proof-only constructor-field erasure for Eq/True/False/And/Or/Not/Iff/Exists/LT/LE-shaped fields; non-erasable dependent computation remains rejected"
+      "statement": "Sprint 10\u201312 dependent erasure supports Subtype/Fin/Vector runtime carriers and proof-only constructor-field erasure for Eq/True/False/And/Or/Not/Iff/Exists/LT/LE-shaped fields; non-erasable dependent computation remains rejected"
     },
     {
       "name": "dependent_erasure_policy",
@@ -127,6 +131,14 @@
     {
       "name": "typeclass_specialization_policy",
       "statement": "LeanRustCore.TypeclassPolicy records the resolved-dictionary specialization lane for common executable classes"
+    },
+    {
+      "name": "recursive_box_owned_data_layout",
+      "statement": "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work"
+    },
+    {
+      "name": "target_validation_v2_dashboard",
+      "statement": "target-validation v2 records box/deref fingerprints for recursive data, and rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
     }
   ]
 }

@@ -288,3 +288,9 @@ current implementation adds `SurfaceExpr.listLength` for owned-list length and
 `SurfaceExpr.tailRecNat` for one checked Nat accumulator tail-recursion lane. The
 emitter turns these into safe Rust `len()` and `while` constructs, and the
 Surface evaluator remains fuel-bounded.
+
+## Sprint 15-16: recursive data and validation v2
+
+Known recursive, index-free user inductives now lower recursive payload fields through owned `Box<T>` in the safe Rust lane. The initial fixtures are `BinaryTreeU32` and `ExprU32`, including recursive construction, recursive pattern matching, and recursive function calls.
+
+The target-validation artifact now uses `lean-rust-core.target-validation.v2`, which records `box(...)` and `deref(...)` fingerprints. `LeanRustCore.ValidationV2` also emits `rust/coverage-dashboard.json`, a machine-readable feature-family dashboard consumed by validation gates.

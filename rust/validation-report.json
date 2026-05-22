@@ -3,8 +3,8 @@
   "architecture": "direct-lean-emits-rust",
   "lean_toolchain": "leanprover/lean4:v4.22.0",
   "rust_toolchain": "1.85.0",
-  "generated_function_count": 112,
-  "generated_type_count": 9,
+  "generated_function_count": 119,
+  "generated_type_count": 11,
   "differential_assertion_count": 139,
   "target_validation_format": "lean-rust-core.target-validation.v2",
   "ffi_boundary_export_count": 44,
@@ -62,6 +62,13 @@
     "defun_compose_inc_double_u32",
     "defun_apply_add5_u32",
     "defun_map_selected_u32",
+    "tree_leaf_u32",
+    "tree_node_u32",
+    "tree_size_u32",
+    "tree_sum_u32",
+    "expr_lit_u32",
+    "expr_add_u32",
+    "expr_eval_u32",
     "list_append_u32",
     "list_find_nonzero_u32",
     "array_push_u32",
@@ -131,6 +138,8 @@
     "TaggedU32",
     "Step",
     "U32FnCase",
+    "BinaryTreeU32",
+    "ExprU32",
     "Ordering"
   ],
   "feature_summary": {
@@ -299,7 +308,7 @@
     {
       "name": "dependent-shape-erasure",
       "status": "passed",
-      "detail": "Sprint 10–12 dependent erasure supports Subtype/Fin/Vector runtime carriers and proof-only constructor-field erasure for Eq/True/False/And/Or/Not/Iff/Exists/LT/LE-shaped fields; non-erasable dependent computation remains rejected"
+      "detail": "Sprint 10\u201312 dependent erasure supports Subtype/Fin/Vector runtime carriers and proof-only constructor-field erasure for Eq/True/False/And/Or/Not/Iff/Exists/LT/LE-shaped fields; non-erasable dependent computation remains rejected"
     },
     {
       "name": "proof-field-erasure",
@@ -352,6 +361,21 @@
       "detail": "rust/tests/semantic_validation.rs parses generated.rs with syn, reconstructs the generated-subset target IR, and compares it with LeanRustCore.TargetValidation.targetValidationSnapshot"
     },
     {
+      "name": "recursive-user-data-box-layout",
+      "status": "passed",
+      "detail": "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work"
+    },
+    {
+      "name": "target-validation-v2-coverage-dashboard",
+      "status": "passed",
+      "detail": "target-validation v2 records box/deref fingerprints for recursive data, and rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
+    },
+    {
+      "name": "coverage-dashboard-json-parse-validation",
+      "status": "passed",
+      "detail": "rust/coverage-dashboard.json parses as JSON and records target-validation-v2 feature-family coverage"
+    },
+    {
       "name": "target-validation-snapshot",
       "status": "passed",
       "detail": "rust/target-validation.txt records the Lean-side SurfaceExpr fingerprints, Rust-facing declarations, and function signatures used by target validation"
@@ -364,7 +388,7 @@
     {
       "name": "property-differential-seeds",
       "status": "passed",
-      "detail": "rust/tests/generated.rs and the Lean-generated differential suite include boundary seeds for wrapping arithmetic, payload matches, helper calls, containers, structural List loops, exact integers, and function-pointer arguments"
+      "detail": "rust/tests/generated.rs, rust/tests/property_validation.rs, and the Lean-generated differential suite include boundary seeds for wrapping arithmetic, payload matches, helper calls, containers, structural List loops, closure environments, defunctionalized cases, recursive Box-owned data, validation-v2 coverage seeds, and function-pointer arguments"
     },
     {
       "name": "ffi-boundary-exporter",

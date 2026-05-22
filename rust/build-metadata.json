@@ -13,6 +13,7 @@
     "rust/validation-report.json",
     "rust/target-validation.txt",
     "rust/src/ffi_generated.rs",
-    "rust/build-metadata.json"
+    "rust/build-metadata.json",
+    "rust/coverage-dashboard.json"
   ]
 }

@@ -88,6 +88,8 @@ private def fingerprintDefaultValue : RType → String
   | .string => "default(String)"
   | .option _ => "none"
   | .list _ | .array _ | .vector _ _ => "vec()"
+  | .boxed inner => "box(" ++ fingerprintDefaultValue inner ++ ")"
+  | .recursive name => "recursive(" ++ rustTypeIdent name ++ ")"
   | .fin _ => "default(u32)"
   | .subtype t => fingerprintDefaultValue t
   | .prod a b => "tuple(" ++ fingerprintDefaultValue a ++ "," ++ fingerprintDefaultValue b ++ ")"
@@ -172,6 +174,8 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
       "call(" ++ rustValueIdent "generated" name ++ "," ++ joinWith "," (args.map fingerprintSurfaceExpr) ++ ")"
   | .callValue fn _ _ arg =>
       "call_value(" ++ fingerprintSurfaceExpr fn ++ "," ++ fingerprintSurfaceExpr arg ++ ")"
+  | .boxNew _ value => "box(" ++ fingerprintSurfaceExpr value ++ ")"
+  | .boxDeref _ value => "deref(" ++ fingerprintSurfaceExpr value ++ ")"
   | .closureApply binder _ _ arg body =>
       "closure_apply(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr arg ++ "," ++ fingerprintSurfaceExpr body ++ ")"
   | .defaultValue ty => fingerprintDefaultValue ty

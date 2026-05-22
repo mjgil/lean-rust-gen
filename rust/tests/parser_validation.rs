@@ -61,6 +61,8 @@ fn parser_validates_generated_top_level_subset() {
         "TaggedU32",
         "Step",
         "U32FnCase",
+        "BinaryTreeU32",
+        "ExprU32",
         "Ordering",
     ] {
         assert!(
@@ -126,6 +128,13 @@ fn parser_validates_generated_top_level_subset() {
         "defun_compose_inc_double_u32",
         "defun_apply_add5_u32",
         "defun_map_selected_u32",
+        "tree_leaf_u32",
+        "tree_node_u32",
+        "tree_size_u32",
+        "tree_sum_u32",
+        "expr_lit_u32",
+        "expr_add_u32",
+        "expr_eval_u32",
         "auto_identity_u32",
         "auto_choose_point",
         "auto_option_default_step",

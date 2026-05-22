@@ -2,7 +2,7 @@
   "format": "lean-rust-core.compatibility-report.v1",
   "architecture": "direct-lean-emits-rust",
   "feature_tag_schema": "lean-rust-core.feature-tags.v1",
-  "generated_function_count": 112,
+  "generated_function_count": 119,
   "diagnostics": [
     {
       "source": "LeanRustCore.Examples.clamp_u32",
@@ -531,6 +531,76 @@
       "detail": "checked-in generated artifact matches current emitted subset",
       "features": [
         "finite-defunctionalization"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.tree_leaf_u32",
+      "rust_name": "tree_leaf_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "recursive-owned-box-data"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.tree_node_u32",
+      "rust_name": "tree_node_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "recursive-owned-box-data"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.tree_size_u32",
+      "rust_name": "tree_size_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "recursive-owned-box-data"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.tree_sum_u32",
+      "rust_name": "tree_sum_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "recursive-owned-box-data"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.expr_lit_u32",
+      "rust_name": "expr_lit_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "recursive-owned-box-data"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.expr_add_u32",
+      "rust_name": "expr_add_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "recursive-owned-box-data"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.expr_eval_u32",
+      "rust_name": "expr_eval_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "recursive-owned-box-data"
       ],
       "next_feature": null
     },

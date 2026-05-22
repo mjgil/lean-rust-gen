@@ -8,6 +8,7 @@ const VALIDATION_REPORT: &str = include_str!("../validation-report.json");
 const COMPATIBILITY_REPORT: &str = include_str!("../compatibility-report.json");
 const PROOF_REPORT: &str = include_str!("../proof-report.json");
 const BUILD_METADATA: &str = include_str!("../build-metadata.json");
+const COVERAGE_DASHBOARD: &str = include_str!("../coverage-dashboard.json");
 
 fn parse_json_artifact(name: &str, source: &str) -> Value {
     serde_json::from_str(source).unwrap_or_else(|err| panic!("{name} should be valid JSON: {err}"))
@@ -43,6 +44,7 @@ fn generated_json_artifacts_are_valid_json() {
         ("compatibility-report.json", COMPATIBILITY_REPORT),
         ("proof-report.json", PROOF_REPORT),
         ("build-metadata.json", BUILD_METADATA),
+        ("coverage-dashboard.json", COVERAGE_DASHBOARD),
     ] {
         parse_json_artifact(name, source);
     }
@@ -205,6 +207,9 @@ fn validation_report_records_current_subset_gates() {
     assert!(report.contains("captured-closure-conversion"));
     assert!(report.contains("closure-converted-environment-lowering"));
     assert!(report.contains("finite-defunctionalization"));
+    assert!(report.contains("recursive-user-data-box-layout"));
+    assert!(report.contains("target-validation-v2-coverage-dashboard"));
+    assert!(report.contains("coverage-dashboard-json-parse-validation"));
     assert!(report.contains("typeclass-dictionary-erasure"));
     assert!(report.contains("transitive-helper-extraction"));
     assert!(report.contains("proof-erased-binders"));
@@ -250,6 +255,8 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub enum TaggedU32",
         "pub enum Step",
         "pub enum U32FnCase",
+        "pub enum BinaryTreeU32",
+        "pub enum ExprU32",
         "pub enum Ordering",
         "pub fn clamp_u32",
         "pub fn echo_string",
@@ -309,6 +316,13 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn defun_compose_inc_double_u32",
         "pub fn defun_apply_add5_u32",
         "pub fn defun_map_selected_u32",
+        "pub fn tree_leaf_u32",
+        "pub fn tree_node_u32",
+        "pub fn tree_size_u32",
+        "pub fn tree_sum_u32",
+        "pub fn expr_lit_u32",
+        "pub fn expr_add_u32",
+        "pub fn expr_eval_u32",
         "pub fn auto_identity_u32",
         "pub fn auto_choose_point",
         "pub fn auto_option_default_step",
@@ -330,6 +344,7 @@ fn build_metadata_records_pins_and_fallback_policy() {
     assert!(metadata.contains("LEAN_RUST_CORE_ALLOW_FALLBACK"));
     assert!(metadata.contains("rust/target-validation.txt"));
     assert!(metadata.contains("rust/src/ffi_generated.rs"));
+    assert!(metadata.contains("rust/coverage-dashboard.json"));
 }
 
 #[test]
@@ -365,10 +380,16 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("let(y,var(x),add(var(y),var(delta)))"));
     assert!(snapshot.contains("TYPE\tstruct\tAddDeltaU32Env"));
     assert!(snapshot.contains("TYPE\tenum\tU32FnCase"));
+    assert!(snapshot.contains("TYPE\tenum\tBinaryTreeU32"));
+    assert!(snapshot.contains("TYPE\tenum\tExprU32"));
     assert!(snapshot.contains("FN\tclosure_env_apply_add_delta_u32"));
     assert!(snapshot.contains("FN\tclosure_env_map_add_delta_u32"));
     assert!(snapshot.contains("FN\tdefun_apply_u32"));
     assert!(snapshot.contains("FN\tdefun_compose_inc_double_u32"));
+    assert!(snapshot.contains("FN\ttree_size_u32"));
+    assert!(snapshot.contains("FN\texpr_eval_u32"));
+    assert!(snapshot.contains("box(var(left))"));
+    assert!(snapshot.contains("deref(var(left))"));
     assert!(snapshot.contains("FN\tbounded_proof_make_u32"));
     assert!(snapshot.contains("FN\tsubtype_val_u32"));
     assert!(snapshot.contains("FN\tsubtype_inc_u32"));
@@ -378,6 +399,24 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("FN\tlist_append_u32"));
     assert!(snapshot.contains("FN\treader_add_env_u32"));
     assert!(snapshot.contains("FN\tstate_tick_u32"));
+}
+
+#[test]
+fn coverage_dashboard_records_feature_families() {
+    let dashboard = parse_json_artifact("coverage-dashboard.json", COVERAGE_DASHBOARD);
+    assert_eq!(
+        dashboard["format"].as_str(),
+        Some("lean-rust-core.coverage-dashboard.v1")
+    );
+    assert_eq!(
+        dashboard["target_validation_format"].as_str(),
+        Some("lean-rust-core.target-validation.v2")
+    );
+    let text = include_str!("../coverage-dashboard.json");
+    assert!(text.contains("recursive-owned-box-data"));
+    assert!(text.contains("property-seed-validation"));
+    assert!(text.contains("BinaryTreeU32"));
+    assert!(text.contains("ExprU32"));
 }
 
 #[test]
@@ -411,5 +450,13 @@ fn proof_report_records_closure_and_defunctionalization_policies() {
     assert_eq!(
         report["policy"]["defunctionalization"].as_str(),
         Some("finite-enum-cases")
+    );
+    assert_eq!(
+        report["policy"]["recursive_data_layout"].as_str(),
+        Some("owned-box")
+    );
+    assert_eq!(
+        report["policy"]["coverage_dashboard"].as_str(),
+        Some("rust/coverage-dashboard.json")
     );
 }

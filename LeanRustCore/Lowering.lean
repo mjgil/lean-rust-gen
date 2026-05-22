@@ -22,6 +22,8 @@ def supportedRustType : RType → Bool
   | .prod a b => supportedRustType a && supportedRustType b
   | .sum a b => supportedRustType a && supportedRustType b
   | .func a b => supportedRustType a && supportedRustType b
+  | .boxed t => supportedRustType t
+  | .recursive _ => true
   | .subtype t => supportedRustType t
   | .fin _ => true
   | .vector t _ => supportedRustType t

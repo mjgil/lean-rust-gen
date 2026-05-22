@@ -75,6 +75,8 @@ inductive SurfaceExpr where
   | enumVariant : RType → String → List SurfaceExpr → SurfaceExpr
   | call : String → List RType → RType → List SurfaceExpr → SurfaceExpr
   | callValue : SurfaceExpr → RType → RType → SurfaceExpr → SurfaceExpr
+  | boxNew : RType → SurfaceExpr → SurfaceExpr
+  | boxDeref : RType → SurfaceExpr → SurfaceExpr
   | closureApply : String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | defaultValue : RType → SurfaceExpr
   | toStringValue : RType → SurfaceExpr → SurfaceExpr
@@ -160,18 +162,29 @@ private def rTypeLabel : RType → String
   | .prod a b => "Prod<" ++ rTypeLabel a ++ "," ++ rTypeLabel b ++ ">"
   | .sum a b => "Sum<" ++ rTypeLabel a ++ "," ++ rTypeLabel b ++ ">"
   | .func a b => "Fn<" ++ rTypeLabel a ++ "," ++ rTypeLabel b ++ ">"
+  | .boxed t => "Box<" ++ rTypeLabel t ++ ">"
+  | .recursive name => name
   | .subtype t => "Subtype<" ++ rTypeLabel t ++ ">"
   | .fin n => "Fin<" ++ toString n ++ ">"
   | .vector t n => "Vector<" ++ rTypeLabel t ++ "," ++ toString n ++ ">"
   | .struct name _ => name
   | .enum name _ => name
 
+private partial def sameRuntimeType : RType → RType → Bool
+  | .recursive a, .recursive b => a == b
+  | .recursive a, .enum b _ => a == b
+  | .enum a _, .recursive b => a == b
+  | .boxed a, .boxed b => sameRuntimeType a b
+  | .subtype a, b => sameRuntimeType a b
+  | a, .subtype b => sameRuntimeType a b
+  | a, b => a == b
+
 private def applyExpected (expected : Option RType) (actual : RType) : Except CompatibilityReport RType :=
   match expected with
   | none => pure actual
   | some wanted =>
-      if wanted == actual then
-        pure actual
+      if sameRuntimeType wanted actual then
+        pure wanted
       else
         throw (report .unsupportedType ("expected " ++ rTypeLabel wanted ++ " but found " ++ rTypeLabel actual))
 
@@ -190,6 +203,8 @@ private def isEqType : RType → Bool
   | .subtype t => isEqType t
   | .fin _ => true
   | .vector t _ => isEqType t
+  | .boxed t => isEqType t
+  | .recursive _ => true
   | .enum _ variants => variants.all (fun v => v.2.isEmpty)
   | _ => false
 
@@ -202,6 +217,7 @@ private def isOrderedType : RType → Bool
   | .i64 => true
   | .subtype t => isOrderedType t
   | .fin _ => true
+  | .recursive _ => true
   | _ => false
 
 private def isWrappingNumericType : RType → Bool
@@ -457,6 +473,12 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       discard <| typeOfExpected ctx fn (some (.func argTy retTy))
       discard <| typeOfExpected ctx arg (some argTy)
       applyExpected expected retTy
+  | .boxNew inner value => do
+      discard <| typeOfExpected ctx value (some inner)
+      applyExpected expected (.boxed inner)
+  | .boxDeref inner value => do
+      discard <| typeOfExpected ctx value (some (.boxed inner))
+      applyExpected expected inner
   | .closureApply binder argTy retTy arg body => do
       discard <| typeOfExpected ctx arg (some argTy)
       discard <| typeOfExpected ((binder, argTy) :: ctx) body (some retTy)
@@ -718,6 +740,7 @@ inductive SurfaceValue where
   | resultErr : SurfaceValue → SurfaceValue
   | structVal : String → List (String × SurfaceValue) → SurfaceValue
   | enumVal : String → String → List SurfaceValue → SurfaceValue
+  | boxed : SurfaceValue → SurfaceValue
   deriving Repr, BEq
 
 /-- A dynamic surface evaluator environment. -/
@@ -811,6 +834,8 @@ mutual
         match lookupVariant variants variant with
         | some payloadTypes => valueHasTypeList payload payloadTypes
         | none => false
+    | .enumVal name _ _, .recursive expectedName => name == expectedName
+    | .boxed value, .boxed expected => valueHasType value expected
     | value, .subtype expected => valueHasType value expected
     | .fin actualBound value, .fin expectedBound => actualBound == expectedBound && value < expectedBound
     | .u32 value, .fin bound => value < bound
@@ -857,6 +882,9 @@ private partial def defaultSurfaceValue (ty : RType) : Except CompatibilityRepor
   | .vector elem len => do
       let value ← defaultSurfaceValue elem
       pure (.list (List.replicate len value))
+  | .boxed inner => do
+      pure (.boxed (← defaultSurfaceValue inner))
+  | .recursive name => evalError .unsupportedType ("recursive type " ++ name ++ " has no synthesized default value")
   | .fin 0 => evalError .unsupportedType "Fin 0 has no inhabited runtime value"
   | .fin bound => pure (.u32 0)
   | .prod a b => do
@@ -1283,6 +1311,16 @@ mutual
                   evalError .unsupportedType ("surface call signature for `" ++ name ++ "` does not match the function environment")
     | .callValue _ _ _ _ =>
         evalError .unsupportedExpression "surface evaluator does not interpret higher-order function values in differential tests"
+    | .boxNew inner value => do
+        let evaluated ← evalSurfaceExprWithFuel fuel functions env value
+        assertValueType evaluated inner
+        pure (.boxed evaluated)
+    | .boxDeref inner value => do
+        match (← evalSurfaceExprWithFuel fuel functions env value) with
+        | .boxed innerValue => do
+            assertValueType innerValue inner
+            pure innerValue
+        | _ => evalError .unsupportedType "Box dereference target is not a boxed surface value"
     | .closureApply binder argTy retTy arg body => do
         let value ← evalSurfaceExprWithFuel fuel functions env arg
         assertValueType value argTy

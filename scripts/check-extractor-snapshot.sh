@@ -42,3 +42,8 @@ tmp_boundary="$(mktemp)"
 lake exe gen_boundary_exports "$tmp_boundary"
 diff -u rust/src/ffi_generated.rs "$tmp_boundary"
 rm -f "$tmp_boundary"
+
+tmp_coverage="$(mktemp)"
+lake exe gen_coverage_dashboard "$tmp_coverage"
+diff -u rust/coverage-dashboard.json "$tmp_coverage"
+rm -f "$tmp_coverage"

@@ -2,7 +2,7 @@
 
 A self-contained direct **Lean → Rust** workflow.
 
-This pass extends the direct Lean emits Rust implementation through the baseline validation work and the phase-0/1/2 large-subset slice: payload enum pattern matching, first-order call lowering, a SurfaceExpr evaluator, expanded differential tests, Rust hygiene, syn-backed parser validation, exact toolchain pins, automatic monomorphization, explicit Nat-to-u32 opt-in, extractor-owned surface artifacts, parameterized data, standard owned containers, transitive helper extraction, proof-binder erasure, dependent-shape/proof-field erasure, and limited function-pointer higher-order support, phase-3 target validation, phase-4 feature-gated raw ABI wrappers, and Sprint-3/6 general pattern/recursion lowering. The larger roadmap is in `docs/LARGE_SUBSET_PLAN.md`:
+This pass extends the direct Lean emits Rust implementation through the baseline validation work and the phase-0/1/2 large-subset slice: payload enum pattern matching, first-order call lowering, a SurfaceExpr evaluator, expanded differential tests, Rust hygiene, syn-backed parser validation, exact toolchain pins, automatic monomorphization, explicit Nat-to-u32 opt-in, extractor-owned surface artifacts, parameterized data, standard owned containers, transitive helper extraction, proof-binder erasure, dependent-shape/proof-field erasure, and limited function-pointer higher-order support, phase-3 target validation, phase-4 feature-gated raw ABI wrappers, Sprint-3/6 general pattern/recursion lowering, recursive user-data lowering with owned `Box<T>` payloads, and validation-v2 coverage-dashboard metadata. The larger roadmap is in `docs/LARGE_SUBSET_PLAN.md`:
 
 1. Export extraction accepts `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`,
    `Option`, `Except`, and closed inductive/structure types in addition to
@@ -54,6 +54,8 @@ This pass extends the direct Lean emits Rust implementation through the baseline
 27. Sprint-3/4 lowers tuple/product destructuring and general pattern examples to ordinary safe Rust `match` expressions.
 28. Sprint-5/6 adds `SurfaceExpr.listLength` for owned-List/Vec length lowering.
 29. Sprint-5/6 adds `SurfaceExpr.tailRecNat`, the first checked Nat accumulator tail-recursion loop lowering to safe Rust `while`.
+30. Known recursive index-free user inductives lower recursive fields through safe owned `Box<T>` payloads.
+31. `rust/coverage-dashboard.json` records validation-v2 feature-family coverage alongside `rust/target-validation.txt`.
 
 ## What is generated
 

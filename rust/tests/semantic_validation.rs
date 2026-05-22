@@ -93,6 +93,12 @@ fn target_validation_snapshot_records_phase_3_contract() {
             "FN\texcept_do_inc_u32",
             "FN\treader_add_env_u32",
             "FN\tstate_tick_u32",
+            "TYPE\tenum\tBinaryTreeU32",
+            "TYPE\tenum\tExprU32",
+            "FN\ttree_size_u32",
+            "FN\texpr_eval_u32",
+            "box(var(left))",
+            "deref(var(left))",
         ],
     );
 }

@@ -33,6 +33,8 @@ def rustType : RType → String
   | .prod a b => "(" ++ rustType a ++ ", " ++ rustType b ++ ")"
   | .sum a b => "Result<" ++ rustType b ++ ", " ++ rustType a ++ ">"
   | .func a b => "fn(" ++ rustType a ++ ") -> " ++ rustType b
+  | .boxed t => "Box<" ++ rustType t ++ ">"
+  | .recursive name => rustTypeIdent name
   | .subtype t => rustType t
   | .fin _ => "u32"
   | .vector t _ => "Vec<" ++ rustType t ++ ">"
@@ -139,6 +141,8 @@ private partial def emitDefaultValue : RType → String
   | .list _ => "Vec::new()"
   | .array _ => "Vec::new()"
   | .vector _ _ => "Vec::new()"
+  | .boxed inner => "Box::new(" ++ emitDefaultValue inner ++ ")"
+  | .recursive name => rustTypeIdent name ++ "::default()"
   | .fin bound => "{ let __lrc_fin: u32 = 0; assert!(__lrc_fin < " ++ toString bound ++ "); __lrc_fin }"
   | .subtype t => emitDefaultValue t
   | .prod a b => "(" ++ emitDefaultValue a ++ ", " ++ emitDefaultValue b ++ ")"
@@ -243,6 +247,10 @@ partial def emitSurfaceExpr : SurfaceExpr → String
       rustValueIdent "generated" name ++ "(" ++ joinWith ", " (args.map emitSurfaceExpr) ++ ")"
   | .callValue fn _ _ arg =>
       emitSurfaceExpr fn ++ "(" ++ emitSurfaceExpr arg ++ ")"
+  | .boxNew _ value =>
+      "Box::new(" ++ emitSurfaceExpr value ++ ")"
+  | .boxDeref _ value =>
+      "*(" ++ emitSurfaceExpr value ++ ")"
   | .closureApply binder _ _ arg body =>
       "{ let " ++ rustValueIdent "value" binder ++ " = " ++ emitSurfaceExpr arg ++ "; " ++ emitSurfaceExpr body ++ " }"
   | .defaultValue ty => emitDefaultValue ty
@@ -339,6 +347,8 @@ private partial def collectTypeStructs : RType → List SurfaceStruct
   | .prod a b => collectTypeStructs a ++ collectTypeStructs b
   | .sum a b => collectTypeStructs a ++ collectTypeStructs b
   | .func a b => collectTypeStructs a ++ collectTypeStructs b
+  | .boxed t => collectTypeStructs t
+  | .recursive _ => []
   | .subtype t => collectTypeStructs t
   | .fin _ => []
   | .vector t _ => collectTypeStructs t
@@ -356,6 +366,8 @@ private partial def collectTypeEnums : RType → List SurfaceEnum
   | .prod a b => collectTypeEnums a ++ collectTypeEnums b
   | .sum a b => collectTypeEnums a ++ collectTypeEnums b
   | .func a b => collectTypeEnums a ++ collectTypeEnums b
+  | .boxed t => collectTypeEnums t
+  | .recursive _ => []
   | .subtype t => collectTypeEnums t
   | .fin _ => []
   | .vector t _ => collectTypeEnums t
@@ -406,6 +418,8 @@ partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
   | .enumVariant ty _ payload => collectTypeStructs ty ++ concatLists (payload.map collectSurfaceStructs)
   | .call _ argTypes ret args => concatLists (argTypes.map collectTypeStructs) ++ collectTypeStructs ret ++ concatLists (args.map collectSurfaceStructs)
   | .callValue fn argTy retTy arg => collectSurfaceStructs fn ++ collectTypeStructs argTy ++ collectTypeStructs retTy ++ collectSurfaceStructs arg
+  | .boxNew inner value => collectTypeStructs inner ++ collectSurfaceStructs value
+  | .boxDeref inner value => collectTypeStructs inner ++ collectSurfaceStructs value
   | .closureApply _ argTy retTy arg body => collectTypeStructs argTy ++ collectTypeStructs retTy ++ collectSurfaceStructs arg ++ collectSurfaceStructs body
   | .defaultValue ty => collectTypeStructs ty
   | .toStringValue ty value => collectTypeStructs ty ++ collectSurfaceStructs value
@@ -491,6 +505,8 @@ partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .enumVariant ty _ payload => collectTypeEnums ty ++ concatLists (payload.map collectSurfaceEnums)
   | .call _ argTypes ret args => concatLists (argTypes.map collectTypeEnums) ++ collectTypeEnums ret ++ concatLists (args.map collectSurfaceEnums)
   | .callValue fn argTy retTy arg => collectSurfaceEnums fn ++ collectTypeEnums argTy ++ collectTypeEnums retTy ++ collectSurfaceEnums arg
+  | .boxNew inner value => collectTypeEnums inner ++ collectSurfaceEnums value
+  | .boxDeref inner value => collectTypeEnums inner ++ collectSurfaceEnums value
   | .closureApply _ argTy retTy arg body => collectTypeEnums argTy ++ collectTypeEnums retTy ++ collectSurfaceEnums arg ++ collectSurfaceEnums body
   | .defaultValue ty => collectTypeEnums ty
   | .toStringValue ty value => collectTypeEnums ty ++ collectSurfaceEnums value
@@ -576,6 +592,8 @@ partial def collectSurfaceCalls : SurfaceExpr → List String
   | .enumVariant _ _ payload => concatLists (payload.map collectSurfaceCalls)
   | .call name _ _ args => name :: concatLists (args.map collectSurfaceCalls)
   | .callValue fn _ _ arg => collectSurfaceCalls fn ++ collectSurfaceCalls arg
+  | .boxNew _ value => collectSurfaceCalls value
+  | .boxDeref _ value => collectSurfaceCalls value
   | .closureApply _ _ _ arg body => collectSurfaceCalls arg ++ collectSurfaceCalls body
   | .defaultValue _ => []
   | .toStringValue _ value => collectSurfaceCalls value

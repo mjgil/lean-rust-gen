@@ -3,6 +3,8 @@ import LeanRustCore.ChimeraBoundary
 import LeanRustCore.Toolchain
 import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport
+import LeanRustCore.RecursiveData
+import LeanRustCore.ValidationV2
 import LeanRustCore.Pattern
 import LeanRustCore.RecursionLowering
 import LeanRustCore.DependentErasure
@@ -60,6 +62,8 @@ def facts : List ProofFact := [
   { name := "limited_higher_order_function_pointer", statement := "unary function-typed arguments lower to Rust fn-pointer arguments and SurfaceExpr.callValue nodes" },
   { name := "closure_converted_environments", statement := LeanRustCore.ClosureConversion.closureConversionSummary },
   { name := "finite_defunctionalization", statement := LeanRustCore.Defunctionalization.defunctionalizationSummary },
+  { name := "recursive_box_owned_data_layout", statement := LeanRustCore.RecursiveData.recursiveDataSummary },
+  { name := "target_validation_v2_dashboard", statement := LeanRustCore.ValidationV2.validationV2Summary },
 
   { name := "std_library_lowering_table", statement := LeanRustCore.StdLowering.stdLoweringSummary },
   { name := "typeclass_specialization_policy", statement := LeanRustCore.TypeclassPolicy.typeclassPolicySummary },
@@ -104,7 +108,7 @@ def reportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
   "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.ValidationV2.coverageDashboardJson\", \"LeanRustCore.RecursiveData.recursiveDataSummary\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
@@ -117,7 +121,9 @@ def reportJson : String :=
   "    \"ffi_wrappers_feature_gated\": true,\n" ++
   "    \"closure_conversion\": \"explicit-environment-structs\",\n" ++
   "    \"defunctionalization\": \"finite-enum-cases\",\n" ++
-  "    \"dependent_shape_erasure\": \"Subtype/Fin/Vector/proof-field carriers\"\n" ++
+  "    \"dependent_shape_erasure\": \"Subtype/Fin/Vector/proof-field carriers\",\n" ++
+  "    \"recursive_data_layout\": \"owned-box\",\n" ++
+  "    \"coverage_dashboard\": \"rust/coverage-dashboard.json\"\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++
   joinWith ",\n" (facts.map factToJson) ++ "\n" ++

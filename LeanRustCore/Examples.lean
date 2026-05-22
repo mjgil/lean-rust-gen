@@ -42,6 +42,14 @@ inductive U32FnCase where
   | double
   | add (delta : UInt32)
 
+inductive BinaryTreeU32 where
+  | leaf
+  | node (left : BinaryTreeU32) (value : UInt32) (right : BinaryTreeU32)
+
+inductive ExprU32 where
+  | lit (value : UInt32)
+  | add (left : ExprU32) (right : ExprU32)
+
 structure Bounded_Proof where
   value : UInt32
   proof : value = value
@@ -343,6 +351,40 @@ def defun_apply_add5_u32 (x : UInt32) : UInt32 :=
 @[rust_export]
 def defun_map_selected_u32 (useDouble : Bool) (xs : List UInt32) : List UInt32 :=
   List.map (fun x => if useDouble then defun_apply_u32 .double x else defun_apply_u32 .inc x) xs
+
+@[rust_export]
+def tree_leaf_u32 (_x : Unit) : BinaryTreeU32 :=
+  BinaryTreeU32.leaf
+
+@[rust_export]
+def tree_node_u32 (left : BinaryTreeU32) (value : UInt32) (right : BinaryTreeU32) : BinaryTreeU32 :=
+  BinaryTreeU32.node left value right
+
+@[rust_export]
+def tree_size_u32 (t : BinaryTreeU32) : UInt32 :=
+  match t with
+  | BinaryTreeU32.leaf => 0
+  | BinaryTreeU32.node left _value right => tree_size_u32 left + 1 + tree_size_u32 right
+
+@[rust_export]
+def tree_sum_u32 (t : BinaryTreeU32) : UInt32 :=
+  match t with
+  | BinaryTreeU32.leaf => 0
+  | BinaryTreeU32.node left value right => tree_sum_u32 left + value + tree_sum_u32 right
+
+@[rust_export]
+def expr_lit_u32 (value : UInt32) : ExprU32 :=
+  ExprU32.lit value
+
+@[rust_export]
+def expr_add_u32 (left right : ExprU32) : ExprU32 :=
+  ExprU32.add left right
+
+@[rust_export]
+def expr_eval_u32 (e : ExprU32) : UInt32 :=
+  match e with
+  | ExprU32.lit value => value
+  | ExprU32.add left right => expr_eval_u32 left + expr_eval_u32 right
 
 @[rust_export]
 def echo_prod_u32 (x : UInt32 × UInt32) : UInt32 × UInt32 :=
