@@ -14,6 +14,8 @@ inductive RType where
   | unit
   | bool
   | ordering
+  | nat
+  | int
   | u32
   | u64
   | i32
@@ -32,14 +34,16 @@ inductive RType where
   | result : RType → RType → RType
   | struct : String → List (String × RType) → RType
   | enum : String → List (String × List RType) → RType
-  deriving Repr, BEq, DecidableEq
+  deriving Repr, BEq
 
 /-- Denotational meaning of an IR type inside Lean. -/
 def Denote : RType → Type
   | .unit => Unit
   | .bool => Bool
-  | .u32 => Nat
   | .ordering => Ordering
+  | .nat => Nat
+  | .int => Int
+  | .u32 => Nat
   | .u64 => Nat
   | .i32 => Int
   | .i64 => Int
@@ -82,35 +86,35 @@ def u64WrappingSub (a b : Nat) : Nat :=
 A typed expression tree. Variables carry both a printed Rust name and a Lean
 projection from the function argument context.
 -/
-inductive RExpr (ctx : Type) : RType → Type where
-  | var {t : RType} : String → (ctx → Denote t) → RExpr ctx t
-  | litUnit : RExpr ctx .unit
-  | litBool : Bool → RExpr ctx .bool
-  | litU32 : Nat → RExpr ctx .u32
-  | litU64 : Nat → RExpr ctx .u64
-  | litI32 : Int → RExpr ctx .i32
-  | litI64 : Int → RExpr ctx .i64
-  | letIn {a b : RType} : String → RExpr ctx a → RExpr (Denote a × ctx) b → RExpr ctx b
-  | ite {t : RType} : RExpr ctx .bool → RExpr ctx t → RExpr ctx t → RExpr ctx t
-  | matchBool {t : RType} : RExpr ctx .bool → RExpr ctx t → RExpr ctx t → RExpr ctx t
-  | matchOption {a b : RType} : RExpr ctx (.option a) → RExpr ctx b → RExpr (Denote a × ctx) b → RExpr ctx b
-  | not : RExpr ctx .bool → RExpr ctx .bool
-  | and : RExpr ctx .bool → RExpr ctx .bool → RExpr ctx .bool
-  | or : RExpr ctx .bool → RExpr ctx .bool → RExpr ctx .bool
-  | eqU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
-  | ltU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
-  | leU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
-  | gtU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
-  | geU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
-  | addU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
-  | subU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
-  | mulU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
-  | minU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
-  | maxU32 : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
-  | optionNone {t : RType} : RExpr ctx (.option t)
-  | optionSome {t : RType} : RExpr ctx t → RExpr ctx (.option t)
-  | resultOk {ok err : RType} : RExpr ctx ok → RExpr ctx (.result ok err)
-  | resultErr {ok err : RType} : RExpr ctx err → RExpr ctx (.result ok err)
+inductive RExpr : Type → RType → Type 2 where
+  | var {ctx : Type} {t : RType} : String → (ctx → Denote t) → RExpr ctx t
+  | litUnit {ctx : Type} : RExpr ctx .unit
+  | litBool {ctx : Type} : Bool → RExpr ctx .bool
+  | litU32 {ctx : Type} : Nat → RExpr ctx .u32
+  | litU64 {ctx : Type} : Nat → RExpr ctx .u64
+  | litI32 {ctx : Type} : Int → RExpr ctx .i32
+  | litI64 {ctx : Type} : Int → RExpr ctx .i64
+  | letIn {ctx : Type} {a b : RType} : String → RExpr ctx a → RExpr (Denote a × ctx) b → RExpr ctx b
+  | ite {ctx : Type} {t : RType} : RExpr ctx .bool → RExpr ctx t → RExpr ctx t → RExpr ctx t
+  | matchBool {ctx : Type} {t : RType} : RExpr ctx .bool → RExpr ctx t → RExpr ctx t → RExpr ctx t
+  | matchOption {ctx : Type} {a b : RType} : RExpr ctx (.option a) → RExpr ctx b → RExpr (Denote a × ctx) b → RExpr ctx b
+  | not {ctx : Type} : RExpr ctx .bool → RExpr ctx .bool
+  | and {ctx : Type} : RExpr ctx .bool → RExpr ctx .bool → RExpr ctx .bool
+  | or {ctx : Type} : RExpr ctx .bool → RExpr ctx .bool → RExpr ctx .bool
+  | eqU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | ltU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | leU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | gtU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | geU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .bool
+  | addU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | subU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | mulU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | minU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | maxU32 {ctx : Type} : RExpr ctx .u32 → RExpr ctx .u32 → RExpr ctx .u32
+  | optionNone {ctx : Type} {t : RType} : RExpr ctx (.option t)
+  | optionSome {ctx : Type} {t : RType} : RExpr ctx t → RExpr ctx (.option t)
+  | resultOk {ctx : Type} {ok err : RType} : RExpr ctx ok → RExpr ctx (.result ok err)
+  | resultErr {ctx : Type} {ok err : RType} : RExpr ctx err → RExpr ctx (.result ok err)
 
 /-- Interpret an IR expression in Lean. -/
 def eval {ctx : Type} : {t : RType} → RExpr ctx t → ctx → Denote t
@@ -122,25 +126,71 @@ def eval {ctx : Type} : {t : RType} → RExpr ctx t → ctx → Denote t
   | _, .litI32 n, _ => n
   | _, .litI64 n, _ => n
   | _, .letIn _ value body, env => eval body (eval value env, env)
-  | _, .ite c a b, env => if eval c env then eval a env else eval b env
-  | _, .matchBool c whenTrue whenFalse, env => if eval c env then eval whenTrue env else eval whenFalse env
+  | _, .ite c a b, env =>
+      let cond : Bool := eval c env
+      match cond with
+      | true => eval a env
+      | false => eval b env
+  | _, .matchBool c whenTrue whenFalse, env =>
+      let cond : Bool := eval c env
+      match cond with
+      | true => eval whenTrue env
+      | false => eval whenFalse env
   | _, .matchOption target noneCase someCase, env =>
       match eval target env with
       | none => eval noneCase env
       | some value => eval someCase (value, env)
-  | _, .not a, env => !(eval a env)
-  | _, .and a b, env => (eval a env) && (eval b env)
-  | _, .or a b, env => (eval a env) || (eval b env)
-  | _, .eqU32 a b, env => decide (eval a env = eval b env)
-  | _, .ltU32 a b, env => decide (eval a env < eval b env)
-  | _, .leU32 a b, env => decide (eval a env ≤ eval b env)
-  | _, .gtU32 a b, env => decide (eval a env > eval b env)
-  | _, .geU32 a b, env => decide (eval a env ≥ eval b env)
-  | _, .addU32 a b, env => u32Wrap (eval a env + eval b env)
-  | _, .subU32 a b, env => u32WrappingSub (eval a env) (eval b env)
-  | _, .mulU32 a b, env => u32Wrap (eval a env * eval b env)
-  | _, .minU32 a b, env => if decide (eval a env < eval b env) then eval a env else eval b env
-  | _, .maxU32 a b, env => if decide (eval a env < eval b env) then eval b env else eval a env
+  | _, .not a, env =>
+      let value : Bool := eval a env
+      !value
+  | _, .and a b, env =>
+      let av : Bool := eval a env
+      let bv : Bool := eval b env
+      av && bv
+  | _, .or a b, env =>
+      let av : Bool := eval a env
+      let bv : Bool := eval b env
+      av || bv
+  | _, .eqU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      decide (av = bv)
+  | _, .ltU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      decide (av < bv)
+  | _, .leU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      decide (av ≤ bv)
+  | _, .gtU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      decide (av > bv)
+  | _, .geU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      decide (av ≥ bv)
+  | _, .addU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      u32Wrap (av + bv)
+  | _, .subU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      u32WrappingSub av bv
+  | _, .mulU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      u32Wrap (av * bv)
+  | _, .minU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      if decide (av < bv) then av else bv
+  | _, .maxU32 a b, env =>
+      let av : Nat := eval a env
+      let bv : Nat := eval b env
+      if decide (av < bv) then bv else av
   | _, .optionNone, _ => none
   | _, .optionSome a, env => some (eval a env)
   | _, .resultOk a, env => Except.ok (eval a env)
@@ -163,7 +213,7 @@ structure RFun where
 
 /-- Evaluate a packaged function against its Lean context. -/
 def RFun.eval (f : RFun) (env : f.Ctx) : Denote f.ret :=
-  eval f.body env
+  LeanRustCore.eval f.body env
 
 /-- Simple compatibility summary used by the lowering/checking layer. -/
 inductive CompatibilityCode where
@@ -172,11 +222,11 @@ inductive CompatibilityCode where
   | unsupportedExpression
   | unsupportedBoundary
   | unsupportedDeclaration
-  deriving Repr, BEq, DecidableEq
+  deriving Repr, BEq, DecidableEq, Inhabited
 
 structure CompatibilityReport where
   code : CompatibilityCode
   detail : String
-  deriving Repr, BEq
+  deriving Repr, BEq, Inhabited
 
 end LeanRustCore

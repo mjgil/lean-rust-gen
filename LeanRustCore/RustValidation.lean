@@ -4,8 +4,11 @@ import LeanRustCore.RecursionPolicy
 import LeanRustCore.Toolchain
 import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport
-
 import LeanRustCore.ClosureConversion
+import LeanRustCore.Pattern
+import LeanRustCore.RecursionLowering
+import LeanRustCore.TypeclassPolicy
+import LeanRustCore.ExtractIR
 namespace LeanRustCore.RustValidation
 
 open LeanRustCore
@@ -95,7 +98,13 @@ def requiredFunctionNames : List String := [
   "helper_chain_u32",
   "auto_identity_u32",
   "auto_choose_point",
-  "auto_option_default_step"
+  "auto_option_default_step",
+  "general_bool_match_u32",
+  "general_option_match_u32",
+  "general_step_match_u32",
+  "pair_sum_match_u32",
+  "list_length_u32",
+  "tail_sum_down_u32"
 ]
 
 /-- Declarations that should exist before generated functions. -/
@@ -139,6 +148,16 @@ def checks : List ValidationCheck := [
     name := "payload-enum-match-lowering",
     status := "passed",
     detail := "payload enum matches lower through checked branch binders and Rust variant patterns"
+  },
+  {
+    name := "general-pattern-compiler",
+    status := "passed",
+    detail := "Sprint-3/4 SurfacePattern and SurfaceExpr.matchPattern lower Bool, Option, Prod, and constructor patterns through a checked general match node before Rust emission"
+  },
+  {
+    name := "constructor-pattern-rust-emission",
+    status := "passed",
+    detail := "general constructor patterns emit ordinary safe Rust match arms, including tuple patterns and enum payload binders"
   },
   {
     name := "first-order-call-lowering",
@@ -191,9 +210,44 @@ def checks : List ValidationCheck := [
     detail := "Char, String, List, Array, Prod, Sum, and unary function types are represented in RType and lowered to safe Rust type shapes for supported bodies"
   },
   {
+    name := "standard-combinator-lowering",
+    status := "passed",
+    detail := "recognized List.map/filter/foldl/foldr/any/all, Array.map/foldl, Option.map/bind, and Except.map/bind shapes lower to checked SurfaceExpr nodes"
+  },
+  {
     name := "structural-recursion-lowering",
     status := "passed",
-    detail := "recognized List.map, List.foldl, and Nat.rec shapes lower to explicit safe Rust loop-shaped SurfaceExpr nodes with evaluator and target-validation fingerprints"
+    detail := "recognized List folds and Nat.rec accumulator shapes lower to explicit safe Rust loop-shaped SurfaceExpr nodes with evaluator and target-validation fingerprints"
+  },
+  {
+    name := "tail-recursion-loop-lowering",
+    status := "passed",
+    detail := "Sprint-5/6 recognized Nat accumulator tail recursion lowers to a safe Rust while loop with explicit evaluator fuel accounting"
+  },
+  {
+    name := "list-length-structural-lowering",
+    status := "passed",
+    detail := "List.length over the owned List/Vec slice lowers to a checked structural list-length SurfaceExpr node and safe Rust len() cast"
+  },
+  {
+    name := "dependent-shape-erasure",
+    status := "passed",
+    detail := "Subtype, Fin, and Vector runtime shapes erase to safe Rust values with checked SurfaceExpr constructors available for Fin and Vector boundaries"
+  },
+  {
+    name := "exact-integer-modes",
+    status := "passed",
+    detail := "@[rust_nat_exact] and @[rust_int_exact] lower Lean Nat/Int boundaries to num_bigint::BigUint/BigInt instead of fixed-width wrapping integers"
+  },
+  {
+    name := "captured-closure-conversion",
+    status := "passed",
+    detail := "captured lambdas in recognized structural combinators are converted into loop bodies whose environments are ordinary Rust locals"
+  },
+  {
+    name := "typeclass-dictionary-erasure",
+    status := "passed",
+    detail := LeanRustCore.TypeclassPolicy.typeclassPolicySummary
   },
   {
     name := "transitive-helper-extraction",
@@ -218,7 +272,7 @@ def checks : List ValidationCheck := [
   {
     name := "limited-higher-order-function-pointer",
     status := "passed",
-    detail := "unary no-capture function-typed arguments lower to safe Rust fn-pointer arguments and SurfaceExpr.callValue nodes; immediate captured lambdas lower through closure-conversion nodes"
+    detail := "unary function-typed arguments lower to safe Rust fn-pointer arguments and SurfaceExpr.callValue nodes; closures remain a future closure-conversion layer"
   },
 
   {
@@ -230,6 +284,11 @@ def checks : List ValidationCheck := [
     name := "target-validation-snapshot",
     status := "passed",
     detail := "rust/target-validation.txt records the Lean-side SurfaceExpr fingerprints, Rust-facing declarations, and function signatures used by target validation"
+  },
+  {
+    name := "target-fingerprint-interpreter",
+    status := "passed",
+    detail := "rust/tests/target_interpreter.rs executes selected Lean-generated target fingerprints and compares them with compiled generated Rust functions"
   },
   {
     name := "property-differential-seeds",

@@ -1,4 +1,5 @@
 use lean_rust_core_generated::*;
+use num_bigint::{BigInt, BigUint};
 
 #[test]
 fn clamp_handles_low_high_and_middle() {
@@ -54,23 +55,39 @@ fn standard_container_shapes_round_trip() {
 }
 
 #[test]
-fn broader_typeclass_specialization_lowers() {
-    assert!(decidable_eq_u32(7, 7));
-    assert!(!decidable_eq_u32(7, 8));
-    assert_eq!(inhabited_default_u32(()), 0);
-    assert_eq!(ord_compare_u32(1, 2), Ordering::Lt);
-    assert_eq!(ord_compare_u32(2, 2), Ordering::Eq);
-    assert_eq!(ord_compare_u32(3, 2), Ordering::Gt);
-    assert_eq!(to_string_u32(42), String::from("42"));
-    assert_eq!(repr_u32(42), String::from("42"));
-    assert_eq!(option_do_inc_u32(Some(41)), Some(42));
-    assert_eq!(option_do_inc_u32(None), None);
+fn captured_lambda_list_map_lowers_to_loop_body() {
+    assert_eq!(list_map_add_capture_u32(5, vec![1, u32::MAX]), vec![6, 4]);
 }
 
 #[test]
-fn immediate_captured_closure_application_lowers() {
+fn exact_nat_and_int_modes_use_bigints() {
+    assert_eq!(
+        exact_nat_add(BigUint::from(u64::MAX), BigUint::from(1u32)),
+        BigUint::from(u64::MAX) + BigUint::from(1u32)
+    );
+    assert_eq!(
+        exact_nat_mul(BigUint::from(7u32), BigUint::from(6u32)),
+        BigUint::from(42u32)
+    );
+    assert_eq!(
+        exact_int_add(BigInt::from(-7i32), BigInt::from(5i32)),
+        BigInt::from(-2i32)
+    );
+}
+
+#[test]
+fn typeclass_and_closure_specializations_lower() {
+    assert!(decidable_eq_u32(7, 7));
+    assert!(!decidable_eq_u32(7, 8));
+    assert_eq!(inhabited_default_u32(()), 0);
+    assert_eq!(to_string_u32(42), String::from("42"));
+    assert_eq!(repr_u32(42), String::from("42"));
+    assert_eq!(ord_compare_u32(1, 2), Ordering::Lt);
+    assert_eq!(ord_compare_u32(2, 2), Ordering::Eq);
+    assert_eq!(ord_compare_u32(3, 2), Ordering::Gt);
+    assert_eq!(option_do_inc_u32(Some(41)), Some(42));
+    assert_eq!(option_do_inc_u32(None), None);
     assert_eq!(closure_apply_capture_u32(5, 37), 42);
-    assert_eq!(closure_apply_capture_u32(1, u32::MAX), 0);
 }
 
 #[test]
@@ -82,6 +99,10 @@ fn bool_and_option_matches_lower() {
     assert_eq!(some_u32(4), Some(4));
     assert_eq!(option_default_u32(None, 8), 8);
     assert_eq!(option_default_u32(Some(3), 8), 3);
+    assert_eq!(general_bool_match_u32(true, 9, 20), 10);
+    assert_eq!(general_bool_match_u32(false, 9, 20), 21);
+    assert_eq!(general_option_match_u32(None, 8), 8);
+    assert_eq!(general_option_match_u32(Some(41), 8), 42);
 }
 
 #[test]
@@ -130,6 +151,17 @@ fn payload_enum_matches_bind_variant_fields() {
     assert_eq!(step_amount_or(Step::Jump(12), 99), 12);
     assert_eq!(step_amount_plus_one_or(Step::Stay, 7), 7);
     assert_eq!(step_amount_plus_one_or(Step::Jump(u32::MAX), 7), 0);
+    assert_eq!(general_step_match_u32(Step::Stay, 7), 7);
+    assert_eq!(general_step_match_u32(Step::Jump(u32::MAX), 7), 0);
+}
+
+#[test]
+fn general_pattern_and_recursion_lowering_work() {
+    assert_eq!(pair_sum_match_u32(40, 2), 42);
+    assert_eq!(list_length_u32(vec![]), 0);
+    assert_eq!(list_length_u32(vec![1, 2, 3]), 3);
+    assert_eq!(tail_sum_down_u32(0), 0);
+    assert_eq!(tail_sum_down_u32(5), 15);
 }
 
 #[test]
@@ -177,6 +209,8 @@ fn concrete_generic_instantiations_are_emitted() {
     assert_eq!(choose_generic_u32(false, 10, 20), 20);
     assert_eq!(option_default_u64(None, 77), 77);
     assert_eq!(option_default_u64(Some(55), 77), 55);
+    assert!(generic_beq_u32(7, 7));
+    assert!(!generic_beq_u32(7, 8));
 }
 
 #[test]

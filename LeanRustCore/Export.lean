@@ -17,16 +17,30 @@ that policy explicit.
 initialize rustNatWrappingU32Attr : TagAttribute ←
   registerTagAttribute `rust_nat_wrapping_u32 "allow this rust_export declaration to lower Nat boundaries to wrapping Rust u32"
 
+/-- Opt-in marker lowering Lean `Nat` with exact mathematical semantics. -/
+initialize rustNatExactAttr : TagAttribute ←
+  registerTagAttribute `rust_nat_exact "allow this rust_export declaration to lower Nat boundaries to exact Rust BigUint values"
+
+/-- Opt-in marker lowering Lean `Int` with exact mathematical semantics. -/
+initialize rustIntExactAttr : TagAttribute ←
+  registerTagAttribute `rust_int_exact "allow this rust_export declaration to lower Int boundaries to exact Rust BigInt values"
+
 /-- Exported declaration names in deterministic environment order. -/
 def exportedNames (env : Environment) : List Name :=
-  rustExportAttr.getTagged env |>.toList
-
-private def containsTaggedName (declName : Name) : List Name → Bool
-  | [] => false
-  | tagged :: rest => tagged == declName || containsTaggedName declName rest
+  let tagged := rustExportAttr.ext.getState env
+  let names := tagged.fold (fun acc declName => acc.push declName) #[]
+  names.qsort Name.quickLt |>.toList
 
 /-- Whether an exported declaration has opted into `Nat` → wrapping `u32`. -/
 def natWrappingU32Allowed (env : Environment) (decl : Name) : Bool :=
-  containsTaggedName decl (rustNatWrappingU32Attr.getTagged env |>.toList)
+  rustNatWrappingU32Attr.hasTag env decl
+
+/-- Whether an exported declaration has opted into exact `Nat` lowering. -/
+def natExactAllowed (env : Environment) (decl : Name) : Bool :=
+  rustNatExactAttr.hasTag env decl
+
+/-- Whether an exported declaration has opted into exact `Int` lowering. -/
+def intExactAllowed (env : Environment) (decl : Name) : Bool :=
+  rustIntExactAttr.hasTag env decl
 
 end LeanRustCore.Export

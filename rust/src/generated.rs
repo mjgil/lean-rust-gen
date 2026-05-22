@@ -80,7 +80,99 @@ pub fn list_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
 }
 
 pub fn list_fold_sum_u32(xs: Vec<u32>) -> u32 {
-    { let mut acc = 0; for x in xs { acc = (acc).wrapping_add(x); } acc }
+    { let mut acc: u32 = 0; for x in xs { acc = (acc).wrapping_add(x); } acc }
+}
+
+pub fn list_map_add_capture_u32(delta: u32, xs: Vec<u32>) -> Vec<u32> {
+    { let mut __lrc_out = Vec::new(); for x in xs { __lrc_out.push((x).wrapping_add(delta)); } __lrc_out }
+}
+
+pub fn list_filter_nonzero_u32(xs: Vec<u32>) -> Vec<u32> {
+    { let mut __lrc_out = Vec::new(); for x in xs { if 0 < x { __lrc_out.push(x); } } __lrc_out }
+}
+
+pub fn list_foldr_sum_u32(xs: Vec<u32>) -> u32 {
+    { let mut acc: u32 = 0; for x in (xs).into_iter().rev() { acc = (x).wrapping_add(acc); } acc }
+}
+
+pub fn list_any_nonzero_u32(xs: Vec<u32>) -> bool {
+    { let mut __lrc_any = false; for x in xs { if 0 < x { __lrc_any = true; break; } } __lrc_any }
+}
+
+pub fn list_all_nonzero_u32(xs: Vec<u32>) -> bool {
+    { let mut __lrc_all = true; for x in xs { if !(0 < x) { __lrc_all = false; break; } } __lrc_all }
+}
+
+pub fn array_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
+    { let mut __lrc_out = Vec::new(); for x in xs { __lrc_out.push((x).wrapping_add(1)); } __lrc_out }
+}
+
+pub fn array_fold_sum_u32(xs: Vec<u32>) -> u32 {
+    { let mut acc: u32 = 0; for x in xs { acc = (acc).wrapping_add(x); } acc }
+}
+
+pub fn option_map_inc_u32(x: Option<u32>) -> Option<u32> {
+    match x { None => None::<u32>, Some(y) => Some((y).wrapping_add(1)) }
+}
+
+pub fn option_bind_inc_u32(x: Option<u32>) -> Option<u32> {
+    match x { None => None::<u32>, Some(y) => Some((y).wrapping_add(1)) }
+}
+
+pub fn result_bind_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x { Err(__lrc_err) => Err::<_, u32>(__lrc_err), Ok(y) => Ok((y).wrapping_add(1)) }
+}
+
+pub fn nat_sum_to_u32(n: u32) -> u32 {
+    { let mut acc: u32 = 0; for k in 0..(n) { acc = (acc).wrapping_add(k); } acc }
+}
+
+pub fn subtype_val_u32(x: u32) -> u32 {
+    x
+}
+
+pub fn fin_val10_u32(i: u32) -> u32 {
+    i
+}
+
+pub fn vector_echo3_u32(xs: Vec<u32>) -> Vec<u32> {
+    xs
+}
+
+pub fn general_bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
+    match flag { true => (when_true).wrapping_add(1), false => (when_false).wrapping_add(1) }
+}
+
+pub fn general_option_match_u32(x: Option<u32>, fallback: u32) -> u32 {
+    match x { None => fallback, Some(value) => (value).wrapping_add(1) }
+}
+
+pub fn general_step_match_u32(s: Step, fallback: u32) -> u32 {
+    match s { Step::Stay => fallback, Step::Jump(amount) => (amount).wrapping_add(1) }
+}
+
+pub fn pair_sum_match_u32(a: u32, b: u32) -> u32 {
+    match (a, b) { (x, y) => (x).wrapping_add(y) }
+}
+
+pub fn list_length_u32(xs: Vec<u32>) -> u32 {
+    (xs).len() as u32
+}
+
+pub fn tail_sum_down_u32(n: u32) -> u32 {
+    { let mut k = n; let mut acc: u32 = 0; while k != 0 { acc = (acc).wrapping_add(k); k = (k).wrapping_sub(1); } acc }
+}
+
+pub fn exact_nat_add(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint {
+    (&(a)) + (&(b))
+}
+
+pub fn exact_nat_mul(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint {
+    (&(a)) * (&(b))
+}
+
+pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt {
+    (&(a)) + (&(b))
 }
 
 
@@ -105,7 +197,7 @@ pub fn ord_compare_u32(a: u32, b: u32) -> Ordering {
 }
 
 pub fn option_do_inc_u32(x: Option<u32>) -> Option<u32> {
-    match x { None => None, Some(v) => Some((v).wrapping_add(1)) }
+    match x { None => None::<u32>, Some(v) => Some((v).wrapping_add(1)) }
 }
 
 pub fn closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
@@ -115,58 +207,6 @@ pub fn closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
 pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32) {
     x
 }
-pub fn list_filter_nonzero_u32(xs: Vec<u32>) -> Vec<u32> {
-    { let mut __lrc_out = Vec::new(); for x in xs { if 0 < x { __lrc_out.push(x); } } __lrc_out }
-}
-
-pub fn list_foldr_sum_u32(xs: Vec<u32>) -> u32 {
-    { let mut acc = 0; for x in (xs).into_iter().rev() { acc = (x).wrapping_add(acc); } acc }
-}
-
-pub fn list_any_nonzero_u32(xs: Vec<u32>) -> bool {
-    { let mut __lrc_any = false; for x in xs { if 0 < x { __lrc_any = true; break; } } __lrc_any }
-}
-
-pub fn list_all_nonzero_u32(xs: Vec<u32>) -> bool {
-    { let mut __lrc_all = true; for x in xs { if !(0 < x) { __lrc_all = false; break; } } __lrc_all }
-}
-
-pub fn array_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
-    { let mut __lrc_out = Vec::new(); for x in xs { __lrc_out.push((x).wrapping_add(1)); } __lrc_out }
-}
-
-pub fn array_fold_sum_u32(xs: Vec<u32>) -> u32 {
-    { let mut acc = 0; for x in xs { acc = (acc).wrapping_add(x); } acc }
-}
-
-pub fn option_map_inc_u32(x: Option<u32>) -> Option<u32> {
-    match x { None => None::<u32>, Some(y) => Some((y).wrapping_add(1)) }
-}
-
-pub fn option_bind_inc_u32(x: Option<u32>) -> Option<u32> {
-    match x { None => None::<u32>, Some(y) => Some((y).wrapping_add(1)) }
-}
-
-pub fn result_bind_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
-    match x { Err(__lrc_err) => Err::<_, u32>(__lrc_err), Ok(y) => Ok((y).wrapping_add(1)) }
-}
-
-pub fn nat_sum_to_u32(n: u32) -> u32 {
-    { let mut acc = 0; for k in 0..(n) { acc = (acc).wrapping_add(k); } acc }
-}
-
-pub fn subtype_val_u32(x: u32) -> u32 {
-    x
-}
-
-pub fn fin_val10_u32(i: u32) -> u32 {
-    i
-}
-
-pub fn vector_echo3_u32(xs: Vec<u32>) -> Vec<u32> {
-    xs
-}
-
 
 pub fn echo_sum_u32(x: Result<u32, u32>) -> Result<u32, u32> {
     x
@@ -302,6 +342,10 @@ pub fn choose_generic_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
 
 pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64 {
     match x { None => fallback, Some(value) => value }
+}
+
+pub fn generic_beq_u32(a: u32, b: u32) -> bool {
+    a == b
 }
 
 pub fn generic_identity__u32(x: u32) -> u32 {

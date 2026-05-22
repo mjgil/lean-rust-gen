@@ -20,10 +20,25 @@ structure SurfaceEnum where
   variants : List (String × List RType)
   deriving Repr, BEq
 
+/-- General pattern tree for the Sprint-3/4 constructor-pattern compiler.
+Patterns are checked against a known scrutinee type before Rust emission. -/
+inductive SurfacePattern where
+  | wildcard : SurfacePattern
+  | var : String → SurfacePattern
+  | unit : SurfacePattern
+  | bool : Bool → SurfacePattern
+  | optionNone : SurfacePattern
+  | optionSome : SurfacePattern → SurfacePattern
+  | enumCtor : String → List SurfacePattern → SurfacePattern
+  | prod : SurfacePattern → SurfacePattern → SurfacePattern
+  deriving Repr, BEq
+
 inductive SurfaceExpr where
   | var : String → SurfaceExpr
   | litUnit : SurfaceExpr
   | litBool : Bool → SurfaceExpr
+  | litNat : Nat → SurfaceExpr
+  | litInt : Int → SurfaceExpr
   | litU32 : Nat → SurfaceExpr
   | litU64 : Nat → SurfaceExpr
   | litI32 : Int → SurfaceExpr
@@ -35,6 +50,7 @@ inductive SurfaceExpr where
   | matchBool : SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | matchOption : SurfaceExpr → SurfaceExpr → String → SurfaceExpr → SurfaceExpr
   | matchEnum : RType → SurfaceExpr → List (String × (List String × SurfaceExpr)) → SurfaceExpr
+  | matchPattern : RType → SurfaceExpr → List (SurfacePattern × SurfaceExpr) → SurfaceExpr
   | not : SurfaceExpr → SurfaceExpr
   | and : SurfaceExpr → SurfaceExpr → SurfaceExpr
   | or : SurfaceExpr → SurfaceExpr → SurfaceExpr
@@ -53,6 +69,7 @@ inductive SurfaceExpr where
   | optionSome : SurfaceExpr → SurfaceExpr
   | resultOk : RType → SurfaceExpr → SurfaceExpr
   | resultErr : RType → SurfaceExpr → SurfaceExpr
+  | prodLit : SurfaceExpr → SurfaceExpr → SurfaceExpr
   | structLit : RType → List (String × SurfaceExpr) → SurfaceExpr
   | field : SurfaceExpr → String → SurfaceExpr
   | enumVariant : RType → String → List SurfaceExpr → SurfaceExpr
@@ -79,7 +96,9 @@ inductive SurfaceExpr where
   | finCheck : Nat → SurfaceExpr → SurfaceExpr
   | finVal : Nat → SurfaceExpr → SurfaceExpr
   | vectorCheck : RType → Nat → SurfaceExpr → SurfaceExpr
+  | listLength : RType → SurfaceExpr → SurfaceExpr
   | natFold : String → String → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | tailRecNat : String → String → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
   deriving Repr, BEq
 
 /-- A checked extracted function, before packaging into proof-carrying `RFun`s. -/
@@ -118,11 +137,13 @@ private def containsString : List String → String → Bool
 
 private def report (code : CompatibilityCode) (detail : String) : CompatibilityReport :=
   { code := code, detail := detail }
-  | .ordering => "Ordering"
 
 private def rTypeLabel : RType → String
   | .unit => "unit"
   | .bool => "bool"
+  | .ordering => "Ordering"
+  | .nat => "Nat"
+  | .int => "Int"
   | .u32 => "u32"
   | .u64 => "u64"
   | .i32 => "i32"
@@ -137,8 +158,8 @@ private def rTypeLabel : RType → String
   | .sum a b => "Sum<" ++ rTypeLabel a ++ "," ++ rTypeLabel b ++ ">"
   | .func a b => "Fn<" ++ rTypeLabel a ++ "," ++ rTypeLabel b ++ ">"
   | .subtype t => "Subtype<" ++ rTypeLabel t ++ ">"
-  | .fin n => "Fin<" ++ Nat.toString n ++ ">"
-  | .vector t n => "Vector<" ++ rTypeLabel t ++ "," ++ Nat.toString n ++ ">"
+  | .fin n => "Fin<" ++ toString n ++ ">"
+  | .vector t n => "Vector<" ++ rTypeLabel t ++ "," ++ toString n ++ ">"
   | .struct name _ => name
   | .enum name _ => name
 
@@ -151,10 +172,12 @@ private def applyExpected (expected : Option RType) (actual : RType) : Except Co
       else
         throw (report .unsupportedType ("expected " ++ rTypeLabel wanted ++ " but found " ++ rTypeLabel actual))
 
-  | .ordering => true
 private def isEqType : RType → Bool
   | .unit => true
   | .bool => true
+  | .ordering => true
+  | .nat => true
+  | .int => true
   | .u32 => true
   | .u64 => true
   | .i32 => true
@@ -168,6 +191,8 @@ private def isEqType : RType → Bool
   | _ => false
 
 private def isOrderedType : RType → Bool
+  | .nat => true
+  | .int => true
   | .u32 => true
   | .u64 => true
   | .i32 => true
@@ -177,6 +202,8 @@ private def isOrderedType : RType → Bool
   | _ => false
 
 private def isWrappingNumericType : RType → Bool
+  | .nat => true
+  | .int => true
   | .u32 => true
   | .u64 => true
   | .i32 => true
@@ -199,6 +226,79 @@ private def allEnumVariantsAreNullary : List (String × List RType) → Bool
   | [] => true
   | (_, payload) :: rest => payload.isEmpty && allEnumVariantsAreNullary rest
 
+private partial def patternBinders (pat : SurfacePattern) (ty : RType) : Except CompatibilityReport (List RArg) :=
+  match pat, ty with
+  | .wildcard, _ => pure []
+  | .var name, ty => pure [(name, ty)]
+  | .unit, .unit => pure []
+  | .bool _, .bool => pure []
+  | .optionNone, .option _ => pure []
+  | .optionSome innerPat, .option innerTy => patternBinders innerPat innerTy
+  | .enumCtor variant payloadPats, .enum _ variants =>
+      match lookupVariant variants variant with
+      | none => throw (report .unsupportedExpression ("pattern refers to unknown enum variant `" ++ variant ++ "`"))
+      | some payloadTypes => patternBinderList payloadPats payloadTypes
+  | .prod aPat bPat, .prod aTy bTy => do
+      let a ← patternBinders aPat aTy
+      let b ← patternBinders bPat bTy
+      pure (a ++ b)
+  | _, ty => throw (report .unsupportedType ("pattern is not compatible with scrutinee type " ++ rTypeLabel ty))
+where
+  patternBinderList (pats : List SurfacePattern) (tys : List RType) : Except CompatibilityReport (List RArg) := do
+    if pats.length == tys.length then
+      let mut out : List RArg := []
+      for pair in pats.zip tys do
+        out := out ++ (← patternBinders pair.1 pair.2)
+      pure out
+    else
+      throw (report .unsupportedExpression "constructor pattern has the wrong payload arity")
+
+private def patternBinderNames : List RArg → List String :=
+  List.map (fun arg => arg.1)
+
+private def ensureNoDuplicatePatternBinders (binders : List RArg) : Except CompatibilityReport Unit :=
+  let names := patternBinderNames binders
+  if names.eraseDups.length == names.length then
+    pure ()
+  else
+    throw (report .unsupportedExpression "pattern introduces a duplicate binder")
+
+private partial def patternCoversAll : SurfacePattern → Bool
+  | .wildcard | .var _ => true
+  | _ => false
+
+private partial def patternCoversBool (wanted : Bool) : SurfacePattern → Bool
+  | .wildcard | .var _ => true
+  | .bool b => b == wanted
+  | _ => false
+
+private partial def patternCoversOptionNone : SurfacePattern → Bool
+  | .wildcard | .var _ => true
+  | .optionNone => true
+  | _ => false
+
+private partial def patternCoversOptionSome : SurfacePattern → Bool
+  | .wildcard | .var _ => true
+  | .optionSome _ => true
+  | _ => false
+
+private partial def patternCoversEnumVariant (variant : String) : SurfacePattern → Bool
+  | .wildcard | .var _ => true
+  | .enumCtor name _ => name == variant
+  | _ => false
+
+private def patternsExhaustive (scrutTy : RType) (patterns : List SurfacePattern) : Bool :=
+  if patterns.any patternCoversAll then
+    true
+  else
+    match scrutTy with
+    | .unit => patterns.any (fun p => p == .unit)
+    | .bool => patterns.any (patternCoversBool true) && patterns.any (patternCoversBool false)
+    | .option _ => patterns.any patternCoversOptionNone && patterns.any patternCoversOptionSome
+    | .enum _ variants => variants.all (fun variant => patterns.any (patternCoversEnumVariant variant.1))
+    | .prod _ _ => patterns.any (fun p => match p with | .prod _ _ => true | _ => false)
+    | _ => false
+
 /-- Type check the extracted first-order surface tree, using an expected type when it disambiguates constructors. -/
 partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Option RType) : Except CompatibilityReport RType :=
   match expr with
@@ -208,6 +308,8 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       | none => throw (report .unsupportedExpression ("unbound extracted variable `" ++ name ++ "`"))
   | .litUnit => applyExpected expected .unit
   | .litBool _ => applyExpected expected .bool
+  | .litNat _ => applyExpected expected .nat
+  | .litInt _ => applyExpected expected .int
   | .litU32 _ => applyExpected expected .u32
   | .litU64 _ => applyExpected expected .u64
   | .litI32 _ => applyExpected expected .i32
@@ -254,6 +356,9 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
             typeEnumBranchesWithExpected ctx variants branches expected
           else
             throw (report .unsupportedExpression "enum match is missing at least one variant branch")
+  | .matchPattern scrutTy target arms => do
+      checkExpected ctx target scrutTy
+      typePatternBranchesWithExpected ctx scrutTy arms expected
   | .not a => checkExpected ctx a .bool *> applyExpected expected .bool
   | .and a b => checkExpected ctx a .bool *> checkExpected ctx b .bool *> applyExpected expected .bool
   | .or a b => checkExpected ctx a .bool *> checkExpected ctx b .bool *> applyExpected expected .bool
@@ -304,6 +409,17 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       | none => do
           let errTy ← typeOfExpected ctx e none
           pure (.result okTy errTy)
+  | .prodLit a b => do
+      match expected with
+      | some (.prod aTy bTy) =>
+          discard <| typeOfExpected ctx a (some aTy)
+          discard <| typeOfExpected ctx b (some bTy)
+          pure (.prod aTy bTy)
+      | some other => throw (report .unsupportedType ("expected " ++ rTypeLabel other ++ " but found product literal"))
+      | none => do
+          let aTy ← typeOfExpected ctx a none
+          let bTy ← typeOfExpected ctx b none
+          pure (.prod aTy bTy)
   | .structLit ty fields => do
       match structFields? ty with
       | some declared =>
@@ -415,10 +531,18 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
   | .vectorCheck elemTy bound value => do
       discard <| typeOfExpected ctx value (some (.list elemTy))
       applyExpected expected (.option (.vector elemTy bound))
+  | .listLength elemTy target => do
+      discard <| typeOfExpected ctx target (some (.list elemTy))
+      applyExpected expected .u32
   | .natFold idxName accName accTy init n body => do
       discard <| typeOfExpected ctx init (some accTy)
       discard <| typeOfExpected ctx n (some .u32)
       discard <| typeOfExpected ((idxName, .u32) :: (accName, accTy) :: ctx) body (some accTy)
+      applyExpected expected accTy
+  | .tailRecNat counterName accName accTy counter init body => do
+      discard <| typeOfExpected ctx counter (some .u32)
+      discard <| typeOfExpected ctx init (some accTy)
+      discard <| typeOfExpected ((counterName, .u32) :: (accName, accTy) :: ctx) body (some accTy)
       applyExpected expected accTy
 where
   checkExpected (ctx : List RArg) (expr : SurfaceExpr) (wanted : RType) : Except CompatibilityReport Unit := do
@@ -479,6 +603,33 @@ where
               discard <| typeEnumBranchWithExpected ctx variants branch (some firstTy)
             pure firstTy
 
+
+  typePatternBranchesWithExpected (ctx : List RArg) (scrutTy : RType) (arms : List (SurfacePattern × SurfaceExpr)) (expected : Option RType) : Except CompatibilityReport RType := do
+    if arms.isEmpty then
+      throw (report .unsupportedExpression "general pattern match has no branches")
+    if !patternsExhaustive scrutTy (arms.map (fun arm => arm.1)) then
+      throw (report .unsupportedExpression "general pattern match is not exhaustive for the supported pattern fragment")
+    match arms with
+    | [] => throw (report .unsupportedExpression "general pattern match has no branches")
+    | first :: rest =>
+        let firstBinders ← patternBinders first.1 scrutTy
+        ensureNoDuplicatePatternBinders firstBinders
+        match expected with
+        | some wanted =>
+            discard <| typeOfExpected (firstBinders ++ ctx) first.2 (some wanted)
+            for arm in rest do
+              let binders ← patternBinders arm.1 scrutTy
+              ensureNoDuplicatePatternBinders binders
+              discard <| typeOfExpected (binders ++ ctx) arm.2 (some wanted)
+            pure wanted
+        | none =>
+            let firstTy ← typeOfExpected (firstBinders ++ ctx) first.2 none
+            for arm in rest do
+              let binders ← patternBinders arm.1 scrutTy
+              ensureNoDuplicatePatternBinders binders
+              discard <| typeOfExpected (binders ++ ctx) arm.2 (some firstTy)
+            pure firstTy
+
   checkStructFields (ctx : List RArg) (declared : List RArg) (provided : List (String × SurfaceExpr)) : Except CompatibilityReport Unit := do
     let providedNames := provided.map (fun p => p.1)
     for field in declared do
@@ -519,7 +670,6 @@ def checkSurfaceFun (f : SurfaceFun) : Except CompatibilityReport SurfaceFun := 
 
 This evaluator is the step-3 semantic model for the extracted `SurfaceExpr`
 subset.  It deliberately interprets the same first-order Rust-shaped nodes that
-  | ordering : Ordering → SurfaceValue
 the string emitter consumes, including structs, enums with payload binders,
 `Option`, `Result`, and first-order calls between exported functions.
 
@@ -533,6 +683,9 @@ stable diagnostics for differential fixtures.
 inductive SurfaceValue where
   | unit : SurfaceValue
   | bool : Bool → SurfaceValue
+  | ordering : Ordering → SurfaceValue
+  | nat : Nat → SurfaceValue
+  | int : Int → SurfaceValue
   | u32 : Nat → SurfaceValue
   | u64 : Nat → SurfaceValue
   | i32 : Int → SurfaceValue
@@ -541,6 +694,8 @@ inductive SurfaceValue where
   | string : String → SurfaceValue
   | list : List SurfaceValue → SurfaceValue
   | array : List SurfaceValue → SurfaceValue
+  | fin : Nat → Nat → SurfaceValue
+  | vector : Nat → List SurfaceValue → SurfaceValue
   | prodVal : SurfaceValue → SurfaceValue → SurfaceValue
   | sumInl : SurfaceValue → SurfaceValue
   | sumInr : SurfaceValue → SurfaceValue
@@ -578,6 +733,14 @@ private def checkedBool : SurfaceValue → Except CompatibilityReport Bool
   | .bool b => pure b
   | _ => evalError .unsupportedType "expected Bool during surface evaluation"
 
+private def checkedNat : SurfaceValue → Except CompatibilityReport Nat
+  | .nat n => pure n
+  | _ => evalError .unsupportedType "expected exact Nat during surface evaluation"
+
+private def checkedInt : SurfaceValue → Except CompatibilityReport Int
+  | .int n => pure n
+  | _ => evalError .unsupportedType "expected exact Int during surface evaluation"
+
 private def checkedU32 : SurfaceValue → Except CompatibilityReport Nat
   | .u32 n => pure (u32Wrap n)
   | _ => evalError .unsupportedType "expected UInt32 during surface evaluation"
@@ -609,10 +772,12 @@ mutual
   partial def valueHasType : SurfaceValue → RType → Bool
     | .unit, .unit => true
     | .bool _, .bool => true
+    | .ordering _, .ordering => true
+    | .nat _, .nat => true
+    | .int _, .int => true
     | .u32 _, .u32 => true
     | .u64 _, .u64 => true
     | .i32 _, .i32 => true
-    | .ordering _, .ordering => true
     | .i64 _, .i64 => true
     | .char _, .char => true
     | .string _, .string => true
@@ -633,7 +798,10 @@ mutual
         | some payloadTypes => valueHasTypeList payload payloadTypes
         | none => false
     | value, .subtype expected => valueHasType value expected
+    | .fin actualBound value, .fin expectedBound => actualBound == expectedBound && value < expectedBound
     | .u32 value, .fin bound => value < bound
+    | .vector actualBound values, .vector expected bound =>
+        actualBound == bound && values.length == bound && values.all (fun value => valueHasType value expected)
     | .list values, .vector expected bound => values.length == bound && values.all (fun value => valueHasType value expected)
     | .array values, .vector expected bound => values.length == bound && values.all (fun value => valueHasType value expected)
     | _, _ => false
@@ -656,7 +824,6 @@ private def assertValueType (value : SurfaceValue) (ty : RType) : Except Compati
   else
     evalError .unsupportedType ("surface value does not match expected type " ++ rTypeLabel ty)
 
-
 private partial def defaultSurfaceValue (ty : RType) : Except CompatibilityReport SurfaceValue :=
   match ty with
   | .unit => pure .unit
@@ -675,9 +842,9 @@ private partial def defaultSurfaceValue (ty : RType) : Except CompatibilityRepor
   | .array _ => pure (.array [])
   | .vector elem len => do
       let value ← defaultSurfaceValue elem
-      pure (.vector len (List.replicate len value))
+      pure (.list (List.replicate len value))
   | .fin 0 => evalError .unsupportedType "Fin 0 has no inhabited runtime value"
-  | .fin bound => pure (.fin bound 0)
+  | .fin bound => pure (.u32 0)
   | .prod a b => do
       let av ← defaultSurfaceValue a
       let bv ← defaultSurfaceValue b
@@ -688,6 +855,7 @@ private partial def defaultSurfaceValue (ty : RType) : Except CompatibilityRepor
   | .result _ err => do
       let errValue ← defaultSurfaceValue err
       pure (.resultErr errValue)
+  | .subtype inner => defaultSurfaceValue inner
   | .struct name fields => do
       let values ← fields.mapM (fun field => do
         let value ← defaultSurfaceValue field.2
@@ -709,21 +877,22 @@ private def orderingString : Ordering → String
 private def boolString (b : Bool) : String :=
   if b then "true" else "false"
 
-private def surfaceValueToString (ty : RType) (value : SurfaceValue) : Except CompatibilityReport String := do
+private partial def surfaceValueToString (ty : RType) (value : SurfaceValue) : Except CompatibilityReport String := do
   assertValueType value ty
   match ty, value with
   | .unit, .unit => pure "()"
   | .bool, .bool b => pure (boolString b)
   | .ordering, .ordering o => pure (orderingString o)
-  | .nat, .nat n => pure (Nat.toString n)
+  | .nat, .nat n => pure (toString n)
   | .int, .int n => pure (toString n)
-  | .u32, .u32 n => pure (Nat.toString (u32Wrap n))
-  | .u64, .u64 n => pure (Nat.toString (u64Wrap n))
+  | .u32, .u32 n => pure (toString (u32Wrap n))
+  | .u64, .u64 n => pure (toString (u64Wrap n))
   | .i32, .i32 n => pure (toString (i32Wrap n))
   | .i64, .i64 n => pure (toString (i64Wrap n))
   | .char, .char c => pure (String.singleton c)
   | .string, .string s => pure s
-  | .fin _, .fin _ n => pure (Nat.toString n)
+  | .fin _, .u32 n => pure (toString n)
+  | .subtype inner, _ => surfaceValueToString inner value
   | _, _ => evalError .unsupportedType ("ToString/Repr is not enabled for " ++ rTypeLabel ty)
 
 private def bindSurfaceArgs (args : List RArg) (values : List SurfaceValue) : Except CompatibilityReport SurfaceEnv := do
@@ -783,6 +952,22 @@ private def evalOrdered (op : String) (ty : RType) (a b : SurfaceValue) : Except
 
 private def evalWrapping (op : String) (ty : RType) (a b : SurfaceValue) : Except CompatibilityReport SurfaceValue := do
   match ty with
+  | .nat =>
+      let av ← checkedNat a
+      let bv ← checkedNat b
+      pure (.nat (match op with
+        | "add" => av + bv
+        | "sub" => if av < bv then 0 else av - bv
+        | "mul" => av * bv
+        | _ => av))
+  | .int =>
+      let av ← checkedInt a
+      let bv ← checkedInt b
+      pure (.int (match op with
+        | "add" => av + bv
+        | "sub" => av - bv
+        | "mul" => av * bv
+        | _ => av))
   | .u32 =>
       let av ← checkedU32 a
       let bv ← checkedU32 b
@@ -815,15 +1000,7 @@ private def evalWrapping (op : String) (ty : RType) (a b : SurfaceValue) : Excep
         | "sub" => i64Wrap (av - bv)
         | "mul" => i64Wrap (av * bv)
         | _ => av))
-  | _ => evalError .unsupportedType ("wrapping arithmetic is not enabled for " ++ rTypeLabel ty)
-
-private def evalCompare (ty : RType) (a b : SurfaceValue) : Except CompatibilityReport SurfaceValue := do
-  let less ← checkedBool (← evalOrdered "<" ty a b)
-  if less then
-    pure (.ordering Ordering.lt)
-  else
-    let equal ← checkedBool (← evalEq ty a b)
-    if equal then pure (.ordering Ordering.eq) else pure (.ordering Ordering.gt)
+  | _ => evalError .unsupportedType ("arithmetic is not enabled for " ++ rTypeLabel ty)
 
 private def evalMinMax (chooseMax : Bool) (ty : RType) (a b : SurfaceValue) : Except CompatibilityReport SurfaceValue := do
   match ty with
@@ -844,6 +1021,35 @@ private def evalMinMax (chooseMax : Bool) (ty : RType) (a b : SurfaceValue) : Ex
       let bv ← checkedI64 b
       pure (.i64 (if chooseMax then (if av < bv then bv else av) else (if av < bv then av else bv)))
   | _ => evalError .unsupportedType ("min/max is not enabled for " ++ rTypeLabel ty)
+
+
+private def evalCompare (ty : RType) (a b : SurfaceValue) : Except CompatibilityReport SurfaceValue := do
+  match ty with
+  | .nat =>
+      let av ← checkedNat a
+      let bv ← checkedNat b
+      pure (.ordering (if av < bv then Ordering.lt else if av == bv then Ordering.eq else Ordering.gt))
+  | .int =>
+      let av ← checkedInt a
+      let bv ← checkedInt b
+      pure (.ordering (if av < bv then Ordering.lt else if av == bv then Ordering.eq else Ordering.gt))
+  | .u32 =>
+      let av ← checkedU32 a
+      let bv ← checkedU32 b
+      pure (.ordering (if av < bv then Ordering.lt else if av == bv then Ordering.eq else Ordering.gt))
+  | .u64 =>
+      let av ← checkedU64 a
+      let bv ← checkedU64 b
+      pure (.ordering (if av < bv then Ordering.lt else if av == bv then Ordering.eq else Ordering.gt))
+  | .i32 =>
+      let av ← checkedI32 a
+      let bv ← checkedI32 b
+      pure (.ordering (if av < bv then Ordering.lt else if av == bv then Ordering.eq else Ordering.gt))
+  | .i64 =>
+      let av ← checkedI64 a
+      let bv ← checkedI64 b
+      pure (.ordering (if av < bv then Ordering.lt else if av == bv then Ordering.eq else Ordering.gt))
+  | _ => evalError .unsupportedType ("compare is not enabled for " ++ rTypeLabel ty)
 
 private def evalField (target : SurfaceValue) (fieldName : String) : Except CompatibilityReport SurfaceValue :=
   match target with
@@ -871,6 +1077,34 @@ private def checkedPayloadValues (payloadTypes : List RType) (payload : List Sur
   else
     evalError .unsupportedExpression "surface enum payload has the wrong number of values"
 
+private partial def matchPatternValue (pat : SurfacePattern) (value : SurfaceValue) : Option SurfaceEnv :=
+  match pat, value with
+  | .wildcard, _ => some []
+  | .var name, value => some [(name, value)]
+  | .unit, .unit => some []
+  | .bool wanted, .bool actual => if wanted == actual then some [] else none
+  | .optionNone, .optionNone _ => some []
+  | .optionSome innerPat, .optionSome innerValue => matchPatternValue innerPat innerValue
+  | .enumCtor wanted payloadPats, .enumVal _ actual payloadValues =>
+      if wanted == actual && payloadPats.length == payloadValues.length then
+        matchPatternList payloadPats payloadValues
+      else
+        none
+  | .prod aPat bPat, .prodVal a b => do
+      let aEnv ← matchPatternValue aPat a
+      let bEnv ← matchPatternValue bPat b
+      some (aEnv ++ bEnv)
+  | _, _ => none
+where
+  matchPatternList (pats : List SurfacePattern) (values : List SurfaceValue) : Option SurfaceEnv :=
+    match pats, values with
+    | [], [] => some []
+    | pat :: pats, value :: values => do
+        let head ← matchPatternValue pat value
+        let tail ← matchPatternList pats values
+        some (head ++ tail)
+    | _, _ => none
+
 mutual
   /-- Evaluate a checked surface expression with bounded call fuel. -/
   partial def evalSurfaceExprWithFuel (fuel : Nat) (functions : List SurfaceFun) (env : SurfaceEnv) : SurfaceExpr → Except CompatibilityReport SurfaceValue
@@ -880,6 +1114,8 @@ mutual
         | none => evalError .unsupportedExpression ("unbound surface evaluator variable `" ++ name ++ "`")
     | .litUnit => pure .unit
     | .litBool b => pure (.bool b)
+    | .litNat n => pure (.nat n)
+    | .litInt n => pure (.int n)
     | .litU32 n => pure (.u32 (u32Wrap n))
     | .litU64 n => pure (.u64 (u64Wrap n))
     | .litI32 n => pure (.i32 (i32Wrap n))
@@ -918,7 +1154,19 @@ mutual
             else
               evalError .unsupportedType ("surface enum value has type " ++ valueEnumName ++ " but match expected " ++ enumName)
         | _, _ => evalError .unsupportedType "enum match target is not an enum value"
-    | .not a => pure (.bool (!(← checkedBool (← evalSurfaceExprWithFuel fuel functions env a))))
+    | .matchPattern scrutTy target arms => do
+        let targetValue ← evalSurfaceExprWithFuel fuel functions env target
+        assertValueType targetValue scrutTy
+        let rec evalArms : List (SurfacePattern × SurfaceExpr) → Except CompatibilityReport SurfaceValue
+          | [] => evalError .unsupportedExpression "general pattern match reached a non-exhaustive runtime value"
+          | arm :: rest =>
+              match matchPatternValue arm.1 targetValue with
+              | some bindings => evalSurfaceExprWithFuel fuel functions (bindings ++ env) arm.2
+              | none => evalArms rest
+        evalArms arms
+    | .not a => do
+        let value ← checkedBool (← evalSurfaceExprWithFuel fuel functions env a)
+        pure (.bool (!value))
     | .and a b => do
         let av ← checkedBool (← evalSurfaceExprWithFuel fuel functions env a)
         if av then
@@ -928,21 +1176,64 @@ mutual
     | .or a b => do
         let av ← checkedBool (← evalSurfaceExprWithFuel fuel functions env a)
         if av then pure (.bool true) else pure (.bool (← checkedBool (← evalSurfaceExprWithFuel fuel functions env b)))
-    | .eq ty a b => evalEq ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .lt ty a b => evalOrdered "<" ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .le ty a b => evalOrdered "<=" ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .gt ty a b => evalOrdered ">" ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .ge ty a b => evalOrdered ">=" ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .add ty a b => evalWrapping "add" ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .sub ty a b => evalWrapping "sub" ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .mul ty a b => evalWrapping "mul" ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .min ty a b => evalMinMax false ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .max ty a b => evalMinMax true ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
-    | .compare ty a b => evalCompare ty (← evalSurfaceExprWithFuel fuel functions env a) (← evalSurfaceExprWithFuel fuel functions env b)
+    | .eq ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalEq ty av bv
+    | .lt ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalOrdered "<" ty av bv
+    | .le ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalOrdered "<=" ty av bv
+    | .gt ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalOrdered ">" ty av bv
+    | .ge ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalOrdered ">=" ty av bv
+    | .add ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalWrapping "add" ty av bv
+    | .sub ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalWrapping "sub" ty av bv
+    | .mul ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalWrapping "mul" ty av bv
+    | .min ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalMinMax false ty av bv
+    | .max ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalMinMax true ty av bv
+    | .compare ty a b => do
+        let av ← evalSurfaceExprWithFuel fuel functions env a
+        let bv ← evalSurfaceExprWithFuel fuel functions env b
+        evalCompare ty av bv
     | .optionNone inner => pure (.optionNone inner)
-    | .optionSome a => pure (.optionSome (← evalSurfaceExprWithFuel fuel functions env a))
-    | .resultOk _ a => pure (.resultOk (← evalSurfaceExprWithFuel fuel functions env a))
-    | .resultErr _ e => pure (.resultErr (← evalSurfaceExprWithFuel fuel functions env e))
+    | .optionSome a => do
+        let value ← evalSurfaceExprWithFuel fuel functions env a
+        pure (.optionSome value)
+    | .resultOk _ a => do
+        let value ← evalSurfaceExprWithFuel fuel functions env a
+        pure (.resultOk value)
+    | .resultErr _ e => do
+        let value ← evalSurfaceExprWithFuel fuel functions env e
+        pure (.resultErr value)
+    | .prodLit a b => do
+        let aValue ← evalSurfaceExprWithFuel fuel functions env a
+        let bValue ← evalSurfaceExprWithFuel fuel functions env b
+        pure (.prodVal aValue bValue)
     | .structLit ty fields => do
         match ty with
         | .struct name declared =>
@@ -951,7 +1242,9 @@ mutual
               pure (field.1, value))
             pure (.structVal name (← checkedStructFields declared evaluated))
         | _ => evalError .unsupportedType "surface struct literal does not carry a struct type"
-    | .field target fieldName => evalField (← evalSurfaceExprWithFuel fuel functions env target) fieldName
+    | .field target fieldName => do
+        let value ← evalSurfaceExprWithFuel fuel functions env target
+        evalField value fieldName
     | .enumVariant ty variant payload => do
         match ty with
         | .enum name variants =>
@@ -975,20 +1268,20 @@ mutual
                 else
                   evalError .unsupportedType ("surface call signature for `" ++ name ++ "` does not match the function environment")
     | .callValue _ _ _ _ =>
-        evalError .unsupportedExpression "surface evaluator does not interpret standalone higher-order function values in differential tests"
+        evalError .unsupportedExpression "surface evaluator does not interpret higher-order function values in differential tests"
     | .closureApply binder argTy retTy arg body => do
         let value ← evalSurfaceExprWithFuel fuel functions env arg
         assertValueType value argTy
-        let result ← evalSurfaceExprWithFuel fuel functions ((binder, value) :: env) body
-        assertValueType result retTy
-        pure result
+        let out ← evalSurfaceExprWithFuel fuel functions ((binder, value) :: env) body
+        assertValueType out retTy
+        pure out
     | .defaultValue ty => defaultSurfaceValue ty
     | .toStringValue ty value => do
-        let evaluated ← evalSurfaceExprWithFuel fuel functions env value
-        pure (.string (← surfaceValueToString ty evaluated))
+        let value ← evalSurfaceExprWithFuel fuel functions env value
+        pure (.string (← surfaceValueToString ty value))
     | .reprValue ty value => do
-        let evaluated ← evalSurfaceExprWithFuel fuel functions env value
-        pure (.string (← surfaceValueToString ty evaluated))
+        let value ← evalSurfaceExprWithFuel fuel functions env value
+        pure (.string (← surfaceValueToString ty value))
     | .listMap binder elemTy outTy target body => do
         match (← evalSurfaceExprWithFuel fuel functions env target) with
         | .list values => do
@@ -1144,6 +1437,14 @@ mutual
             else
               pure (.optionNone (.vector elemTy bound))
         | _ => evalError .unsupportedType "Vector checked constructor needs a List value"
+    | .listLength elemTy target => do
+        match (← evalSurfaceExprWithFuel fuel functions env target) with
+        | .list values =>
+            if values.all (fun item => valueHasType item elemTy) then
+              pure (.u32 values.length)
+            else
+              evalError .unsupportedType "List.length target contains an element outside the expected type"
+        | _ => evalError .unsupportedType "List.length target is not a List value"
     | .natFold idxName accName accTy init n body => do
         let iterations ← checkedU32 (← evalSurfaceExprWithFuel fuel functions env n)
         if iterations > fuel then
@@ -1156,6 +1457,21 @@ mutual
             let next ← evalSurfaceExprWithFuel fuel functions ((idxName, .u32 idx) :: (accName, acc) :: env) body
             assertValueType next accTy
             acc := next
+          pure acc
+    | .tailRecNat counterName accName accTy counter init body => do
+        let iterations ← checkedU32 (← evalSurfaceExprWithFuel fuel functions env counter)
+        if iterations > fuel then
+          evalError .unsupportedExpression "surface evaluator tail-recursion fuel exhausted during Nat loop lowering"
+        else
+          let initialAcc ← evalSurfaceExprWithFuel fuel functions env init
+          let mut acc := initialAcc
+          let mut remaining := iterations
+          assertValueType acc accTy
+          for _ in List.range iterations do
+            let next ← evalSurfaceExprWithFuel fuel functions ((counterName, .u32 remaining) :: (accName, acc) :: env) body
+            assertValueType next accTy
+            acc := next
+            remaining := u32WrappingSub remaining 1
           pure acc
 
   /-- Evaluate a surface function from already-evaluated argument values. -/

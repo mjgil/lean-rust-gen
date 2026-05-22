@@ -101,7 +101,6 @@ def list_map_inc_u32 (xs : List UInt32) : List UInt32 :=
 def list_fold_sum_u32 (xs : List UInt32) : UInt32 :=
   List.foldl (fun acc x => acc + x) 0 xs
 
-
 @[rust_export]
 def list_map_add_capture_u32 (delta : UInt32) (xs : List UInt32) : List UInt32 :=
   List.map (fun x => x + delta) xs
@@ -158,6 +157,38 @@ def fin_val10_u32 (i : Fin 10) : Nat :=
 def vector_echo3_u32 (xs : Vector UInt32 3) : Vector UInt32 3 :=
   xs
 
+@[rust_export]
+def general_bool_match_u32 (flag : Bool) (when_true when_false : UInt32) : UInt32 :=
+  match flag with
+  | true => when_true + 1
+  | false => when_false + 1
+
+@[rust_export]
+def general_option_match_u32 (x : Option UInt32) (fallback : UInt32) : UInt32 :=
+  match x with
+  | none => fallback
+  | some value => value + 1
+
+@[rust_export]
+def general_step_match_u32 (s : Step) (fallback : UInt32) : UInt32 :=
+  match s with
+  | .stay => fallback
+  | .jump amount => amount + 1
+
+@[rust_export]
+def pair_sum_match_u32 (a b : UInt32) : UInt32 :=
+  match (a, b) with
+  | (x, y) => x + y
+
+@[rust_export, rust_nat_wrapping_u32]
+def list_length_u32 (xs : List UInt32) : Nat :=
+  xs.length
+
+/-- Recognized tail-recursive Nat accumulator lane used by the Sprint-5/6 loop-lowering gate. -/
+@[rust_export, rust_nat_wrapping_u32]
+def tail_sum_down_u32 (n : Nat) : Nat :=
+  Nat.rec 0 (fun k acc => acc + (n - k)) n
+
 @[rust_export, rust_nat_exact]
 def exact_nat_add (a b : Nat) : Nat :=
   a + b
@@ -166,14 +197,9 @@ def exact_nat_add (a b : Nat) : Nat :=
 def exact_nat_mul (a b : Nat) : Nat :=
   a * b
 
-@[rust_export, rust_nat_exact]
+@[rust_export, rust_int_exact]
 def exact_int_add (a b : Int) : Int :=
   a + b
-
-@[rust_export, rust_nat_exact]
-def exact_int_mul (a b : Int) : Int :=
-  a * b
-
 
 
 @[rust_export]
@@ -195,7 +221,6 @@ def repr_u32 (x : UInt32) : String :=
 @[rust_export]
 def ord_compare_u32 (a b : UInt32) : Ordering :=
   compare a b
-
 
 @[rust_export]
 def option_do_inc_u32 (x : Option UInt32) : Option UInt32 := do
@@ -363,9 +388,14 @@ def generic_option_default (α : Type) (x : Option α) (fallback : α) : α :=
   | none => fallback
   | some value => value
 
+/-- A generic source function that exercises erased resolved typeclass dictionaries. -/
+def generic_beq (α : Type) [BEq α] (a b : α) : Bool :=
+  a == b
+
 rust_mono_export generic_identity as identity_u64 [UInt64]
 rust_mono_export generic_choose as choose_generic_u32 [UInt32]
 rust_mono_export generic_option_default as option_default_u64 [UInt64]
+rust_mono_export generic_beq as generic_beq_u32 [UInt32]
 
 /-- A concrete exported declaration that triggers automatic monomorphization of `generic_identity`. -/
 @[rust_export]

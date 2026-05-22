@@ -40,6 +40,12 @@ private def rustOrdering : Ordering → String
   | Ordering.eq => "Ordering::Eq"
   | Ordering.gt => "Ordering::Gt"
 
+private def rustNatExact (n : Nat) : String :=
+  "num_bigint::BigUint::parse_bytes(b\"" ++ Nat.toString n ++ "\", 10).unwrap()"
+
+private def rustIntExact (n : Int) : String :=
+  "num_bigint::BigInt::parse_bytes(b\"" ++ toString n ++ "\", 10).unwrap()"
+
 private def rustChar (c : Char) : String :=
   "char::from_u32(" ++ Nat.toString c.toNat ++ ").unwrap()"
 
@@ -49,15 +55,19 @@ private def rustStringLiteral (s : String) : String :=
 private partial def rustSurfaceValue : SurfaceValue → String
   | .unit => "()"
   | .bool b => rustBool b
+  | .ordering o => rustOrdering o
+  | .nat n => rustNatExact n
+  | .int n => rustIntExact n
   | .u32 n => rustU32 n
   | .u64 n => rustU64 n
   | .i32 n => rustI32 n
   | .i64 n => rustI64 n
   | .char c => rustChar c
   | .string s => rustStringLiteral s
-  | .ordering o => rustOrdering o
   | .list values => "vec![" ++ joinWith ", " (values.map rustSurfaceValue) ++ "]"
   | .array values => "vec![" ++ joinWith ", " (values.map rustSurfaceValue) ++ "]"
+  | .fin _ n => rustU32 n
+  | .vector _ values => "vec![" ++ joinWith ", " (values.map rustSurfaceValue) ++ "]"
   | .prodVal a b => "(" ++ rustSurfaceValue a ++ ", " ++ rustSurfaceValue b ++ ")"
   | .sumInl value => "Err(" ++ rustSurfaceValue value ++ ")"
   | .sumInr value => "Ok(" ++ rustSurfaceValue value ++ ")"
@@ -142,6 +152,8 @@ private def vU32 (n : Nat) : SurfaceValue := .u32 n
 private def vU64 (n : Nat) : SurfaceValue := .u64 n
 private def vUnit : SurfaceValue := .unit
 private def vBool (b : Bool) : SurfaceValue := .bool b
+private def vNat (n : Nat) : SurfaceValue := .nat n
+private def vInt (n : Int) : SurfaceValue := .int n
 private def vChar (c : Char) : SurfaceValue := .char c
 private def vString (s : String) : SurfaceValue := .string s
 private def vList (values : List SurfaceValue) : SurfaceValue := .list values
@@ -168,6 +180,7 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "echo_array_u32(vec![3, 4])" (surfaceExpected "echo_array_u32" [vArray [vU32 3, vU32 4]]),
   assertion "list_map_inc_u32(vec![1, u32::MAX])" (surfaceExpected "list_map_inc_u32" [vList [vU32 1, vU32 (u32Modulus - 1)]]),
   assertion "list_fold_sum_u32(vec![1, 2, u32::MAX])" (surfaceExpected "list_fold_sum_u32" [vList [vU32 1, vU32 2, vU32 (u32Modulus - 1)]]),
+  assertion "list_map_add_capture_u32(5, vec![1, u32::MAX])" (surfaceExpected "list_map_add_capture_u32" [vU32 5, vList [vU32 1, vU32 (u32Modulus - 1)]]),
   assertion "list_filter_nonzero_u32(vec![0, 1, 0, 2])" (surfaceExpected "list_filter_nonzero_u32" [vList [vU32 0, vU32 1, vU32 0, vU32 2]]),
   assertion "list_foldr_sum_u32(vec![1, 2, u32::MAX])" (surfaceExpected "list_foldr_sum_u32" [vList [vU32 1, vU32 2, vU32 (u32Modulus - 1)]]),
   assertion "list_any_nonzero_u32(vec![0, 0, 7])" (surfaceExpected "list_any_nonzero_u32" [vList [vU32 0, vU32 0, vU32 7]]),
@@ -181,6 +194,29 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "subtype_val_u32(42)" (surfaceExpected "subtype_val_u32" [vU32 42]),
   assertion "fin_val10_u32(7)" (surfaceExpected "fin_val10_u32" [vU32 7]),
   assertion "vector_echo3_u32(vec![1, 2, 3])" (surfaceExpected "vector_echo3_u32" [vList [vU32 1, vU32 2, vU32 3]]),
+  assertion "exact_nat_add(num_bigint::BigUint::from(40u32), num_bigint::BigUint::from(2u32))" (surfaceExpected "exact_nat_add" [vNat 40, vNat 2]),
+  assertion "exact_nat_mul(num_bigint::BigUint::from(7u32), num_bigint::BigUint::from(6u32))" (surfaceExpected "exact_nat_mul" [vNat 7, vNat 6]),
+  assertion "exact_int_add(num_bigint::BigInt::from(-7i32), num_bigint::BigInt::from(5i32))" (surfaceExpected "exact_int_add" [vInt (-7), vInt 5]),
+  assertion "decidable_eq_u32(7, 7)" (surfaceExpected "decidable_eq_u32" [vU32 7, vU32 7]),
+  assertion "decidable_eq_u32(7, 8)" (surfaceExpected "decidable_eq_u32" [vU32 7, vU32 8]),
+  assertion "ord_compare_u32(1, 2)" (surfaceExpected "ord_compare_u32" [vU32 1, vU32 2]),
+  assertion "ord_compare_u32(2, 2)" (surfaceExpected "ord_compare_u32" [vU32 2, vU32 2]),
+  assertion "ord_compare_u32(3, 2)" (surfaceExpected "ord_compare_u32" [vU32 3, vU32 2]),
+  assertion "inhabited_default_u32(())" (surfaceExpected "inhabited_default_u32" [vUnit]),
+  assertion "to_string_u32(42)" (surfaceExpected "to_string_u32" [vU32 42]),
+  assertion "repr_u32(42)" (surfaceExpected "repr_u32" [vU32 42]),
+  assertion "option_do_inc_u32(Some(41))" (surfaceExpected "option_do_inc_u32" [vSome (vU32 41)]),
+  assertion "option_do_inc_u32(None)" (surfaceExpected "option_do_inc_u32" [vNone .u32]),
+  assertion "closure_apply_capture_u32(5, 37)" (surfaceExpected "closure_apply_capture_u32" [vU32 5, vU32 37]),
+  assertion "generic_beq_u32(7, 7)" (surfaceExpected "generic_beq_u32" [vU32 7, vU32 7]),
+  assertion "generic_beq_u32(7, 8)" (surfaceExpected "generic_beq_u32" [vU32 7, vU32 8]),
+  assertion "general_bool_match_u32(true, 9, 20)" (surfaceExpected "general_bool_match_u32" [vBool true, vU32 9, vU32 20]),
+  assertion "general_bool_match_u32(false, 9, 20)" (surfaceExpected "general_bool_match_u32" [vBool false, vU32 9, vU32 20]),
+  assertion "general_option_match_u32(Some(41), 8)" (surfaceExpected "general_option_match_u32" [vSome (vU32 41), vU32 8]),
+  assertion "general_step_match_u32(Step::Jump(u32::MAX), 7)" (surfaceExpected "general_step_match_u32" [vStepJump (u32Modulus - 1), vU32 7]),
+  assertion "pair_sum_match_u32(40, 2)" (surfaceExpected "pair_sum_match_u32" [vU32 40, vU32 2]),
+  assertion "list_length_u32(vec![1, 2, 3])" (surfaceExpected "list_length_u32" [vList [vU32 1, vU32 2, vU32 3]]),
+  assertion "tail_sum_down_u32(5)" (surfaceExpected "tail_sum_down_u32" [vU32 5]),
   assertion "echo_prod_u32((5, 6))" (surfaceExpected "echo_prod_u32" [vProd (vU32 5) (vU32 6)]),
   assertion "echo_sum_u32(Ok(7))" (surfaceExpected "echo_sum_u32" [vSumInr (vU32 7)]),
   assertion "echo_sum_u32(Err(8))" (surfaceExpected "echo_sum_u32" [vSumInl (vU32 8)]),
@@ -205,17 +241,6 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "tagged_missing_u32(())" (surfaceExpected "tagged_missing_u32" [vUnit]),
   assertion "tagged_present_u32(6)" (surfaceExpected "tagged_present_u32" [vU32 6]),
   assertion "tagged_default_u32(TaggedU32::Missing, 7)" (surfaceExpected "tagged_default_u32" [vTaggedMissing, vU32 7]),
-  assertion "decidable_eq_u32(7, 7)" (surfaceExpected "decidable_eq_u32" [vU32 7, vU32 7]),
-  assertion "decidable_eq_u32(7, 8)" (surfaceExpected "decidable_eq_u32" [vU32 7, vU32 8]),
-  assertion "ord_compare_u32(1, 2)" (surfaceExpected "ord_compare_u32" [vU32 1, vU32 2]),
-  assertion "ord_compare_u32(2, 2)" (surfaceExpected "ord_compare_u32" [vU32 2, vU32 2]),
-  assertion "ord_compare_u32(3, 2)" (surfaceExpected "ord_compare_u32" [vU32 3, vU32 2]),
-  assertion "inhabited_default_u32(())" (surfaceExpected "inhabited_default_u32" [vUnit]),
-  assertion "to_string_u32(42)" (surfaceExpected "to_string_u32" [vU32 42]),
-  assertion "repr_u32(42)" (surfaceExpected "repr_u32" [vU32 42]),
-  assertion "option_do_inc_u32(Some(41))" (surfaceExpected "option_do_inc_u32" [vSome (vU32 41)]),
-  assertion "option_do_inc_u32(None)" (surfaceExpected "option_do_inc_u32" [vNone .u32]),
-  assertion "closure_apply_capture_u32(5, 37)" (surfaceExpected "closure_apply_capture_u32" [vU32 5, vU32 37]),
   assertion "tagged_default_u32(TaggedU32::Present(6), 7)" (surfaceExpected "tagged_default_u32" [vTaggedPresent 6, vU32 7]),
   assertion "step_stay(())" (surfaceExpected "step_stay" [vUnit]),
   assertion "step_jump(12)" (surfaceExpected "step_jump" [vU32 12]),

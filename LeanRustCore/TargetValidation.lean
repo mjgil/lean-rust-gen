@@ -15,7 +15,7 @@ Rust-facing declarations and normalized expression fingerprints.  The Rust
 reconstructs the same generated-subset target IR, and compares the two views.
 -/
 
-def targetValidationFormat : String := "lean-rust-core.target-validation.v1"
+def targetValidationFormat : String := "lean-rust-core.target-validation.v2"
 
 private def escapeChar : Char → String
   | '\\' => "\\\\"
@@ -46,21 +46,50 @@ private def fingerprintEnumPath (ty : RType) (variant : String) : String :=
 private def fingerprintBinders (binders : List String) : String :=
   joinWith "," (binders.map (rustValueIdent "value"))
 
+private partial def fingerprintPattern (ty : RType) : SurfacePattern → String
+  | .wildcard => "_"
+  | .var name => "varpat(" ++ rustValueIdent "value" name ++ ")"
+  | .unit => "unit"
+  | .bool true => "true"
+  | .bool false => "false"
+  | .optionNone => "None"
+  | .optionSome inner =>
+      match ty with
+      | .option innerTy => "Some(" ++ fingerprintPattern innerTy inner ++ ")"
+      | _ => "Some(_)"
+  | .enumCtor variant payload =>
+      match ty with
+      | .enum _ variants =>
+          let payloadTypes := match lookupVariantPayloadLocal variants variant with | some tys => tys | none => []
+          let rendered := (payload.zip payloadTypes).map (fun pair => fingerprintPattern pair.2 pair.1)
+          fingerprintEnumPath ty variant ++ "(" ++ joinWith "," rendered ++ ")"
+      | _ => rustVariantIdent variant
+  | .prod a b =>
+      match ty with
+      | .prod aTy bTy => "(" ++ fingerprintPattern aTy a ++ "," ++ fingerprintPattern bTy b ++ ")"
+      | _ => "(_,_)"
+where
+  lookupVariantPayloadLocal (variants : List (String × List RType)) (name : String) : Option (List RType) :=
+    match variants with
+    | [] => none
+    | (candidate, payload) :: rest => if candidate == name then some payload else lookupVariantPayloadLocal rest name
+
 private def fingerprintDefaultValue : RType → String
   | .unit => "default(())"
   | .bool => "default(bool)"
   | .ordering => "default(Ordering)"
+  | .nat => "default(num_bigint::BigUint)"
+  | .int => "default(num_bigint::BigInt)"
   | .u32 => "default(u32)"
   | .u64 => "default(u64)"
-  | .nat => "default(num_bigint::BigUint)"
   | .i32 => "default(i32)"
   | .i64 => "default(i64)"
-  | .int => "default(num_bigint::BigInt)"
   | .char => "default(char)"
   | .string => "default(String)"
   | .option _ => "none"
   | .list _ | .array _ | .vector _ _ => "vec()"
-  | .fin _ => "default(usize)"
+  | .fin _ => "default(u32)"
+  | .subtype t => fingerprintDefaultValue t
   | .prod a b => "tuple(" ++ fingerprintDefaultValue a ++ "," ++ fingerprintDefaultValue b ++ ")"
   | .sum a _ => "err(" ++ fingerprintDefaultValue a ++ ")"
   | .result _ err => "err(" ++ fingerprintDefaultValue err ++ ")"
@@ -83,6 +112,8 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
   | .litUnit => "unit"
   | .litBool true => "bool(true)"
   | .litBool false => "bool(false)"
+  | .litNat n => "lit(" ++ Nat.toString n ++ ")"
+  | .litInt n => "lit(" ++ toString n ++ ")"
   | .litU32 n => "lit(" ++ Nat.toString n ++ ")"
   | .litU64 n => "lit(" ++ Nat.toString n ++ ")"
   | .litI32 n => "lit(" ++ toString n ++ ")"
@@ -102,6 +133,10 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
       let renderedBranches := branches.map (fun branch =>
         fingerprintEnumPath enumTy branch.1 ++ "(" ++ fingerprintBinders branch.2.1 ++ ")=>" ++ fingerprintSurfaceExpr branch.2.2)
       "match_enum(" ++ fingerprintSurfaceExpr target ++ "," ++ joinWith "|" renderedBranches ++ ")"
+  | .matchPattern scrutTy target arms =>
+      let renderedArms := arms.map (fun arm =>
+        fingerprintPattern scrutTy arm.1 ++ "=>" ++ fingerprintSurfaceExpr arm.2)
+      "match_pattern(" ++ fingerprintSurfaceExpr target ++ "," ++ joinWith "|" renderedArms ++ ")"
   | .not a => "not(" ++ fingerprintSurfaceExpr a ++ ")"
   | .and a b => "and(" ++ fingerprintSurfaceExpr a ++ "," ++ fingerprintSurfaceExpr b ++ ")"
   | .or a b => "or(" ++ fingerprintSurfaceExpr a ++ "," ++ fingerprintSurfaceExpr b ++ ")"
@@ -120,6 +155,7 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
   | .optionSome a => "some(" ++ fingerprintSurfaceExpr a ++ ")"
   | .resultOk _ a => "ok(" ++ fingerprintSurfaceExpr a ++ ")"
   | .resultErr _ e => "err(" ++ fingerprintSurfaceExpr e ++ ")"
+  | .prodLit a b => "tuple(" ++ fingerprintSurfaceExpr a ++ "," ++ fingerprintSurfaceExpr b ++ ")"
   | .structLit ty fields =>
       let typeName := match ty with | .struct name _ => rustTypeIdent name | _ => "<malformed-struct>"
       let renderedFields := fields.map (fun field => rustFieldIdent field.1 ++ "=" ++ fingerprintSurfaceExpr field.2)
@@ -178,9 +214,14 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
   | .finVal _ value => fingerprintSurfaceExpr value
   | .vectorCheck elemTy bound value =>
       "vector_check(" ++ rustType elemTy ++ "," ++ Nat.toString bound ++ "," ++ fingerprintSurfaceExpr value ++ ")"
+  | .listLength _ target =>
+      "list_length(" ++ fingerprintSurfaceExpr target ++ ")"
   | .natFold idxName accName _ init n body =>
       "nat_fold(" ++ rustValueIdent "idx" idxName ++ "," ++ rustValueIdent "acc" accName ++ "," ++
       fingerprintSurfaceExpr init ++ "," ++ fingerprintSurfaceExpr n ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .tailRecNat counterName accName _ counter init body =>
+      "tail_rec_nat(" ++ rustValueIdent "counter" counterName ++ "," ++ rustValueIdent "acc" accName ++ "," ++
+      fingerprintSurfaceExpr counter ++ "," ++ fingerprintSurfaceExpr init ++ "," ++ fingerprintSurfaceExpr body ++ ")"
 
 private def structLine (s : SurfaceStruct) : String :=
   "TYPE\tstruct\t" ++ rustTypeIdent s.name ++ "\t" ++

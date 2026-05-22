@@ -11,6 +11,8 @@ import LeanRustCore.Examples
 import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport
 import LeanRustCore.RecursionPolicy
+import LeanRustCore.Pattern
+import LeanRustCore.RecursionLowering
 import LeanRustCore.ProofReport
 import LeanRustCore.Differential
 import LeanRustCore.RustValidation

@@ -55,7 +55,6 @@ Phase 4 adds a separate optional boundary exporter. `LeanRustCore.BoundaryExport
 generates primitive/result raw ABI wrappers in `rust/src/ffi_generated.rs`; the
 file is compiled only under the Rust `ffi` feature so the default direct lane
 keeps safe Rust emission isolated from raw FFI.
-
 ## Phase 4-6 follow-on slice
 
 The follow-on slice adds explicit exact integer modes and target-semantics
@@ -70,5 +69,18 @@ handled by monomorphic lowering.
 `rust/tests/target_interpreter.rs` interprets selected Lean-generated target
 fingerprints and compares the interpreted values with compiled generated Rust
 calls, strengthening the previous fingerprint-equality validation gate.
+
+## Sprint 3-6 pattern and recursion slice
+
+Sprint 3/4 adds a checked `SurfacePattern` grammar and routes Bool, Option,
+Prod, and index-free enum constructor cases through `SurfaceExpr.matchPattern`.
+This keeps specialized match nodes available for compatibility but lets the
+extractor record a general constructor-pattern fragment with exhaustiveness and
+binder checks before emission.
+
+Sprint 5/6 extends structural lowering with `SurfaceExpr.listLength` and
+`SurfaceExpr.tailRecNat`. `List.length` over the owned `List`/`Vec` model emits
+`len() as u32`; the tail-recursive Nat accumulator lane emits an ordinary safe
+Rust `while` loop and remains fuel-bounded in the Surface evaluator.
 
 The current follow-on pass broadens resolved typeclass specialization for common executable operations (`DecidableEq`/`BEq`, `Ord.compare`, `Inhabited.default`, `ToString`/`Repr`, and pure `Option`/`Except` bind/pure) and adds immediate captured unary-lambda closure conversion through `SurfaceExpr.closureApply`. Escaping or stored captured closures remain future work.

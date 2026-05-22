@@ -2,7 +2,7 @@
 
 A self-contained direct **Lean → Rust** workflow.
 
-This pass extends the direct Lean emits Rust implementation through the baseline validation work and the phase-0/1/2 large-subset slice: payload enum pattern matching, first-order call lowering, a SurfaceExpr evaluator, expanded differential tests, Rust hygiene, syn-backed parser validation, exact toolchain pins, automatic monomorphization, explicit Nat-to-u32 opt-in, extractor-owned surface artifacts, parameterized data, standard owned containers, transitive helper extraction, proof-binder erasure, and limited function-pointer higher-order support, phase-3 target validation, and phase-4 feature-gated raw ABI wrappers. The larger roadmap is in `docs/LARGE_SUBSET_PLAN.md`:
+This pass extends the direct Lean emits Rust implementation through the baseline validation work and the phase-0/1/2 large-subset slice: payload enum pattern matching, first-order call lowering, a SurfaceExpr evaluator, expanded differential tests, Rust hygiene, syn-backed parser validation, exact toolchain pins, automatic monomorphization, explicit Nat-to-u32 opt-in, extractor-owned surface artifacts, parameterized data, standard owned containers, transitive helper extraction, proof-binder erasure, and limited function-pointer higher-order support, phase-3 target validation, phase-4 feature-gated raw ABI wrappers, and Sprint-3/6 general pattern/recursion lowering. The larger roadmap is in `docs/LARGE_SUBSET_PLAN.md`:
 
 1. Export extraction accepts `UInt32`, `UInt64`, `Int32`, `Int64`, `Unit`,
    `Option`, `Except`, and closed inductive/structure types in addition to
@@ -50,6 +50,10 @@ This pass extends the direct Lean emits Rust implementation through the baseline
 23. Supported resolved typeclass dictionaries are erased when monomorphic `RType` lowering selects the target operation.
 24. `rust/tests/target_interpreter.rs` executes selected target fingerprints and compares them with compiled Rust.
 25. `LeanRustCore.BoundaryExport` emits optional `ffi`-feature raw ABI wrappers in `rust/src/ffi_generated.rs`, separate from the default safe lane.
+26. Sprint-3/4 adds `SurfacePattern` and `SurfaceExpr.matchPattern` for checked Bool/Option/Prod/index-free-enum constructor patterns.
+27. Sprint-3/4 lowers tuple/product destructuring and general pattern examples to ordinary safe Rust `match` expressions.
+28. Sprint-5/6 adds `SurfaceExpr.listLength` for owned-List/Vec length lowering.
+29. Sprint-5/6 adds `SurfaceExpr.tailRecNat`, the first checked Nat accumulator tail-recursion loop lowering to safe Rust `while`.
 
 ## What is generated
 
@@ -104,6 +108,12 @@ pub fn nat_sum_to_u32(n: u32) -> u32
 pub fn subtype_val_u32(x: u32) -> u32
 pub fn fin_val10_u32(i: u32) -> u32
 pub fn vector_echo3_u32(xs: Vec<u32>) -> Vec<u32>
+pub fn general_bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32
+pub fn general_option_match_u32(x: Option<u32>, fallback: u32) -> u32
+pub fn general_step_match_u32(s: Step, fallback: u32) -> u32
+pub fn pair_sum_match_u32(a: u32, b: u32) -> u32
+pub fn list_length_u32(xs: Vec<u32>) -> u32
+pub fn tail_sum_down_u32(n: u32) -> u32
 pub fn exact_nat_add(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint
 pub fn exact_nat_mul(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint
 pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt
@@ -259,8 +269,7 @@ Supported now:
 - `List.map` and `List.foldl` over owned `List` values, lowered to explicit safe Rust loop-shaped expressions,
 - generated first-order call cycles are allowed through Rust emission; differential evaluation remains fuel-bounded,
 - captured lambdas inside recognized structural combinators close over ordinary Rust locals,
-- immediate applications of captured unary lambdas lower through `SurfaceExpr.closureApply` to safe Rust `let` blocks,
-- resolved `BEq`/`Decidable`/`DecidableEq`/`Ord`/`LT`/`LE`/`HAdd`/`HSub`/`HMul`/`OfNat`/`Inhabited`/`ToString`/`Repr` dictionaries are erased when monomorphic lowering selects the target operation,
+- resolved `BEq`/`LT`/`LE`/`HAdd`/`HSub`/`HMul`/`OfNat` dictionaries are erased when monomorphic lowering selects the target operation,
 - expected-type propagation through nested `Option`/`Except` constructors,
 - explicit concrete monomorphizations of generic functions,
 - automatic monomorphization for generic calls discovered inside concrete exported declarations,
@@ -276,11 +285,9 @@ Supported now:
 
 Still intentionally out of scope:
 
-- exact mathematical `Nat`/`Int` runtime semantics unless a future exact-integer
-  backend is added,
 - broader structural-recursion lowering beyond the current `List.map`/`List.foldl` slice, including richer accumulator recursions and proofs that emitted recursion is structurally bounded,
-- first-class captured-closure storage/passing and defunctionalized local lambdas beyond immediate application, recognized structural combinators, and unary Rust `fn` pointer arguments,
-- generated typeclass dictionaries beyond the current erased/resolved/specialized monomorphization path,
+- general first-class captured closures and defunctionalized local lambdas beyond recognized structural combinators and unary Rust `fn` pointer arguments,
+- generated typeclass dictionaries beyond the current erased/resolved monomorphization path,
 - a full Rust→Lean translation validator for arbitrary Rust text beyond the generated subset and selected target-fingerprint interpreter.
 
 ## Validation gates

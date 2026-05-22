@@ -8,7 +8,7 @@ A small recursion-policy analyzer for the generated first-order surface subset.
 
 The default Lean→Rust lane permits first-order call cycles because Rust can
 compile them and the SurfaceExpr evaluator is explicitly fuel-bounded.  Recognized
-structural recursors (`List.map`, `List.foldl`, and `Nat.rec` in the current
+structural recursors (`List.map`, `List.foldl`, `List.length`, `Nat.rec`, and `tailRecNat` in the current
 slice) are lowered into explicit loop-shaped `SurfaceExpr` nodes before emission.
 This module keeps the policy visible for reports and for a stricter future gate
 without making recursion a build blocker for the large-subset lane.
@@ -31,6 +31,6 @@ def directSelfRecursiveFunctions (fns : List SurfaceFun) : List String :=
 
 /-- Human-readable summary included in validation reports. -/
 def recursionPolicySummary : String :=
-  "first-order generated call cycles are permitted in Rust emission; recognized List.map/List.foldl/Nat.rec shapes lower to explicit SurfaceExpr loop nodes, and Lean-side SurfaceExpr differential evaluation remains bounded by explicit fuel"
+  "first-order generated call cycles are permitted in Rust emission; recognized List.map/List.foldl/List.length/Nat.rec/tailRecNat shapes lower to explicit SurfaceExpr loop nodes, and Lean-side SurfaceExpr differential evaluation remains bounded by explicit fuel"
 
 end LeanRustCore

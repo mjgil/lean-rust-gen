@@ -60,6 +60,21 @@ pub extern "C" fn lrc_echo_i64(x: i64) -> i64 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_general_bool_match_u32(flag: u32, when_true: u32, when_false: u32) -> u32 {
+    crate::general_bool_match_u32(flag != 0, when_true, when_false)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_pair_sum_match_u32(a: u32, b: u32) -> u32 {
+    crate::pair_sum_match_u32(a, b)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_tail_sum_down_u32(n: u32) -> u32 {
+    crate::tail_sum_down_u32(n)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_decidable_eq_u32(a: u32, b: u32) -> u32 {
     if crate::decidable_eq_u32(a, b) {
         1
@@ -117,6 +132,21 @@ pub unsafe extern "C" fn lrc_result_err_u32(
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_nat_sum_to_u32(n: u32) -> u32 {
+    crate::nat_sum_to_u32(n)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_subtype_val_u32(x: u32) -> u32 {
+    crate::subtype_val_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_fin_val10_u32(i: u32) -> u32 {
+    crate::fin_val10_u32(i)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_identity_u64(x: u64) -> u64 {
     crate::identity_u64(x)
 }
@@ -124,6 +154,15 @@ pub extern "C" fn lrc_identity_u64(x: u64) -> u64 {
 #[no_mangle]
 pub extern "C" fn lrc_choose_generic_u32(flag: u32, when_true: u32, when_false: u32) -> u32 {
     crate::choose_generic_u32(flag != 0, when_true, when_false)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_generic_beq_u32(a: u32, b: u32) -> u32 {
+    if crate::generic_beq_u32(a, b) {
+        1
+    } else {
+        0
+    }
 }
 
 #[no_mangle]

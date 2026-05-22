@@ -172,10 +172,25 @@ private def fieldNameEntries (fields : List RArg) : List (String × String) :=
 private def variantNameEntries (variants : List (String × List RType)) : List (String × String) :=
   variants.map (fun variant => (variant.1, rustVariantIdent variant.1))
 
+private def concatLists {α : Type} (lists : List (List α)) : List α :=
+  lists.foldr (· ++ ·) []
+
+private partial def surfacePatternBinders : SurfacePattern → List String
+  | .wildcard => []
+  | .var name => [name]
+  | .unit => []
+  | .bool _ => []
+  | .optionNone => []
+  | .optionSome pat => surfacePatternBinders pat
+  | .enumCtor _ payload => concatLists (payload.map surfacePatternBinders)
+  | .prod a b => surfacePatternBinders a ++ surfacePatternBinders b
+
 partial def surfaceBinders : SurfaceExpr → List String
   | .var _ => []
   | .litUnit => []
   | .litBool _ => []
+  | .litNat _ => []
+  | .litInt _ => []
   | .litU32 _ => []
   | .litU64 _ => []
   | .litI32 _ => []
@@ -187,7 +202,9 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .matchBool c a b => surfaceBinders c ++ surfaceBinders a ++ surfaceBinders b
   | .matchOption target noneCase someName someCase => surfaceBinders target ++ surfaceBinders noneCase ++ (someName :: surfaceBinders someCase)
   | .matchEnum _ target branches =>
-      surfaceBinders target ++ branches.bind (fun branch => branch.2.1 ++ surfaceBinders branch.2.2)
+      surfaceBinders target ++ concatLists (branches.map (fun branch => branch.2.1 ++ surfaceBinders branch.2.2))
+  | .matchPattern _ target arms =>
+      surfaceBinders target ++ concatLists (arms.map (fun arm => surfacePatternBinders arm.1 ++ surfaceBinders arm.2))
   | .not a => surfaceBinders a
   | .and a b => surfaceBinders a ++ surfaceBinders b
   | .or a b => surfaceBinders a ++ surfaceBinders b
@@ -206,10 +223,11 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .optionSome a => surfaceBinders a
   | .resultOk _ a => surfaceBinders a
   | .resultErr _ e => surfaceBinders e
-  | .structLit _ fields => fields.bind (fun field => surfaceBinders field.2)
+  | .prodLit a b => surfaceBinders a ++ surfaceBinders b
+  | .structLit _ fields => concatLists (fields.map (fun field => surfaceBinders field.2))
   | .field target _ => surfaceBinders target
-  | .enumVariant _ _ payload => payload.bind surfaceBinders
-  | .call _ _ _ args => args.bind surfaceBinders
+  | .enumVariant _ _ payload => concatLists (payload.map surfaceBinders)
+  | .call _ _ _ args => concatLists (args.map surfaceBinders)
   | .callValue fn _ _ arg => surfaceBinders fn ++ surfaceBinders arg
   | .closureApply binder _ _ arg body => surfaceBinders arg ++ (binder :: surfaceBinders body)
   | .defaultValue _ => []
@@ -232,12 +250,11 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .finCheck _ value => surfaceBinders value
   | .finVal _ value => surfaceBinders value
   | .vectorCheck _ _ value => surfaceBinders value
-  | .listMap binder _ _ target body =>
-      surfaceBinders target ++ (binder :: surfaceBinders body)
-  | .listFoldl accName elemName _ _ init target body =>
-      surfaceBinders init ++ surfaceBinders target ++ (accName :: elemName :: surfaceBinders body)
+  | .listLength _ target => surfaceBinders target
   | .natFold idxName accName _ init n body =>
       surfaceBinders init ++ surfaceBinders n ++ (idxName :: accName :: surfaceBinders body)
+  | .tailRecNat counterName accName _ counter init body =>
+      surfaceBinders counter ++ surfaceBinders init ++ (counterName :: accName :: surfaceBinders body)
 
 private def validateStructHygiene (s : SurfaceStruct) : List RustHygieneIssue :=
   detectNameCollisions ("struct " ++ s.name ++ " fields") (fieldNameEntries s.fields)
@@ -253,9 +270,9 @@ private def validateFunctionHygiene (f : SurfaceFun) : List RustHygieneIssue :=
 def surfaceModuleHygieneIssues (m : SurfaceModule) : List RustHygieneIssue :=
   detectNameCollisions "generated type declarations" (typeNameEntries (m.structs.map (fun s => s.name) ++ m.enums.map (fun e => e.name))) ++
   detectNameCollisions "generated function declarations" (valueNameEntries "generated" (m.functions.map (fun f => f.name))) ++
-  m.structs.bind validateStructHygiene ++
-  m.enums.bind validateEnumHygiene ++
-  m.functions.bind validateFunctionHygiene
+  concatLists (m.structs.map validateStructHygiene) ++
+  concatLists (m.enums.map validateEnumHygiene) ++
+  concatLists (m.functions.map validateFunctionHygiene)
 
 /-- Reject a generated surface module if Rust identifier hygiene would collapse distinct names. -/
 def validateSurfaceModuleHygiene (m : SurfaceModule) : Except CompatibilityReport SurfaceModule :=

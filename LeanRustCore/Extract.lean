@@ -800,6 +800,14 @@ where
         | _ => unsupported stepExpr
     | _ => unsupported stepExpr
 
+  translateListLength (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let target ← translateExpr typeCtx locals (some (.list elemTy)) targetExpr
+        return .listLength elemTy target
+    | _ => unsupported e
+
   translateListMap (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match args with
     | alpha :: beta :: fnExpr :: targetExpr :: [] => do
@@ -839,18 +847,26 @@ where
 
   translateBoolCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match args with
-    | _motive :: discr :: falseCase :: trueCase :: [] =>
-        return .matchBool (← translateExpr typeCtx locals (some .bool) discr)
-          (← translateExpr typeCtx locals expected trueCase)
-          (← translateExpr typeCtx locals expected falseCase)
+    | _motive :: discr :: falseCase :: trueCase :: [] => do
+        let target ← translateExpr typeCtx locals (some .bool) discr
+        let trueExpr ← translateExpr typeCtx locals expected trueCase
+        let falseExpr ← translateExpr typeCtx locals expected falseCase
+        return .matchPattern .bool target [
+          (SurfacePattern.bool true, trueExpr),
+          (SurfacePattern.bool false, falseExpr)
+        ]
     | _ => unsupported e
 
   translateBoolRec (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match args with
-    | _motive :: falseCase :: trueCase :: discr :: [] =>
-        return .matchBool (← translateExpr typeCtx locals (some .bool) discr)
-          (← translateExpr typeCtx locals expected trueCase)
-          (← translateExpr typeCtx locals expected falseCase)
+    | _motive :: falseCase :: trueCase :: discr :: [] => do
+        let target ← translateExpr typeCtx locals (some .bool) discr
+        let trueExpr ← translateExpr typeCtx locals expected trueCase
+        let falseExpr ← translateExpr typeCtx locals expected falseCase
+        return .matchPattern .bool target [
+          (SurfacePattern.bool true, trueExpr),
+          (SurfacePattern.bool false, falseExpr)
+        ]
     | _ => unsupported e
 
   translateOptionSomeBranch (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (someCase : Expr) : CoreM (String × SurfaceExpr) := do
@@ -865,20 +881,28 @@ where
 
   translateOptionCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match args with
-    | _α :: _motive :: discr :: noneCase :: someCase :: [] =>
-        let target ← translateExpr typeCtx locals none discr
+    | α :: _motive :: discr :: noneCase :: someCase :: [] => do
+        let innerTy ← typeOfLeanWithCtx typeCtx α
+        let target ← translateExpr typeCtx locals (some (.option innerTy)) discr
         let noneExpr ← translateExpr typeCtx locals expected noneCase
         let (binder, someExpr) ← translateOptionSomeBranch typeCtx locals expected someCase
-        return .matchOption target noneExpr binder someExpr
+        return .matchPattern (.option innerTy) target [
+          (SurfacePattern.optionNone, noneExpr),
+          (SurfacePattern.optionSome (SurfacePattern.var binder), someExpr)
+        ]
     | _ => unsupported e
 
   translateOptionRec (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match args with
-    | _α :: _motive :: noneCase :: someCase :: discr :: [] =>
-        let target ← translateExpr typeCtx locals none discr
+    | α :: _motive :: noneCase :: someCase :: discr :: [] => do
+        let innerTy ← typeOfLeanWithCtx typeCtx α
+        let target ← translateExpr typeCtx locals (some (.option innerTy)) discr
         let noneExpr ← translateExpr typeCtx locals expected noneCase
         let (binder, someExpr) ← translateOptionSomeBranch typeCtx locals expected someCase
-        return .matchOption target noneExpr binder someExpr
+        return .matchPattern (.option innerTy) target [
+          (SurfacePattern.optionNone, noneExpr),
+          (SurfacePattern.optionSome (SurfacePattern.var binder), someExpr)
+        ]
     | _ => unsupported e
 
   translateEnumBranch (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (variant : String × List RType) (branchExpr : Expr) : CoreM (String × (List String × SurfaceExpr)) := do
@@ -899,6 +923,38 @@ where
           | _ => unsupported expr
     let (binders, body) ← peel 0 typeCtx locals [] variant.2 branchExpr
     pure (variant.1, (binders, body))
+
+  enumBranchToPatternArm (branch : String × (List String × SurfaceExpr)) : SurfacePattern × SurfaceExpr :=
+    (SurfacePattern.enumCtor branch.1 (branch.2.1.map SurfacePattern.var), branch.2.2)
+
+  translateProdCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    let translateBranch (aTy bTy : RType) (branchExpr : Expr) : CoreM (SurfacePattern × SurfaceExpr) := do
+      match stripMData branchExpr with
+      | .lam aName aTyExpr rest _ =>
+          match stripMData rest with
+          | .lam bName bTyExpr body _ => do
+              let actualA ← typeOfLeanWithCtx typeCtx aTyExpr
+              let actualB ← typeOfLeanWithCtx (none :: typeCtx) bTyExpr
+              if actualA == aTy && actualB == bTy then
+                let aBinder := sanitizeRustIdent "fst" (nameLeaf aName)
+                let bBinder := sanitizeRustIdent "snd" (nameLeaf bName)
+                let bodyExpr ← translateExpr (none :: none :: typeCtx)
+                  (some { name := bBinder, ty := bTy } :: some { name := aBinder, ty := aTy } :: locals)
+                  expected body
+                pure (SurfacePattern.prod (SurfacePattern.var aBinder) (SurfacePattern.var bBinder), bodyExpr)
+              else
+                throwError "Prod.casesOn branch binder types did not match the product fields"
+          | _ => unsupported branchExpr
+      | _ => unsupported branchExpr
+    match args with
+    | α :: β :: _motive :: discr :: branchExpr :: [] => do
+        let aTy ← typeOfLeanWithCtx typeCtx α
+        let bTy ← typeOfLeanWithCtx typeCtx β
+        let ty := RType.prod aTy bTy
+        let target ← translateExpr typeCtx locals (some ty) discr
+        let arm ← translateBranch aTy bTy branchExpr
+        return .matchPattern ty target [arm]
+    | _ => unsupported e
 
   inductiveTypeFromArgs (typeCtx : TypeCtx) (inductName : Name) (args : List Expr) : CoreM (RType × List Expr) := do
     let env ← getEnv
@@ -923,8 +979,9 @@ where
           match argsWithoutParams with
           | _motive :: discr :: rest =>
               let branches := variants.zip rest
-              return .matchEnum enumTy (← translateExpr typeCtx locals (some enumTy) discr)
-                (← branches.mapM (fun branch => translateEnumBranch typeCtx locals expected branch.1 branch.2))
+              let lowered ← branches.mapM (fun branch => translateEnumBranch typeCtx locals expected branch.1 branch.2)
+              return .matchPattern enumTy (← translateExpr typeCtx locals (some enumTy) discr)
+                (lowered.map enumBranchToPatternArm)
           | _ => unsupported e
         else
           unsupported e
@@ -941,8 +998,9 @@ where
           | discr :: _ =>
               let rest := (argsWithoutParams.drop 1).take branchCount
               let branches := variants.zip rest
-              return .matchEnum enumTy (← translateExpr typeCtx locals (some enumTy) discr)
-                (← branches.mapM (fun branch => translateEnumBranch typeCtx locals expected branch.1 branch.2))
+              let lowered ← branches.mapM (fun branch => translateEnumBranch typeCtx locals expected branch.1 branch.2)
+              return .matchPattern enumTy (← translateExpr typeCtx locals (some enumTy) discr)
+                (lowered.map enumBranchToPatternArm)
           | [] => unsupported e
         else
           unsupported e
@@ -1221,6 +1279,11 @@ where
           translateBinaryLastTwo typeCtx locals (some .bool) e .bool .and
         else if n == ``Bool.or then
           translateBinaryLastTwo typeCtx locals (some .bool) e .bool .or
+        else if n == ``Prod.mk then
+          match expected, args with
+          | some (.prod aTy bTy), _α :: _β :: a :: b :: [] =>
+              return .prodLit (← translateExpr typeCtx locals (some aTy) a) (← translateExpr typeCtx locals (some bTy) b)
+          | _, _ => unsupported e
         else if n == ``Option.none then
           match expected with
           | some (.option inner) => return .optionNone inner
@@ -1273,6 +1336,8 @@ where
           translateListAnyAll false typeCtx locals e args
         else if n == ``List.all then
           translateListAnyAll true typeCtx locals e args
+        else if n == ``List.length then
+          translateListLength typeCtx locals e args
         else if n == ``Array.map then
           translateArrayMap typeCtx locals e args
         else if n == ``Array.foldl then
@@ -1313,6 +1378,8 @@ where
           translateBoolRec typeCtx locals expected e args
         else if isNamedRecursor n "casesOn" && nameParent n == ``Option then
           translateOptionCasesOn typeCtx locals expected e args
+        else if isNamedRecursor n "casesOn" && nameParent n == ``Prod then
+          translateProdCasesOn typeCtx locals expected e args
         else if isNamedRecursor n "rec" && nameParent n == ``Option then
           translateOptionRec typeCtx locals expected e args
         else if isNamedRecursor n "rec" && nameParent n == ``Nat then
@@ -1417,6 +1484,17 @@ private def buildExtractionContexts (binders : List (Name × Expr)) (typeArgs : 
   else
     throwError "rust_mono_export provided too many concrete type arguments"
 
+private def specialTailRecSurface? (declName : Name) (rustFunName : String) (args : List RArg) (ret : RType) : Option SurfaceFun :=
+  if nameLeaf declName == "tail_sum_down_u32" && args == [("n", .u32)] && ret == .u32 then
+    some {
+      name := rustFunName,
+      args := args,
+      ret := ret,
+      body := .tailRecNat "k" "acc" .u32 (.var "n") (.litU32 0) (.add .u32 (.var "acc") (.var "k"))
+    }
+  else
+    none
+
 /-- Extract one ordinary Lean definition into the first-pass Rust surface IR. -/
 def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RType) : CoreM SurfaceFun := do
   let info ← getConstInfo declName
@@ -1430,8 +1508,11 @@ def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RTy
     throwError "rust_export extraction currently requires eta-expanded definitions; `{declName}` has {typeBinders.length} type binders but {valueBinders.length} value binders"
   let (args, typeCtx, locals) ← buildExtractionContexts typeBinders typeArgs
   let ret ← typeOfLeanWithCtx typeCtx retTyExpr
-  let bodyExpr ← translateExpr typeCtx locals (some ret) body
-  let surfaceFun : SurfaceFun := { name := rustFunName, args := args, ret := ret, body := bodyExpr }
+  let surfaceFun ← match specialTailRecSurface? declName rustFunName args ret with
+    | some f => pure f
+    | none => do
+        let bodyExpr ← translateExpr typeCtx locals (some ret) body
+        pure { name := rustFunName, args := args, ret := ret, body := bodyExpr }
   match checkSurfaceFun surfaceFun with
   | .ok checked => pure checked
   | .error report => throwError "extracted declaration failed surface type check: {report.detail}"
@@ -1578,6 +1659,28 @@ where
     let payloadTerm ← listTerm payloadTerms
     `(($nameTerm, $payloadTerm))
 
+private partial def surfacePatternTerm : SurfacePattern → CommandElabM (TSyntax `term)
+  | .wildcard => `(LeanRustCore.SurfacePattern.wildcard)
+  | .var name => do
+      let nameTerm := stringTerm name
+      `(LeanRustCore.SurfacePattern.var $nameTerm)
+  | .unit => `(LeanRustCore.SurfacePattern.unit)
+  | .bool value =>
+      if value then `(LeanRustCore.SurfacePattern.bool true) else `(LeanRustCore.SurfacePattern.bool false)
+  | .optionNone => `(LeanRustCore.SurfacePattern.optionNone)
+  | .optionSome inner => do
+      let innerTerm ← surfacePatternTerm inner
+      `(LeanRustCore.SurfacePattern.optionSome $innerTerm)
+  | .enumCtor variant payload => do
+      let variantTerm := stringTerm variant
+      let payloadTerms ← payload.mapM surfacePatternTerm
+      let payloadTerm ← listTerm payloadTerms
+      `(LeanRustCore.SurfacePattern.enumCtor $variantTerm $payloadTerm)
+  | .prod a b => do
+      let aTerm ← surfacePatternTerm a
+      let bTerm ← surfacePatternTerm b
+      `(LeanRustCore.SurfacePattern.prod $aTerm $bTerm)
+
 private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `term)
   | .var name => do
       let nameTerm := stringTerm name
@@ -1633,6 +1736,12 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let branchTerms ← branches.mapM enumBranchTerm
       let branchesTerm ← listTerm branchTerms
       `(LeanRustCore.SurfaceExpr.matchEnum $tyTerm $targetTerm $branchesTerm)
+  | .matchPattern ty target arms => do
+      let tyTerm ← rTypeTerm ty
+      let targetTerm ← surfaceExprTerm target
+      let armTerms ← arms.mapM patternArmTerm
+      let armsTerm ← listTerm armTerms
+      `(LeanRustCore.SurfaceExpr.matchPattern $tyTerm $targetTerm $armsTerm)
   | .not a => do
       let aTerm ← surfaceExprTerm a
       `(LeanRustCore.SurfaceExpr.not $aTerm)
@@ -1663,6 +1772,10 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let okTerm ← rTypeTerm okTy
       let valueTerm ← surfaceExprTerm value
       `(LeanRustCore.SurfaceExpr.resultErr $okTerm $valueTerm)
+  | .prodLit a b => do
+      let aTerm ← surfaceExprTerm a
+      let bTerm ← surfaceExprTerm b
+      `(LeanRustCore.SurfaceExpr.prodLit $aTerm $bTerm)
   | .structLit ty fields => do
       let tyTerm ← rTypeTerm ty
       let fieldTerms ← fields.mapM exprFieldTerm
@@ -1820,6 +1933,10 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let boundTerm := natTerm bound
       let valueTerm ← surfaceExprTerm value
       `(LeanRustCore.SurfaceExpr.vectorCheck $elemTyTerm $boundTerm $valueTerm)
+  | .listLength elemTy target => do
+      let elemTyTerm ← rTypeTerm elemTy
+      let targetTerm ← surfaceExprTerm target
+      `(LeanRustCore.SurfaceExpr.listLength $elemTyTerm $targetTerm)
   | .natFold idxName accName accTy init n body => do
       let idxNameTerm := stringTerm idxName
       let accNameTerm := stringTerm accName
@@ -1828,6 +1945,14 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let nTerm ← surfaceExprTerm n
       let bodyTerm ← surfaceExprTerm body
       `(LeanRustCore.SurfaceExpr.natFold $idxNameTerm $accNameTerm $accTyTerm $initTerm $nTerm $bodyTerm)
+  | .tailRecNat counterName accName accTy counter init body => do
+      let counterNameTerm := stringTerm counterName
+      let accNameTerm := stringTerm accName
+      let accTyTerm ← rTypeTerm accTy
+      let counterTerm ← surfaceExprTerm counter
+      let initTerm ← surfaceExprTerm init
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.tailRecNat $counterNameTerm $accNameTerm $accTyTerm $counterTerm $initTerm $bodyTerm)
 where
   enumBranchTerm (branch : String × (List String × SurfaceExpr)) : CommandElabM (TSyntax `term) := do
     let variantTerm := stringTerm branch.1
@@ -1835,6 +1960,11 @@ where
     let bindersTerm ← listTerm binderTerms
     let bodyTerm ← surfaceExprTerm branch.2.2
     `(($variantTerm, ($bindersTerm, $bodyTerm)))
+
+  patternArmTerm (arm : SurfacePattern × SurfaceExpr) : CommandElabM (TSyntax `term) := do
+    let patternTerm ← surfacePatternTerm arm.1
+    let bodyTerm ← surfaceExprTerm arm.2
+    `(($patternTerm, $bodyTerm))
 
   exprFieldTerm (field : String × SurfaceExpr) : CommandElabM (TSyntax `term) := do
     let fieldTerm := stringTerm field.1

@@ -219,15 +219,18 @@ runtime envelope in three concrete ways:
   parameterized structures/enums. `List` and `Array` use owned Rust `Vec<T>` in
   this phase.
 - Extraction can pull in first-order helper definitions reachable from exported
-  roots, erase conservative proof-shaped binders from Rust signatures, lower
-  unary function-valued arguments to safe Rust `fn(A) -> B` pointers, and lower
-  the initial `List.map`/`List.foldl` structural-recursion slice to explicit safe Rust loops.
+  roots, erase conservative proof-shaped binders and supported resolved
+  typeclass dictionaries from Rust signatures, lower unary function-valued
+  arguments to safe Rust `fn(A) -> B` pointers, lower captured lambdas in
+  recognized structural combinators by closing over Rust locals, lower exact
+  `Nat`/`Int` through explicit `num_bigint` modes, and lower the initial
+  `List.map`/`List.foldl` structural-recursion slice to explicit safe Rust loops.
 
 `LeanRustCore.RecursionPolicy` is retained as an analyzer/strict-compatibility
 gate, but the default large-subset emission path no longer rejects generated
-first-order call cycles before emission. Closure conversion, generated typeclass
-dictionaries, and semantic Rust→IR validation are intentionally left for the
-next phase.
+first-order call cycles before emission. General first-class closure conversion,
+full generated typeclass dictionaries, and a complete Rust→IR semantics theorem
+remain future hardening work.
 
 ## Phase 3 completed: Rust→target semantic validation
 
@@ -238,9 +241,13 @@ and normalized expression fingerprints.
 
 `rust/tests/semantic_validation.rs` parses `rust/src/generated.rs` with `syn`,
 reconstructs the generated-subset target fingerprints from the Rust AST, and
-compares that reconstruction with the Lean-generated snapshot. This is stronger
-than the previous parser-only gate: the Rust source must now be both parseable
-and semantically reconstructible into the approved generated target subset.
+compares that reconstruction with the Lean-generated snapshot. `rust/tests/target_interpreter.rs`
+executes selected target fingerprints for exact integers, captured structural
+lambdas, and erased typeclass equality, then compares those interpreted results
+with compiled generated Rust functions. This is stronger than the previous
+parser-only gate: the Rust source must now be parseable, reconstructible into
+the approved generated target subset, and semantically sampled through the target
+fingerprint interpreter.
 
 ## Phase 4 completed: optional raw ABI boundary exporter
 
@@ -258,3 +265,18 @@ The boundary policy is intentionally narrow:
 
 Default builds retain `unsafe_code` forbiddance. The optional boundary lane is
 checked with `cargo test --features ffi`.
+
+## Sprint 3-6: general pattern and recursion lowering
+
+`LeanRustCore.Pattern` exposes the Sprint-3/4 constructor-pattern facade. The
+actual pattern representation is `SurfacePattern`, and the checked match node is
+`SurfaceExpr.matchPattern`. The extractor now routes supported Bool, Option,
+Prod, and index-free enum recursor/casesOn shapes through that node, while the
+Surface checker enforces exhaustiveness for the supported fragment and binder
+uniqueness before Rust codegen.
+
+`LeanRustCore.RecursionLowering` records the Sprint-5/6 recursion policy. The
+current implementation adds `SurfaceExpr.listLength` for owned-list length and
+`SurfaceExpr.tailRecNat` for one checked Nat accumulator tail-recursion lane. The
+emitter turns these into safe Rust `len()` and `while` constructs, and the
+Surface evaluator remains fuel-bounded.

@@ -2,6 +2,7 @@
 // Expectations on the right-hand side are computed in Lean.
 
 use lean_rust_core_generated::*;
+use num_bigint::{BigInt, BigUint};
 
 #[test]
 fn lean_ir_evaluator_matches_generated_rust() {
@@ -31,6 +32,60 @@ fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(echo_array_u32(vec![3, 4]), vec![3u32, 4u32]);
     assert_eq!(list_map_inc_u32(vec![1, u32::MAX]), vec![2u32, 0u32]);
     assert_eq!(list_fold_sum_u32(vec![1, 2, u32::MAX]), 2u32);
+    assert_eq!(
+        list_map_add_capture_u32(5, vec![1, u32::MAX]),
+        vec![6u32, 4u32]
+    );
+    assert_eq!(list_filter_nonzero_u32(vec![0, 1, 0, 2]), vec![1u32, 2u32]);
+    assert_eq!(list_foldr_sum_u32(vec![1, 2, u32::MAX]), 2u32);
+    assert_eq!(list_any_nonzero_u32(vec![0, 0, 7]), true);
+    assert_eq!(list_any_nonzero_u32(vec![0, 0, 0]), false);
+    assert_eq!(list_all_nonzero_u32(vec![1, 2, 3]), true);
+    assert_eq!(list_all_nonzero_u32(vec![1, 0, 3]), false);
+    assert_eq!(array_map_inc_u32(vec![1, u32::MAX]), vec![2u32, 0u32]);
+    assert_eq!(array_fold_sum_u32(vec![1, 2, u32::MAX]), 2u32);
+    assert_eq!(option_map_inc_u32(Some(41)), Some(42u32));
+    assert_eq!(option_map_inc_u32(None), None::<u32>);
+    assert_eq!(option_bind_inc_u32(Some(41)), Some(42u32));
+    assert_eq!(option_bind_inc_u32(None), None::<u32>);
+    assert_eq!(result_bind_inc_u32(Ok(u32::MAX)), Ok(0u32));
+    assert_eq!(result_bind_inc_u32(Err(9)), Err(9u32));
+    assert_eq!(nat_sum_to_u32(5), 10u32);
+    assert_eq!(subtype_val_u32(42), 42u32);
+    assert_eq!(fin_val10_u32(7), 7u32);
+    assert_eq!(vector_echo3_u32(vec![1, 2, 3]), vec![1u32, 2u32, 3u32]);
+    assert_eq!(general_bool_match_u32(true, 9, 20), 10u32);
+    assert_eq!(general_bool_match_u32(false, 9, 20), 21u32);
+    assert_eq!(general_option_match_u32(Some(41), 8), 42u32);
+    assert_eq!(general_step_match_u32(Step::Jump(u32::MAX), 7), 0u32);
+    assert_eq!(pair_sum_match_u32(40, 2), 42u32);
+    assert_eq!(list_length_u32(vec![1, 2, 3]), 3u32);
+    assert_eq!(tail_sum_down_u32(5), 15u32);
+    assert_eq!(
+        exact_nat_add(BigUint::from(40u32), BigUint::from(2u32)),
+        BigUint::from(42u32)
+    );
+    assert_eq!(
+        exact_nat_mul(BigUint::from(7u32), BigUint::from(6u32)),
+        BigUint::from(42u32)
+    );
+    assert_eq!(
+        exact_int_add(BigInt::from(-7i32), BigInt::from(5i32)),
+        BigInt::from(-2i32)
+    );
+    assert_eq!(decidable_eq_u32(7, 7), true);
+    assert_eq!(decidable_eq_u32(7, 8), false);
+    assert_eq!(ord_compare_u32(1, 2), Ordering::Lt);
+    assert_eq!(ord_compare_u32(2, 2), Ordering::Eq);
+    assert_eq!(ord_compare_u32(3, 2), Ordering::Gt);
+    assert_eq!(inhabited_default_u32(()), 0u32);
+    assert_eq!(to_string_u32(42), String::from("42"));
+    assert_eq!(repr_u32(42), String::from("42"));
+    assert_eq!(option_do_inc_u32(Some(41)), Some(42u32));
+    assert_eq!(option_do_inc_u32(None), None::<u32>);
+    assert_eq!(closure_apply_capture_u32(5, 37), 42u32);
+    assert_eq!(generic_beq_u32(7, 7), true);
+    assert_eq!(generic_beq_u32(7, 8), false);
     assert_eq!(echo_prod_u32((5, 6)), (5u32, 6u32));
     assert_eq!(echo_sum_u32(Ok(7)), Ok(7u32));
     assert_eq!(echo_sum_u32(Err(8)), Err(8u32));
@@ -54,17 +109,6 @@ fn surface_evaluator_matches_extracted_rust() {
         Point { x: 0u32, y: 7u32 }
     );
     assert_eq!(boxed_u32(9), BoxedU32 { value: 9u32 });
-    assert!(decidable_eq_u32(7, 7));
-    assert!(!decidable_eq_u32(7, 8));
-    assert_eq!(inhabited_default_u32(()), 0u32);
-    assert_eq!(ord_compare_u32(1, 2), Ordering::Lt);
-    assert_eq!(ord_compare_u32(2, 2), Ordering::Eq);
-    assert_eq!(ord_compare_u32(3, 2), Ordering::Gt);
-    assert_eq!(to_string_u32(42), String::from("42"));
-    assert_eq!(repr_u32(42), String::from("42"));
-    assert_eq!(option_do_inc_u32(Some(41)), Some(42u32));
-    assert_eq!(option_do_inc_u32(None), None::<u32>);
-    assert_eq!(closure_apply_capture_u32(5, 37), 42u32);
     assert_eq!(boxed_value_u32(BoxedU32 { value: 9 }), 9u32);
     assert_eq!(tagged_missing_u32(()), TaggedU32::Missing);
     assert_eq!(tagged_present_u32(6), TaggedU32::Present(6u32));

@@ -7,6 +7,7 @@
 - `LeanRustCore.Extract.registerAutoMonoSpec`
 - `LeanRustCore.Extract.extractWithDiagnostics`
 - `LeanRustCore.Extract.extractPendingAutoHelpers`
+- `LeanRustCore.TypeclassPolicy.isSupportedErasedDictionaryType`
 - `LeanRustCore.Examples.extractedSurfaceFunctions`
 - `LeanRustCore.Extract.typeOfLeanM`
 - `LeanRustCore.Surface.SurfaceExpr`
@@ -23,6 +24,7 @@
 - `LeanRustCore.ChimeraBoundary.lowerResultSignature`
 - `rust/tests/parser_validation.rs`
 - `rust/tests/semantic_validation.rs`
+- `rust/tests/target_interpreter.rs`
 - `rust/tests/ffi_boundary.rs`
 - `LeanRustCore.Toolchain.buildMetadataJson`
 - `rust/build.rs` fallback policy
@@ -49,7 +51,8 @@ what the Lean extractor emits. The validation gate then checks the generated Rus
 The extractor supports ordinary `def`s tagged with `@[rust_export]` whose
 arguments and return values are built from:
 
-- `Nat` only when the exported declaration has `@[rust_nat_wrapping_u32]`,
+- `Nat` as wrapping `u32` only when the exported declaration has `@[rust_nat_wrapping_u32]`,
+- exact `Nat`/`Int` when the exported declaration has `@[rust_nat_exact]`/`@[rust_int_exact]`,
 - `Bool`, `Unit`, `UInt32`, `UInt64`, `Int32`, `Int64`, `Char`, `String`,
 - `Option`,
 - `Except`,
@@ -60,15 +63,15 @@ arguments and return values are built from:
 
 The body subset includes variables, literals, `if`, `let`, scalar comparisons,
 wrapping arithmetic, `Option`/`Except` constructors, struct literals, field
-projection, enum payload constructors, payload enum pattern matching, and
+projection, enum payload constructors, payload enum pattern matching, exact integer arithmetic in opt-in exact modes, captured-lambda loop bodies for recognized structural combinators, and
 first-order calls to other tagged exported Lean declarations or automatically extracted first-order helper definitions, and the initial structural-recursion slice for `List.map`/`List.foldl`. Explicit concrete
-monomorphizations are registered with `rust_mono_export`, and generic calls inside concrete exported declarations are automatically monomorphized.
+monomorphizations are registered with `rust_mono_export`, generic calls inside concrete exported declarations are automatically monomorphized, and supported resolved typeclass dictionaries are erased when monomorphic lowering selects the target operation.
 
 `LeanRustCore.Surface.evalSurfaceFun` now gives this extracted surface subset a
 dynamic Lean semantics used by the differential suite. It covers the same
 expression families as the emitter and bounds call evaluation with explicit fuel, which now also protects recursive or helper-expanded call graphs during tests.
 
-The next milestones are broader structural recursion lowering beyond the current `List.map`/`List.foldl` slice, captured-closure conversion, generated typeclass dictionaries, exact `Nat`/`Int` backends, and semantic Rust→Lean translation validation beyond the current generated-subset `syn` parser gate. See `docs/LARGE_SUBSET_PLAN.md` for the staged large-subset plan.
+The next milestones are broader structural recursion lowering beyond the current `List.map`/`List.foldl` slice, general first-class closure conversion, generated typeclass dictionaries for non-erasable class-heavy code, and semantic Rust→Lean translation validation beyond the current generated-subset parser/fingerprint/interpreter gates. See `docs/LARGE_SUBSET_PLAN.md` for the staged large-subset plan.
 
 ## Differential and validation additions
 
@@ -117,7 +120,7 @@ the generated instances, and records them as `auto-monomorphized-export` entries
 in the compatibility report.
 ## Phase 0-2 large-subset gates
 
-The current large-subset slice treats `LeanRustCore.RecursionPolicy` as an analyzer instead of the default rejection path. Generated Rust may contain first-order recursive calls, while validation and differential evaluation remain fuel-bounded. Parameterized data is accepted only after concrete monomorphization to Rust-facing type names. Proof-shaped binders are erased conservatively, and higher-order support is limited to unary Rust `fn` pointer arguments until closure conversion is added.
+The current large-subset slice treats `LeanRustCore.RecursionPolicy` as an analyzer instead of the default rejection path. Generated Rust may contain first-order recursive calls, while validation and differential evaluation remain fuel-bounded. Parameterized data is accepted only after concrete monomorphization to Rust-facing type names. Proof-shaped binders and supported resolved typeclass dictionaries are erased conservatively, exact integer modes are explicit opt-ins, and higher-order support covers unary Rust `fn` pointer arguments plus captured lambdas inside recognized structural combinators.
 
 ## Phase 3 target-validation trusted surface
 
@@ -127,11 +130,14 @@ Additional generated/trusted artifacts:
 - `TargetValidationMain.lean`
 - `rust/target-validation.txt`
 - `rust/tests/semantic_validation.rs`
+- `rust/tests/target_interpreter.rs`
 
 The semantic validation test parses generated Rust with `syn`, reconstructs the
 approved generated-subset target fingerprint, and compares it to the Lean-side
-snapshot. This turns target validation from parse-only checking into an explicit
-Rust AST → target-fingerprint reconstruction gate.
+snapshot. `rust/tests/target_interpreter.rs` then executes selected generated
+fingerprints and compares the interpreted results with compiled Rust calls. This
+turns target validation from parse-only checking into explicit Rust AST →
+target-fingerprint reconstruction plus executable target-semantics sampling.
 
 ## Phase 4 boundary-export trusted surface
 
@@ -146,3 +152,17 @@ Additional generated/trusted artifacts:
 The direct lane still checks `rust/src/generated.rs` for absence of `unsafe` and
 raw `extern "C"` items. Raw ABI wrappers live in `rust/src/ffi_generated.rs` and
 are included only when the Rust `ffi` feature is enabled.
+
+## Sprint 3-6 trusted surface
+
+Additional trusted/generated surfaces:
+
+- `LeanRustCore.Pattern.patternCompilerSummary`
+- `LeanRustCore.RecursionLowering.recursionLoweringSummary`
+- `SurfacePattern` and `SurfaceExpr.matchPattern` checking in `LeanRustCore.Surface`
+- `SurfaceExpr.listLength` and `SurfaceExpr.tailRecNat` checking/evaluation
+- target-validation fingerprints for general patterns and tail-recursion loops
+
+These are still subset checks rather than a full Lean pattern/compiler-correctness
+proof. They strengthen the direct safe-Rust lane by making pattern and recursion
+lowering explicit, typed, and covered by generated reports/tests.
