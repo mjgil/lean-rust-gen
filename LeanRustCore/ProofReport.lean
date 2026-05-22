@@ -54,6 +54,10 @@ def facts : List ProofFact := [
   { name := "transitive_helper_extraction", statement := "first-order helper definitions reached from exported bodies are enqueued and emitted as auto-helper-export functions" },
   { name := "proof_erased_binders", statement := "conservative proof-shaped binders are erased from Rust signatures when their values are not used computationally" },
   { name := "limited_higher_order_function_pointer", statement := "unary function-typed arguments lower to Rust fn-pointer arguments and SurfaceExpr.callValue nodes" },
+
+  { name := "std_library_lowering_table", statement := LeanRustCore.StdLowering.stdLoweringSummary },
+  { name := "typeclass_specialization_policy", statement := LeanRustCore.TypeclassPolicy.typeclassPolicySummary },
+  { name := "pure_monadic_do_lowering", statement := LeanRustCore.PureEffects.pureEffectsSummary },
   { name := "toolchain_pins", statement := "Lean and Rust toolchains are pinned exactly and checked before CI/release validation" },
   { name := "release_fallback_ban", statement := "checked-in generated.rs fallback is disabled for CI and release builds" },
   { name := "compatibility_reporting", statement := "unsupported tagged exports are skipped and recorded in a structured compatibility report" },

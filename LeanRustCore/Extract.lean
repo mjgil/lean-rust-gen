@@ -198,6 +198,9 @@ private def lowerRuntimeTypeString (s : String) : String :=
 private partial def rTypeRuntimeSuffix : RType → String
   | .unit => "unit"
   | .bool => "bool"
+  | .ordering => "ordering"
+  | .nat => "nat"
+  | .int => "int"
   | .u32 => "u32"
   | .u64 => "u64"
   | .i32 => "i32"
@@ -439,6 +442,8 @@ private partial def rTypeMonoSuffix : RType → String
   | .unit => "unit"
   | .bool => "bool"
   | .ordering => "ordering"
+  | .nat => "nat"
+  | .int => "int"
   | .u32 => "u32"
   | .u64 => "u64"
   | .i32 => "i32"
@@ -1365,8 +1370,6 @@ where
                   match localAt locals idx with
                   | .ok local =>
                       match local.ty with
-        else if isBindConst n then
-          translateTypeclassBind typeCtx locals expected e args
                       | .fin bound => return .finVal bound (← translateExpr typeCtx locals (some (.fin bound)) target)
                       | _ => throwError "Fin.val target was not typed as Fin in the local context"
                   | .error msg => throwError msg
@@ -1431,6 +1434,8 @@ private def rTypeReportLabel : RType → String
   | .unit => "Unit"
   | .bool => "Bool"
   | .ordering => "Ordering"
+  | .nat => "Nat"
+  | .int => "Int"
   | .u32 => "UInt32"
   | .u64 => "UInt64"
   | .i32 => "Int32"
@@ -1598,6 +1603,8 @@ private partial def rTypeTerm : RType → CommandElabM (TSyntax `term)
   | .u32 => `(LeanRustCore.RType.u32)
   | .u64 => `(LeanRustCore.RType.u64)
   | .ordering => `(LeanRustCore.RType.ordering)
+  | .nat => `(LeanRustCore.RType.nat)
+  | .int => `(LeanRustCore.RType.int)
   | .i32 => `(LeanRustCore.RType.i32)
   | .i64 => `(LeanRustCore.RType.i64)
   | .char => `(LeanRustCore.RType.char)

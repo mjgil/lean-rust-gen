@@ -5,8 +5,10 @@ import LeanRustCore.Toolchain
 import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport
 import LeanRustCore.ClosureConversion
+import LeanRustCore.PureEffects
 import LeanRustCore.Pattern
 import LeanRustCore.RecursionLowering
+import LeanRustCore.StdLowering
 import LeanRustCore.TypeclassPolicy
 import LeanRustCore.ExtractIR
 namespace LeanRustCore.RustValidation
@@ -74,6 +76,18 @@ def requiredFunctionNames : List String := [
   "ord_compare_u32",
   "option_do_inc_u32",
   "closure_apply_capture_u32",
+  "exact_int_mul",
+  "exact_int_add",
+  "exact_nat_mul",
+  "exact_nat_add",
+  "state_tick_u32",
+  "reader_add_env_u32",
+  "except_do_inc_u32",
+  "result_map_err_inc_u32",
+  "option_getd_u32",
+  "array_push_u32",
+  "list_find_nonzero_u32",
+  "list_append_u32",
   "shift_point_x",
   "boxed_u32",
   "boxed_value_u32",
@@ -218,6 +232,16 @@ def checks : List ValidationCheck := [
     name := "structural-recursion-lowering",
     status := "passed",
     detail := "recognized List folds and Nat.rec accumulator shapes lower to explicit safe Rust loop-shaped SurfaceExpr nodes with evaluator and target-validation fingerprints"
+  },
+  {
+    name := "std-library-lowering-table",
+    status := "passed",
+    detail := LeanRustCore.StdLowering.stdLoweringSummary
+  },
+  {
+    name := "pure-monadic-do-lowering",
+    status := "passed",
+    detail := LeanRustCore.PureEffects.pureEffectsSummary
   },
   {
     name := "tail-recursion-loop-lowering",

@@ -201,6 +201,10 @@ def exact_nat_mul (a b : Nat) : Nat :=
 def exact_int_add (a b : Int) : Int :=
   a + b
 
+@[rust_export, rust_int_exact]
+def exact_int_mul (a b : Int) : Int :=
+  a * b
+
 
 @[rust_export]
 def decidable_eq_u32 (a b : UInt32) : Bool :=
@@ -226,6 +230,43 @@ def ord_compare_u32 (a b : UInt32) : Ordering :=
 def option_do_inc_u32 (x : Option UInt32) : Option UInt32 := do
   let v ← x
   pure (v + 1)
+
+
+@[rust_export]
+def list_append_u32 (xs ys : List UInt32) : List UInt32 :=
+  xs ++ ys
+
+@[rust_export]
+def list_find_nonzero_u32 (xs : List UInt32) : Option UInt32 :=
+  xs.find? (fun x => x > 0)
+
+@[rust_export]
+def array_push_u32 (xs : Array UInt32) (x : UInt32) : Array UInt32 :=
+  xs.push x
+
+@[rust_export]
+def option_getd_u32 (x : Option UInt32) (fallback : UInt32) : UInt32 :=
+  x.getD fallback
+
+@[rust_export]
+def result_map_err_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
+  match x with
+  | Except.ok value => Except.ok value
+  | Except.error err => Except.error (err + 1)
+
+@[rust_export]
+def except_do_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 := do
+  let v ← x
+  pure (v + 1)
+
+@[rust_export]
+def reader_add_env_u32 (env x : UInt32) : UInt32 :=
+  (fun cfg => x + cfg) env
+
+@[rust_export]
+def state_tick_u32 (s : UInt32) : UInt32 × UInt32 :=
+  let old := s
+  (old, s + 1)
 
 @[rust_export]
 def closure_apply_capture_u32 (delta x : UInt32) : UInt32 :=

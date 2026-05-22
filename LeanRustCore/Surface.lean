@@ -743,6 +743,7 @@ private def checkedInt : SurfaceValue → Except CompatibilityReport Int
 
 private def checkedU32 : SurfaceValue → Except CompatibilityReport Nat
   | .u32 n => pure (u32Wrap n)
+  | .fin _ n => pure (u32Wrap n)
   | _ => evalError .unsupportedType "expected UInt32 during surface evaluation"
 
 private def checkedU64 : SurfaceValue → Except CompatibilityReport Nat

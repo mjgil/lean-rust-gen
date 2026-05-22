@@ -14,7 +14,7 @@ inductive SourceItem where
 
 /-- Current supported runtime types for direct safe Rust emission. -/
 def supportedRustType : RType → Bool
-  | .unit | .bool | .u32 | .u64 | .i32 | .i64 | .char | .string => true
+  | .unit | .bool | .ordering | .nat | .int | .u32 | .u64 | .i32 | .i64 | .char | .string => true
   | .option t => supportedRustType t
   | .result ok err => supportedRustType ok && supportedRustType err
   | .list t => supportedRustType t

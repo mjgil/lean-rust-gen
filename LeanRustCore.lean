@@ -3,6 +3,9 @@ import LeanRustCore.Surface
 import LeanRustCore.Export
 import LeanRustCore.RustHygiene
 import LeanRustCore.ClosureConversion
+import LeanRustCore.PureEffects
+import LeanRustCore.StdLowering
+import LeanRustCore.TypeclassPolicy
 import LeanRustCore.EmitRust
 import LeanRustCore.Extract
 import LeanRustCore.Lowering

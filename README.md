@@ -324,3 +324,10 @@ items are:
 5. Generalize closure conversion/defunctionalization beyond recognized structural combinators.
 6. Replace selected target-fingerprint interpreter samples with a full generated-subset semantics theorem or Rust→Lean translation validator.
 7. Expand the raw ABI lane with handles for strings, slices, structs, enums, and generated C headers.
+
+### Sprint 7-9 coverage checkpoint
+
+The Sprint 7-9 patch adds machine-readable policy modules for broad Std
+lowerings, typeclass specialization, and pure monadic `do` lowering. The
+default generated Rust lane remains safe Rust; raw ABI wrappers stay isolated
+behind the `ffi` feature.

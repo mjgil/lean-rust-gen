@@ -163,19 +163,6 @@ pub fn tail_sum_down_u32(n: u32) -> u32 {
     { let mut k = n; let mut acc: u32 = 0; while k != 0 { acc = (acc).wrapping_add(k); k = (k).wrapping_sub(1); } acc }
 }
 
-pub fn exact_nat_add(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint {
-    (&(a)) + (&(b))
-}
-
-pub fn exact_nat_mul(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint {
-    (&(a)) * (&(b))
-}
-
-pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt {
-    (&(a)) + (&(b))
-}
-
-
 pub fn decidable_eq_u32(a: u32, b: u32) -> bool {
     a == b
 }
@@ -204,12 +191,69 @@ pub fn closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
     { let y = x; (y).wrapping_add(delta) }
 }
 
+
+pub fn list_append_u32(mut xs: Vec<u32>, ys: Vec<u32>) -> Vec<u32> {
+    xs.extend(ys);
+    xs
+}
+
+pub fn list_find_nonzero_u32(xs: Vec<u32>) -> Option<u32> {
+    for x in xs {
+        if 0 < x {
+            return Some(x);
+        }
+    }
+    None
+}
+
+pub fn array_push_u32(mut xs: Vec<u32>, x: u32) -> Vec<u32> {
+    xs.push(x);
+    xs
+}
+
+pub fn option_getd_u32(x: Option<u32>, fallback: u32) -> u32 {
+    match x { None => fallback, Some(value) => value }
+}
+
+pub fn result_map_err_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x { Ok(value) => Ok(value), Err(err) => Err((err).wrapping_add(1)) }
+}
+
+pub fn except_do_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x { Err(__lrc_err) => Err::<_, u32>(__lrc_err), Ok(v) => Ok((v).wrapping_add(1)) }
+}
+
+pub fn reader_add_env_u32(env: u32, x: u32) -> u32 {
+    (x).wrapping_add(env)
+}
+
+pub fn state_tick_u32(s: u32) -> (u32, u32) {
+    (s, (s).wrapping_add(1))
+}
+
 pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32) {
     x
 }
 
 pub fn echo_sum_u32(x: Result<u32, u32>) -> Result<u32, u32> {
     x
+}
+
+
+pub fn exact_nat_add(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint {
+    a + b
+}
+
+pub fn exact_nat_mul(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint {
+    a * b
+}
+
+pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt {
+    a + b
+}
+
+pub fn exact_int_mul(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt {
+    a * b
 }
 
 pub fn add_u64(a: u64, b: u64) -> u64 {

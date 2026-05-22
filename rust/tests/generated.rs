@@ -49,6 +49,10 @@ fn standard_container_shapes_round_trip() {
     assert_eq!(echo_array_u32(vec![4, 5]), vec![4, 5]);
     assert_eq!(list_map_inc_u32(vec![1, u32::MAX]), vec![2, 0]);
     assert_eq!(list_fold_sum_u32(vec![1, 2, u32::MAX]), 2);
+    assert_eq!(list_append_u32(vec![1, 2], vec![3]), vec![1, 2, 3]);
+    assert_eq!(list_find_nonzero_u32(vec![0, 0, 7]), Some(7));
+    assert_eq!(list_find_nonzero_u32(vec![0, 0, 0]), None);
+    assert_eq!(array_push_u32(vec![1, 2], 3), vec![1, 2, 3]);
     assert_eq!(echo_prod_u32((1, 2)), (1, 2));
     assert_eq!(echo_sum_u32(Ok(3)), Ok(3));
     assert_eq!(echo_sum_u32(Err(4)), Err(4));
@@ -73,6 +77,10 @@ fn exact_nat_and_int_modes_use_bigints() {
         exact_int_add(BigInt::from(-7i32), BigInt::from(5i32)),
         BigInt::from(-2i32)
     );
+    assert_eq!(
+        exact_int_mul(BigInt::from(-7i32), BigInt::from(6i32)),
+        BigInt::from(-42i32)
+    );
 }
 
 #[test]
@@ -87,6 +95,14 @@ fn typeclass_and_closure_specializations_lower() {
     assert_eq!(ord_compare_u32(3, 2), Ordering::Gt);
     assert_eq!(option_do_inc_u32(Some(41)), Some(42));
     assert_eq!(option_do_inc_u32(None), None);
+    assert_eq!(option_getd_u32(None, 9), 9);
+    assert_eq!(option_getd_u32(Some(4), 9), 4);
+    assert_eq!(result_map_err_inc_u32(Ok(5)), Ok(5));
+    assert_eq!(result_map_err_inc_u32(Err(41)), Err(42));
+    assert_eq!(except_do_inc_u32(Ok(41)), Ok(42));
+    assert_eq!(except_do_inc_u32(Err(7)), Err(7));
+    assert_eq!(reader_add_env_u32(5, 37), 42);
+    assert_eq!(state_tick_u32(41), (41, 42));
     assert_eq!(closure_apply_capture_u32(5, 37), 42);
 }
 

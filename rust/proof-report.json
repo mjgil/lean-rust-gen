@@ -3,7 +3,27 @@
   "architecture": "direct-lean-emits-rust",
   "lean_toolchain": "leanprover/lean4:v4.22.0",
   "rust_toolchain": "1.85.0",
-  "trusted_core": ["Lean kernel", "LeanRustCore.Extract.extractConst", "LeanRustCore.Extract.extractWithDiagnostics", "LeanRustCore.Extract.extractPendingAutoHelpers", "LeanRustCore.Examples.extractedSurfaceFunctions", "LeanRustCore.Surface.typeOfExpected", "LeanRustCore.Surface.evalSurfaceFun", "LeanRustCore.RustHygiene.validateSurfaceModuleHygiene", "LeanRustCore.EmitRust.emitSurfaceRustModule", "LeanRustCore.TargetValidation.targetValidationSnapshot", "LeanRustCore.BoundaryExport.generatedBoundaryRust", "LeanRustCore.ExtractIR.functionFeatures", "rust/tests/parser_validation.rs", "rust/tests/semantic_validation.rs", "rust/tests/target_interpreter.rs", "LeanRustCore.IR.eval"],
+  "trusted_core": [
+    "Lean kernel",
+    "LeanRustCore.Extract.extractConst",
+    "LeanRustCore.Extract.extractWithDiagnostics",
+    "LeanRustCore.Extract.extractPendingAutoHelpers",
+    "LeanRustCore.Examples.extractedSurfaceFunctions",
+    "LeanRustCore.Surface.typeOfExpected",
+    "LeanRustCore.Surface.evalSurfaceFun",
+    "LeanRustCore.RustHygiene.validateSurfaceModuleHygiene",
+    "LeanRustCore.EmitRust.emitSurfaceRustModule",
+    "LeanRustCore.TargetValidation.targetValidationSnapshot",
+    "LeanRustCore.BoundaryExport.generatedBoundaryRust",
+    "LeanRustCore.ExtractIR.functionFeatures",
+    "rust/tests/parser_validation.rs",
+    "rust/tests/semantic_validation.rs",
+    "rust/tests/target_interpreter.rs",
+    "LeanRustCore.IR.eval",
+    "LeanRustCore.PureEffects",
+    "LeanRustCore.StdLowering",
+    "LeanRustCore.TypeclassPolicy"
+  ],
   "policy": {
     "generated_rust_unsafe": false,
     "source_string_matching": false,
@@ -17,20 +37,71 @@
     "target_validation_snapshot": "lean-rust-core.target-validation.v2",
     "ffi_wrappers_feature_gated": true,
     "closure_conversion": "future-phase",
-    "corpus_harness": true
+    "corpus_harness": true,
+    "std_lowering_policy": true,
+    "pure_effect_lowering": true,
+    "typeclass_specialization_policy": true
   },
   "facts": [
-    {"name": "extractor_reads_elaborated_definitions", "statement": "rust_emit_exports collects @[rust_export] declarations and uses Lean constant bodies, not source-string matching"},
-    {"name": "surface_type_check", "statement": "extracted SurfaceFun bodies are type-checked before Rust emission"},
-    {"name": "extract_ir_feature_tags", "statement": "LeanRustCore.ExtractIR.functionFeatures records feature tags for compatibility reporting and validation summaries"},
-    {"name": "standard_combinator_lowering", "statement": "recognized list/array/option/result combinators lower to checked first-order SurfaceExpr nodes"},
-    {"name": "general_pattern_compiler", "statement": "SurfacePattern and SurfaceExpr.matchPattern represent a checked general constructor-pattern fragment for Bool, Option, Prod, and closed enums"},
-    {"name": "tail_recursion_loop_lowering", "statement": "recognized Nat accumulator tail recursion lowers to SurfaceExpr.tailRecNat and safe Rust while loops"},
-    {"name": "list_length_structural_lowering", "statement": "List.length lowers to SurfaceExpr.listLength and Rust Vec::len in the owned List representation"},
-    {"name": "exact_integer_modes", "statement": "@[rust_nat_exact] and @[rust_int_exact] lower Lean Nat/Int boundaries to exact num_bigint BigUint/BigInt Rust values"},
-    {"name": "captured_closure_conversion", "statement": "captured lambdas inside recognized structural combinators lower to loop bodies that close over ordinary Rust locals"},
-    {"name": "target_validation_snapshot", "statement": "LeanRustCore.TargetValidation.targetValidationSnapshot is generated from the extractor-owned SurfaceFun artifact"},
-    {"name": "target_fingerprint_interpreter", "statement": "rust/tests/target_interpreter.rs samples selected target fingerprints against compiled generated Rust functions"},
-    {"name": "ffi_boundary_exporter", "statement": "LeanRustCore.BoundaryExport.generatedBoundaryRust emits optional feature-gated raw ABI wrappers for primitive and Result<u32,u32> exports"}
+    {
+      "name": "extractor_reads_elaborated_definitions",
+      "statement": "rust_emit_exports collects @[rust_export] declarations and uses Lean constant bodies, not source-string matching"
+    },
+    {
+      "name": "surface_type_check",
+      "statement": "extracted SurfaceFun bodies are type-checked before Rust emission"
+    },
+    {
+      "name": "extract_ir_feature_tags",
+      "statement": "LeanRustCore.ExtractIR.functionFeatures records feature tags for compatibility reporting and validation summaries"
+    },
+    {
+      "name": "standard_combinator_lowering",
+      "statement": "recognized list/array/option/result combinators lower to checked first-order SurfaceExpr nodes"
+    },
+    {
+      "name": "general_pattern_compiler",
+      "statement": "SurfacePattern and SurfaceExpr.matchPattern represent a checked general constructor-pattern fragment for Bool, Option, Prod, and closed enums"
+    },
+    {
+      "name": "tail_recursion_loop_lowering",
+      "statement": "recognized Nat accumulator tail recursion lowers to SurfaceExpr.tailRecNat and safe Rust while loops"
+    },
+    {
+      "name": "list_length_structural_lowering",
+      "statement": "List.length lowers to SurfaceExpr.listLength and Rust Vec::len in the owned List representation"
+    },
+    {
+      "name": "exact_integer_modes",
+      "statement": "@[rust_nat_exact] and @[rust_int_exact] lower Lean Nat/Int boundaries to exact num_bigint BigUint/BigInt Rust values"
+    },
+    {
+      "name": "captured_closure_conversion",
+      "statement": "captured lambdas inside recognized structural combinators lower to loop bodies that close over ordinary Rust locals"
+    },
+    {
+      "name": "target_validation_snapshot",
+      "statement": "LeanRustCore.TargetValidation.targetValidationSnapshot is generated from the extractor-owned SurfaceFun artifact"
+    },
+    {
+      "name": "target_fingerprint_interpreter",
+      "statement": "rust/tests/target_interpreter.rs samples selected target fingerprints against compiled generated Rust functions"
+    },
+    {
+      "name": "ffi_boundary_exporter",
+      "statement": "LeanRustCore.BoundaryExport.generatedBoundaryRust emits optional feature-gated raw ABI wrappers for primitive and Result<u32,u32> exports"
+    },
+    {
+      "name": "std_lowering_policy",
+      "statement": "LeanRustCore.StdLowering records the supported monomorphic List/Array/Option/Except lowerings used by the current direct Rust lane"
+    },
+    {
+      "name": "pure_effect_lowering",
+      "statement": "LeanRustCore.PureEffects records the pure do-notation lowering lane for Option, Except, ReaderT, and StateM"
+    },
+    {
+      "name": "typeclass_specialization_policy",
+      "statement": "LeanRustCore.TypeclassPolicy records the resolved-dictionary specialization lane for common executable classes"
+    }
   ]
 }

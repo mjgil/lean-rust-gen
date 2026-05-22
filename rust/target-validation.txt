@@ -1,7 +1,7 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
 TYPE_COUNT	6
-FN_COUNT	90
+FN_COUNT	99
 TYPE	struct	Point	x:u32,y:u32
 TYPE	struct	BoxedU32	value:u32
 TYPE	enum	Choice	First|Second
@@ -44,9 +44,6 @@ FN	general_step_match_u32	s:Step,fallback:u32	u32	match_pattern(var(s),Step::Sta
 FN	pair_sum_match_u32	a:u32,b:u32	u32	match_pattern(tuple(var(a),var(b)),(varpat(x),varpat(y))=>add(var(x),var(y)))
 FN	list_length_u32	xs:Vec<u32>	u32	list_length(var(xs))
 FN	tail_sum_down_u32	n:u32	u32	tail_rec_nat(k,acc,var(n),lit(0),add(var(acc),var(k)))
-FN	exact_nat_add	a:num_bigint::BigUint,b:num_bigint::BigUint	num_bigint::BigUint	add(var(a),var(b))
-FN	exact_nat_mul	a:num_bigint::BigUint,b:num_bigint::BigUint	num_bigint::BigUint	mul(var(a),var(b))
-FN	exact_int_add	a:num_bigint::BigInt,b:num_bigint::BigInt	num_bigint::BigInt	add(var(a),var(b))
 FN	decidable_eq_u32	a:u32,b:u32	bool	eq(var(a),var(b))
 FN	inhabited_default_u32	_x:()	u32	lit(0)
 FN	to_string_u32	x:u32	String	to_string(var(x))
@@ -54,8 +51,20 @@ FN	repr_u32	x:u32	String	repr(var(x))
 FN	ord_compare_u32	a:u32,b:u32	Ordering	if(lt(var(a),var(b)),enum(Ordering::Lt),if(eq(var(a),var(b)),enum(Ordering::Eq),enum(Ordering::Gt)))
 FN	option_do_inc_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(v)=>some(add(var(v),lit(1))))
 FN	closure_apply_capture_u32	delta:u32,x:u32	u32	let(y,var(x),add(var(y),var(delta)))
+FN	list_append_u32	xs:Vec<u32>,ys:Vec<u32>	Vec<u32>	list_append(var(xs),var(ys))
+FN	list_find_nonzero_u32	xs:Vec<u32>	Option<u32>	list_find(x,var(xs),lt(lit(0),var(x)))
+FN	array_push_u32	xs:Vec<u32>,x:u32	Vec<u32>	array_push(var(xs),var(x))
+FN	option_getd_u32	x:Option<u32>,fallback:u32	u32	match_option(var(x),none=>var(fallback)|some(value)=>var(value))
+FN	result_map_err_inc_u32	x:Result<u32, u32>	Result<u32, u32>	result_map_error(var(x),add(var(err),lit(1)))
+FN	except_do_inc_u32	x:Result<u32, u32>	Result<u32, u32>	result_bind(v,var(x),ok(add(var(v),lit(1))))
+FN	reader_add_env_u32	env:u32,x:u32	u32	reader(env,add(var(x),var(env)))
+FN	state_tick_u32	s:u32	(u32, u32)	state(tuple(var(s),add(var(s),lit(1))))
 FN	echo_prod_u32	x:(u32, u32)	(u32, u32)	var(x)
 FN	echo_sum_u32	x:Result<u32, u32>	Result<u32, u32>	var(x)
+FN	exact_nat_add	a:num_bigint::BigUint,b:num_bigint::BigUint	num_bigint::BigUint	add(var(a),var(b))
+FN	exact_nat_mul	a:num_bigint::BigUint,b:num_bigint::BigUint	num_bigint::BigUint	mul(var(a),var(b))
+FN	exact_int_add	a:num_bigint::BigInt,b:num_bigint::BigInt	num_bigint::BigInt	add(var(a),var(b))
+FN	exact_int_mul	a:num_bigint::BigInt,b:num_bigint::BigInt	num_bigint::BigInt	mul(var(a),var(b))
 FN	add_u64	a:u64,b:u64	u64	add(var(a),var(b))
 FN	inc_u32	x:u32	u32	add(var(x),lit(1))
 FN	inc_twice_u32	x:u32	u32	call(inc_u32,call(inc_u32,var(x)))

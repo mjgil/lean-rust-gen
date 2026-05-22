@@ -81,21 +81,19 @@ fn validation_report_counts_match_generated_rust() {
 
     assert_eq!(
         report["generated_function_count"].as_u64(),
-        Some(functions.len() as u64),
-        "validation report function count should match parsed generated.rs"
+        Some(functions.len() as u64)
     );
     assert_eq!(
         report["generated_type_count"].as_u64(),
-        Some(types.len() as u64),
-        "validation report type count should match parsed generated.rs"
+        Some(types.len() as u64)
     );
 
     let required_functions = report["required_functions"]
         .as_array()
-        .expect("required_functions should be an array");
+        .expect("required_functions array");
     assert_eq!(required_functions.len(), functions.len());
     for name in required_functions {
-        let name = name.as_str().expect("function name should be a string");
+        let name = name.as_str().expect("function name string");
         assert!(
             functions.contains(name),
             "required function {name} was not generated"
@@ -104,10 +102,10 @@ fn validation_report_counts_match_generated_rust() {
 
     let required_types = report["required_types"]
         .as_array()
-        .expect("required_types should be an array");
+        .expect("required_types array");
     assert_eq!(required_types.len(), types.len());
     for name in required_types {
-        let name = name.as_str().expect("type name should be a string");
+        let name = name.as_str().expect("type name string");
         assert!(
             types.contains(name),
             "required type {name} was not generated"
@@ -122,8 +120,7 @@ fn compatibility_report_diagnostics_match_generated_output() {
 
     assert_eq!(
         report["generated_function_count"].as_u64(),
-        Some(functions.len() as u64),
-        "compatibility report function count should match parsed generated.rs"
+        Some(functions.len() as u64)
     );
 
     let diagnostics = report["diagnostics"]
@@ -132,12 +129,8 @@ fn compatibility_report_diagnostics_match_generated_output() {
     let mut supported_functions = BTreeSet::new();
 
     for diagnostic in diagnostics {
-        let rust_name = diagnostic["rust_name"]
-            .as_str()
-            .expect("diagnostic rust_name should be a string");
-        let code = diagnostic["code"]
-            .as_str()
-            .expect("diagnostic code should be a string");
+        let rust_name = diagnostic["rust_name"].as_str().expect("rust_name string");
+        let code = diagnostic["code"].as_str().expect("code string");
         let features = diagnostic["features"]
             .as_array()
             .expect("diagnostic features should be an array");
@@ -154,14 +147,14 @@ fn compatibility_report_diagnostics_match_generated_output() {
             "supported" => {
                 assert!(
                     functions.contains(rust_name),
-                    "supported diagnostic {rust_name} should correspond to a generated Rust function"
+                    "supported diagnostic {rust_name} should be generated"
                 );
                 supported_functions.insert(rust_name.to_string());
             }
             "unsupported-declaration" => {
                 assert!(
                     !functions.contains(rust_name),
-                    "unsupported diagnostic {rust_name} must not correspond to generated Rust"
+                    "unsupported diagnostic {rust_name} must not be generated"
                 );
             }
             other => panic!("unexpected compatibility diagnostic code: {other}"),
@@ -171,7 +164,7 @@ fn compatibility_report_diagnostics_match_generated_output() {
     for function in functions {
         assert!(
             supported_functions.contains(&function),
-            "generated function {function} is missing a supported compatibility diagnostic"
+            "generated function {function} lacks a supported diagnostic"
         );
     }
 }
@@ -202,6 +195,8 @@ fn validation_report_records_current_subset_gates() {
     assert!(report.contains("standard-container-shapes"));
     assert!(report.contains("standard-combinator-lowering"));
     assert!(report.contains("structural-recursion-lowering"));
+    assert!(report.contains("std-library-lowering-table"));
+    assert!(report.contains("pure-monadic-do-lowering"));
     assert!(report.contains("tail-recursion-loop-lowering"));
     assert!(report.contains("list-length-structural-lowering"));
     assert!(report.contains("dependent-shape-erasure"));
@@ -260,6 +255,15 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn list_foldr_sum_u32",
         "pub fn exact_nat_add",
         "pub fn exact_int_add",
+        "pub fn exact_int_mul",
+        "pub fn list_append_u32",
+        "pub fn list_find_nonzero_u32",
+        "pub fn array_push_u32",
+        "pub fn option_getd_u32",
+        "pub fn result_map_err_inc_u32",
+        "pub fn except_do_inc_u32",
+        "pub fn reader_add_env_u32",
+        "pub fn state_tick_u32",
         "pub fn echo_prod_u32",
         "pub fn echo_sum_u32",
         "pub fn helper_chain_u32",
@@ -339,6 +343,9 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("match_option(var(x),none=>none|some(v)=>some(add(var(v),lit(1))))"));
     assert!(snapshot.contains("FN\tclosure_apply_capture_u32"));
     assert!(snapshot.contains("let(y,var(x),add(var(y),var(delta)))"));
+    assert!(snapshot.contains("FN\tlist_append_u32"));
+    assert!(snapshot.contains("FN\treader_add_env_u32"));
+    assert!(snapshot.contains("FN\tstate_tick_u32"));
 }
 
 #[test]
@@ -353,4 +360,6 @@ fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
     assert!(ffi.contains("extern \"C\" fn lrc_general_bool_match_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_pair_sum_match_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_tail_sum_down_u32"));
+    assert!(ffi.contains("extern \"C\" fn lrc_reader_add_env_u32"));
+    assert!(ffi.contains("unsafe extern \"C\" fn lrc_except_do_inc_u32"));
 }

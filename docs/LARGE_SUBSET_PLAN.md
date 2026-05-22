@@ -101,3 +101,20 @@ Future phase-4 expansion:
 - Slice/string handle policy.
 - Panic policy enforcement for boundary wrappers.
 - Header generation and C integration tests.
+
+## Sprint 7-9 checkpoint - Std lowering, specialization, pure effects
+
+This patch adds the Sprint 7-9 policy layer on top of the existing surface
+subset:
+
+- `LeanRustCore.StdLowering` records the monomorphic Std combinators lowered
+  into owned safe Rust loops and matches.
+- `LeanRustCore.TypeclassPolicy` records the resolved-dictionary specialization
+  lane for common executable classes.
+- `LeanRustCore.PureEffects` records the pure `do`-notation lane for
+  `Option`, `Except`, `StateM`, and `ReaderT`; `IO` stays outside the default
+  safe direct lane.
+
+The new examples exercise additional `List`/`Array`/`Option`/`Except` APIs plus
+Reader/State-shaped pure effects without introducing unsafe Rust in
+`generated.rs`.

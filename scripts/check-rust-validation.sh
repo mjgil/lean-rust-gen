@@ -164,3 +164,15 @@ grep -q 'CI' rust/build.rs
 grep -q 'LEAN_RUST_CORE_ALLOW_FALLBACK' rust/build.rs
 grep -q 'extern "C" fn lrc_decidable_eq_u32' "$ffi_generated"
 grep -q 'extern "C" fn lrc_closure_apply_capture_u32' "$ffi_generated"
+
+# Sprint 7-9 gates.
+grep -q '"name": "std-library-lowering-table"' "$validation_report"
+grep -q '"name": "pure-monadic-do-lowering"' "$validation_report"
+grep -q 'list_append_u32(vec!' "$differential_tests"
+grep -q 'except_do_inc_u32(Ok(41))' "$differential_tests"
+grep -q 'reader_add_env_u32(5, 37)' "$differential_tests"
+grep -q 'state_tick_u32(41)' "$differential_tests"
+grep -q 'pub fn list_append_u32' "$generated"
+grep -q 'pub fn except_do_inc_u32' "$generated"
+grep -q 'pub fn reader_add_env_u32' "$generated"
+grep -q 'extern "C" fn lrc_reader_add_env_u32' "$ffi_generated"

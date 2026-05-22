@@ -184,3 +184,38 @@ pub extern "C" fn lrc_helper_chain_u32(x: u32) -> u32 {
 pub extern "C" fn lrc_auto_identity_u32(x: u32) -> u32 {
     crate::auto_identity_u32(x)
 }
+
+#[no_mangle]
+pub extern "C" fn lrc_option_getd_u32(x_is_some: u32, x_value: u32, fallback: u32) -> u32 {
+    let x = if x_is_some != 0 { Some(x_value) } else { None };
+    crate::option_getd_u32(x, fallback)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_reader_add_env_u32(env: u32, x: u32) -> u32 {
+    crate::reader_add_env_u32(env, x)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lrc_result_map_err_inc_u32(
+    is_ok: u32,
+    value: u32,
+    out_ok: *mut u32,
+    out_err: *mut u32,
+) -> ChStatus {
+    let input = if is_ok != 0 { Ok(value) } else { Err(value) };
+    unsafe {
+        crate::abi::lower_result_u32_u32(crate::result_map_err_inc_u32(input), out_ok, out_err)
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lrc_except_do_inc_u32(
+    is_ok: u32,
+    value: u32,
+    out_ok: *mut u32,
+    out_err: *mut u32,
+) -> ChStatus {
+    let input = if is_ok != 0 { Ok(value) } else { Err(value) };
+    unsafe { crate::abi::lower_result_u32_u32(crate::except_do_inc_u32(input), out_ok, out_err) }
+}
