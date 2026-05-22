@@ -208,7 +208,7 @@ Rust→IR semantic validation added in stages.
 ## Phase 0-2 large-subset slice
 
 The large-subset patch keeps the existing checked surface pipeline but widens the
-runtime envelope in three concrete ways:
+runtime envelope in four concrete ways:
 
 - `rust_emit_exports_with_report_and_surface` emits generated Rust, the
   compatibility report, and the extractor-owned `List SurfaceFun` used by the
@@ -225,6 +225,10 @@ runtime envelope in three concrete ways:
   recognized structural combinators by closing over Rust locals, lower exact
   `Nat`/`Int` through explicit `num_bigint` modes, and lower the initial
   `List.map`/`List.foldl` structural-recursion slice to explicit safe Rust loops.
+- Sprint 10-12 extends the same safe lane with dependent-shape erasure:
+  `Subtype` erases to its carrier, literal-bound `Fin` lowers to checked `u32`
+  carriers, literal-length `Vector` lowers to checked `Vec<T>` carriers, and
+  proof-only struct fields are omitted from emitted runtime layouts.
 
 `LeanRustCore.RecursionPolicy` is retained as an analyzer/strict-compatibility
 gate, but the default large-subset emission path no longer rejects generated

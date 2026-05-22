@@ -94,8 +94,11 @@ inductive SurfaceExpr where
   | subtypeErase : RType → SurfaceExpr → SurfaceExpr
   | subtypeVal : RType → SurfaceExpr → SurfaceExpr
   | finCheck : Nat → SurfaceExpr → SurfaceExpr
+  | finMk : Nat → SurfaceExpr → SurfaceExpr
   | finVal : Nat → SurfaceExpr → SurfaceExpr
   | vectorCheck : RType → Nat → SurfaceExpr → SurfaceExpr
+  | vectorErase : RType → Nat → SurfaceExpr → SurfaceExpr
+  | vectorMap : String → RType → RType → Nat → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | listLength : RType → SurfaceExpr → SurfaceExpr
   | natFold : String → String → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | tailRecNat : String → String → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
@@ -525,12 +528,22 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
   | .finCheck bound value => do
       discard <| typeOfExpected ctx value (some .u32)
       applyExpected expected (.option (.fin bound))
+  | .finMk bound value => do
+      discard <| typeOfExpected ctx value (some .u32)
+      applyExpected expected (.fin bound)
   | .finVal bound value => do
       discard <| typeOfExpected ctx value (some (.fin bound))
       applyExpected expected .u32
   | .vectorCheck elemTy bound value => do
       discard <| typeOfExpected ctx value (some (.list elemTy))
       applyExpected expected (.option (.vector elemTy bound))
+  | .vectorErase elemTy bound value => do
+      discard <| typeOfExpected ctx value (some (.list elemTy))
+      applyExpected expected (.vector elemTy bound)
+  | .vectorMap binder elemTy outTy bound target body => do
+      discard <| typeOfExpected ctx target (some (.vector elemTy bound))
+      discard <| typeOfExpected ((binder, elemTy) :: ctx) body (some outTy)
+      applyExpected expected (.vector outTy bound)
   | .listLength elemTy target => do
       discard <| typeOfExpected ctx target (some (.list elemTy))
       applyExpected expected .u32
@@ -1425,19 +1438,87 @@ mutual
     | .finCheck bound value => do
         let value ← evalSurfaceExprWithFuel fuel functions env value
         let n ← checkedU32 value
-        if n < bound then pure (.optionSome value) else pure (.optionNone (.fin bound))
+        if n < bound then pure (.optionSome (.fin bound n)) else pure (.optionNone (.fin bound))
+    | .finMk bound value => do
+        let value ← evalSurfaceExprWithFuel fuel functions env value
+        let n ← checkedU32 value
+        if n < bound then pure (.fin bound n) else evalError .unsupportedExpression "Fin.mk proof erasure saw a value outside its erased bound"
     | .finVal bound value => do
         let value ← evalSurfaceExprWithFuel fuel functions env value
         assertValueType value (.fin bound)
         pure value
     | .vectorCheck elemTy bound value => do
         match (← evalSurfaceExprWithFuel fuel functions env value) with
-        | value@(.list values) =>
+        | .list values =>
             if values.length == bound && values.all (fun item => valueHasType item elemTy) then
-              pure (.optionSome value)
+              pure (.optionSome (.vector bound values))
             else
               pure (.optionNone (.vector elemTy bound))
-        | _ => evalError .unsupportedType "Vector checked constructor needs a List value"
+        | .array values =>
+            if values.length == bound && values.all (fun item => valueHasType item elemTy) then
+              pure (.optionSome (.vector bound values))
+            else
+              pure (.optionNone (.vector elemTy bound))
+        | .vector valueBound values =>
+            if valueBound == bound && values.all (fun item => valueHasType item elemTy) then
+              pure (.optionSome (.vector bound values))
+            else
+              pure (.optionNone (.vector elemTy bound))
+        | _ => evalError .unsupportedType "Vector checked constructor needs a List/Array/Vector value"
+    | .vectorErase elemTy bound value => do
+        match (← evalSurfaceExprWithFuel fuel functions env value) with
+        | .list values =>
+            if values.length == bound && values.all (fun item => valueHasType item elemTy) then
+              pure (.vector bound values)
+            else
+              evalError .unsupportedType "Vector.mk proof erasure saw a payload whose runtime length/type does not match the erased Vector index"
+        | .array values =>
+            if values.length == bound && values.all (fun item => valueHasType item elemTy) then
+              pure (.vector bound values)
+            else
+              evalError .unsupportedType "Vector.mk proof erasure saw an Array payload whose runtime length/type does not match the erased Vector index"
+        | .vector valueBound values =>
+            if valueBound == bound && values.all (fun item => valueHasType item elemTy) then
+              pure (.vector bound values)
+            else
+              evalError .unsupportedType "Vector.mk proof erasure saw a Vector payload with a mismatched erased index"
+        | _ => evalError .unsupportedType "Vector.mk proof erasure needs a List/Array/Vector payload"
+    | .vectorMap binder elemTy outTy bound target body => do
+        match (← evalSurfaceExprWithFuel fuel functions env target) with
+        | .vector valueBound values => do
+            if valueBound != bound then
+              evalError .unsupportedType "Vector.map source length index did not match the expected bound"
+            else
+              let mut out : List SurfaceValue := []
+              for value in values do
+                assertValueType value elemTy
+                let mapped ← evalSurfaceExprWithFuel fuel functions ((binder, value) :: env) body
+                assertValueType mapped outTy
+                out := out ++ [mapped]
+              pure (.vector bound out)
+        | .list values => do
+            if values.length != bound then
+              evalError .unsupportedType "Vector.map erased carrier length did not match the expected bound"
+            else
+              let mut out : List SurfaceValue := []
+              for value in values do
+                assertValueType value elemTy
+                let mapped ← evalSurfaceExprWithFuel fuel functions ((binder, value) :: env) body
+                assertValueType mapped outTy
+                out := out ++ [mapped]
+              pure (.vector bound out)
+        | .array values => do
+            if values.length != bound then
+              evalError .unsupportedType "Vector.map erased array carrier length did not match the expected bound"
+            else
+              let mut out : List SurfaceValue := []
+              for value in values do
+                assertValueType value elemTy
+                let mapped ← evalSurfaceExprWithFuel fuel functions ((binder, value) :: env) body
+                assertValueType mapped outTy
+                out := out ++ [mapped]
+              pure (.vector bound out)
+        | _ => evalError .unsupportedType "Vector.map target is not a Vector value"
     | .listLength elemTy target => do
         match (← evalSurfaceExprWithFuel fuel functions env target) with
         | .list values =>

@@ -57,13 +57,15 @@ arguments and return values are built from:
 - `Option`,
 - `Except`,
 - `List` and `Array` as owned Rust `Vec<T>` values,
-- erased `Subtype`, `Fin n`, and `Vector α n` runtime shapes,
+- erased `Subtype`, checked-carrier `Fin n`, and checked-carrier `Vector α n` runtime shapes,
 - unary function-pointer arguments,
 - index-free structures and inductive enums, including concrete monomorphized parameterized data.
 
 The body subset includes variables, literals, `if`, `let`, scalar comparisons,
-wrapping arithmetic, `Option`/`Except` constructors, struct literals, field
-projection, enum payload constructors, payload enum pattern matching, exact integer arithmetic in opt-in exact modes, captured-lambda loop bodies for recognized structural combinators, and
+wrapping arithmetic, `Option`/`Except` constructors, proof-field-erased struct
+literals, field projection, enum payload constructors, payload enum pattern
+matching, exact integer arithmetic in opt-in exact modes, captured-lambda loop
+bodies for recognized structural combinators, and
 first-order calls to other tagged exported Lean declarations or automatically extracted first-order helper definitions, and the initial structural-recursion slice for `List.map`/`List.foldl`. Explicit concrete
 monomorphizations are registered with `rust_mono_export`, generic calls inside concrete exported declarations are automatically monomorphized, and supported resolved typeclass dictionaries are erased when monomorphic lowering selects the target operation.
 
@@ -120,7 +122,7 @@ the generated instances, and records them as `auto-monomorphized-export` entries
 in the compatibility report.
 ## Phase 0-2 large-subset gates
 
-The current large-subset slice treats `LeanRustCore.RecursionPolicy` as an analyzer instead of the default rejection path. Generated Rust may contain first-order recursive calls, while validation and differential evaluation remain fuel-bounded. Parameterized data is accepted only after concrete monomorphization to Rust-facing type names. Proof-shaped binders and supported resolved typeclass dictionaries are erased conservatively, exact integer modes are explicit opt-ins, and higher-order support covers unary Rust `fn` pointer arguments plus captured lambdas inside recognized structural combinators.
+The current large-subset slice treats `LeanRustCore.RecursionPolicy` as an analyzer instead of the default rejection path. Generated Rust may contain first-order recursive calls, while validation and differential evaluation remain fuel-bounded. Parameterized data is accepted only after concrete monomorphization to Rust-facing type names. Proof-shaped binders and proof-only runtime fields are erased conservatively, exact integer modes are explicit opt-ins, supported dependent carriers stay limited to `Subtype`/`Fin`/`Vector`, and higher-order support covers unary Rust `fn` pointer arguments plus captured lambdas inside recognized structural combinators.
 
 ## Phase 3 target-validation trusted surface
 

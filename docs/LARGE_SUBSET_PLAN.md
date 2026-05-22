@@ -61,6 +61,7 @@ Completed in this branch as the first large-subset slice:
 - Resolved `BEq`/`LT`/`LE`/`HAdd`/`HSub`/`HMul`/`OfNat` dictionaries are erased when the operation is selected by the monomorphic `RType`; unsupported dictionaries remain rejected.
 - A first structural `Nat.rec` accumulator-recursion lane lowers to bounded `for` loops in Rust.
 - `Subtype`, literal-bound `Fin`, and literal-length `Vector` have erased/checked runtime shapes: carriers erase, `Fin n` uses `u32`, and `Vector α n` uses `Vec<T>` with checked-constructor support.
+- Proof-only constructor fields are erased from emitted runtime structs when they are not used computationally; `BoundedProof` is the regression example for this lane.
 
 Still future work for a larger phase 2+:
 
@@ -68,6 +69,7 @@ Still future work for a larger phase 2+:
 - General closure conversion for first-class captured lambdas outside recognized combinators.
 - Defunctionalization for known higher-order functions.
 - Full generated typeclass dictionaries for class-heavy generic programs that cannot be erased or monomorphically resolved.
+- Broader proof-shape recognition beyond the current Eq/True/False/And/Or/Not/Iff/Exists/LT/LE slice, plus equality-cast and `Sigma`-shape erasure.
 
 ## Phase 3 — semantic validation and release hardening
 

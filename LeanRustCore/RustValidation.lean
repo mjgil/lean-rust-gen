@@ -11,6 +11,7 @@ import LeanRustCore.RecursionLowering
 import LeanRustCore.StdLowering
 import LeanRustCore.TypeclassPolicy
 import LeanRustCore.ExtractIR
+import LeanRustCore.DependentErasure
 namespace LeanRustCore.RustValidation
 
 open LeanRustCore
@@ -51,6 +52,24 @@ def requiredFunctionNames : List String := [
   "echo_array_u32",
   "list_map_inc_u32",
   "list_fold_sum_u32",
+  "list_map_add_capture_u32",
+  "list_filter_nonzero_u32",
+  "list_foldr_sum_u32",
+  "list_any_nonzero_u32",
+  "list_all_nonzero_u32",
+  "array_map_inc_u32",
+  "array_fold_sum_u32",
+  "option_map_inc_u32",
+  "option_bind_inc_u32",
+  "result_bind_inc_u32",
+  "nat_sum_to_u32",
+  "subtype_val_u32",
+  "subtype_inc_u32",
+  "fin_val10_u32",
+  "fin_checked10_u32",
+  "fin_succ_checked10_u32",
+  "vector_echo3_u32",
+  "vector_map_inc3_u32",
   "echo_prod_u32",
   "echo_sum_u32",
   "add_u64",
@@ -89,6 +108,9 @@ def requiredFunctionNames : List String := [
   "list_find_nonzero_u32",
   "list_append_u32",
   "shift_point_x",
+  "bounded_proof_make_u32",
+  "bounded_proof_value_u32",
+  "subtype_roundtrip_u32",
   "boxed_u32",
   "boxed_value_u32",
   "tagged_missing_u32",
@@ -124,6 +146,7 @@ def requiredFunctionNames : List String := [
 /-- Declarations that should exist before generated functions. -/
 def requiredTypeNames : List String := [
   "Point",
+  "BoundedProof",
   "BoxedU32",
   "Choice",
   "TaggedU32",
@@ -256,7 +279,12 @@ def checks : List ValidationCheck := [
   {
     name := "dependent-shape-erasure",
     status := "passed",
-    detail := "Subtype, Fin, and Vector runtime shapes erase to safe Rust values with checked SurfaceExpr constructors available for Fin and Vector boundaries"
+    detail := LeanRustCore.DependentErasure.dependentErasureSummary
+  },
+  {
+    name := "proof-field-erasure",
+    status := "passed",
+    detail := "proof-only constructor fields are excluded from SurfaceStruct payloads and generated Rust structs, while runtime fields remain checked by Surface.typeOfExpected"
   },
   {
     name := "exact-integer-modes",
@@ -373,6 +401,13 @@ private def checkToJson (check : ValidationCheck) : String :=
   ", \"status\": " ++ jsonString check.status ++
   ", \"detail\": " ++ jsonString check.detail ++ " }"
 
+private def featureSummaryJson : String :=
+  "  \"feature_summary\": {\n" ++
+  "    \"std_lowering\": [\"List.filter\", \"List.foldr\", \"List.any\", \"List.all\", \"Array.map\", \"Array.foldl\", \"Option.map\", \"Option.bind\", \"Except.map\", \"Except.bind\", \"String.append\", \"String.isEmpty\"],\n" ++
+  "    \"typeclass_specialization\": [\"BEq\", \"DecidableEq\", \"Ord\", \"Inhabited\", \"ToString\", \"Repr\", \"Option pure/bind\", \"Except pure/bind\"],\n" ++
+  "    \"dependent_erasure\": [\"Subtype carrier erasure\", \"Fin value erasure\", \"Vector length-checked carrier\", \"proof-field erasure\"]\n" ++
+  "  },\n"
+
 /-- JSON validation report emitted by `lake exe gen_validation_report`. -/
 def validationReportJson : String :=
   "{\n" ++
@@ -385,6 +420,7 @@ def validationReportJson : String :=
   "  \"differential_assertion_count\": " ++ Nat.toString (evaluatorAssertions.length + extractedDeclarationAssertions.length) ++ ",\n" ++
   "  \"target_validation_format\": " ++ jsonString LeanRustCore.TargetValidation.targetValidationFormat ++ ",\n" ++
   "  \"ffi_boundary_export_count\": " ++ Nat.toString LeanRustCore.BoundaryExport.boundaryExportCount ++ ",\n" ++
+  featureSummaryJson ++
   "  \"required_functions\": " ++ jsonArray requiredFunctionNames ++ ",\n" ++
   "  \"required_types\": " ++ jsonArray requiredTypeNames ++ ",\n" ++
   "  \"checks\": [\n" ++

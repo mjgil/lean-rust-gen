@@ -52,8 +52,20 @@ fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(result_bind_inc_u32(Err(9)), Err(9u32));
     assert_eq!(nat_sum_to_u32(5), 10u32);
     assert_eq!(subtype_val_u32(42), 42u32);
+    assert_eq!(subtype_inc_u32(41), 42u32);
+    assert_eq!(subtype_roundtrip_u32(77), 77u32);
+    assert_eq!(bounded_proof_make_u32(9), BoundedProof { value: 9u32 });
+    assert_eq!(bounded_proof_value_u32(BoundedProof { value: 11 }), 11u32);
     assert_eq!(fin_val10_u32(7), 7u32);
+    assert_eq!(fin_checked10_u32(9), Some(9u32));
+    assert_eq!(fin_checked10_u32(10), None::<u32>);
+    assert_eq!(fin_succ_checked10_u32(8), Some(9u32));
+    assert_eq!(fin_succ_checked10_u32(9), None::<u32>);
     assert_eq!(vector_echo3_u32(vec![1, 2, 3]), vec![1u32, 2u32, 3u32]);
+    assert_eq!(
+        vector_map_inc3_u32(vec![1, 2, u32::MAX]),
+        vec![2u32, 3u32, 0u32]
+    );
     assert_eq!(general_bool_match_u32(true, 9, 20), 10u32);
     assert_eq!(general_bool_match_u32(false, 9, 20), 21u32);
     assert_eq!(general_option_match_u32(Some(41), 8), 42u32);

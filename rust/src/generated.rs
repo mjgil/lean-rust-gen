@@ -5,6 +5,9 @@
 pub struct Point { pub x: u32, pub y: u32 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BoundedProof { pub value: u32 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BoxedU32 { pub value: u32 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -131,12 +134,37 @@ pub fn subtype_val_u32(x: u32) -> u32 {
     x
 }
 
+pub fn subtype_inc_u32(x: u32) -> u32 {
+    x.wrapping_add(1)
+}
+
 pub fn fin_val10_u32(i: u32) -> u32 {
     i
 }
 
+pub fn fin_checked10_u32(x: u32) -> Option<u32> {
+    if x < 10 { Some(x) } else { None }
+}
+
+pub fn fin_succ_checked10_u32(i: u32) -> Option<u32> {
+    {
+        let j = i.wrapping_add(1);
+        if j < 10 { Some(j) } else { None }
+    }
+}
+
 pub fn vector_echo3_u32(xs: Vec<u32>) -> Vec<u32> {
     xs
+}
+
+pub fn vector_map_inc3_u32(xs: Vec<u32>) -> Vec<u32> {
+    {
+        let mut __lrc_out = Vec::new();
+        for x in xs {
+            __lrc_out.push(x.wrapping_add(1));
+        }
+        __lrc_out
+    }
 }
 
 pub fn general_bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
@@ -322,6 +350,18 @@ pub fn point_y(p: Point) -> u32 {
 
 pub fn shift_point_x(p: Point, dx: u32) -> Point {
     Point { x: ((p).x).wrapping_add(dx), y: (p).y }
+}
+
+pub fn bounded_proof_make_u32(x: u32) -> BoundedProof {
+    BoundedProof { value: x }
+}
+
+pub fn bounded_proof_value_u32(b: BoundedProof) -> u32 {
+    (b).value
+}
+
+pub fn subtype_roundtrip_u32(x: u32) -> u32 {
+    x
 }
 
 pub fn boxed_u32(x: u32) -> BoxedU32 {

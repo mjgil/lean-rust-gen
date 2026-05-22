@@ -2,7 +2,7 @@
   "format": "lean-rust-core.compatibility-report.v1",
   "architecture": "direct-lean-emits-rust",
   "feature_tag_schema": "lean-rust-core.feature-tags.v1",
-  "generated_function_count": 99,
+  "generated_function_count": 106,
   "diagnostics": [
     {
       "source": "LeanRustCore.Examples.clamp_u32",
@@ -285,6 +285,16 @@
       "next_feature": null
     },
     {
+      "source": "LeanRustCore.Examples.subtype_inc_u32",
+      "rust_name": "subtype_inc_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "dependent-shape-erasure"
+      ],
+      "next_feature": null
+    },
+    {
       "source": "LeanRustCore.Examples.fin_val10_u32",
       "rust_name": "fin_val10_u32",
       "code": "supported",
@@ -295,8 +305,38 @@
       "next_feature": null
     },
     {
+      "source": "LeanRustCore.Examples.fin_checked10_u32",
+      "rust_name": "fin_checked10_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "dependent-shape-erasure"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.fin_succ_checked10_u32",
+      "rust_name": "fin_succ_checked10_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "dependent-shape-erasure"
+      ],
+      "next_feature": null
+    },
+    {
       "source": "LeanRustCore.Examples.vector_echo3_u32",
       "rust_name": "vector_echo3_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "dependent-shape-erasure"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.vector_map_inc3_u32",
+      "rust_name": "vector_map_inc3_u32",
       "code": "supported",
       "detail": "checked-in generated artifact matches current emitted subset",
       "features": [
@@ -741,6 +781,38 @@
       "detail": "checked-in generated artifact matches current emitted subset",
       "features": [
         "exported"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.bounded_proof_make_u32",
+      "rust_name": "bounded_proof_make_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "dependent-shape-erasure",
+        "proof-field-erasure"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.bounded_proof_value_u32",
+      "rust_name": "bounded_proof_value_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "dependent-shape-erasure",
+        "proof-field-erasure"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.subtype_roundtrip_u32",
+      "rust_name": "subtype_roundtrip_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "dependent-shape-erasure"
       ],
       "next_feature": null
     },

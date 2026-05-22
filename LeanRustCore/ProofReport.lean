@@ -5,6 +5,7 @@ import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport
 import LeanRustCore.Pattern
 import LeanRustCore.RecursionLowering
+import LeanRustCore.DependentErasure
 
 import LeanRustCore.ClosureConversion
 namespace LeanRustCore.ProofReport
@@ -44,7 +45,9 @@ def facts : List ProofFact := [
   { name := "general_pattern_compiler", statement := "SurfacePattern and SurfaceExpr.matchPattern represent a checked general constructor-pattern fragment for Bool, Option, Prod, and closed enums" },
   { name := "tail_recursion_loop_lowering", statement := "recognized Nat accumulator tail recursion lowers to SurfaceExpr.tailRecNat and safe Rust while loops" },
   { name := "list_length_structural_lowering", statement := "List.length lowers to SurfaceExpr.listLength and Rust Vec::len in the owned List representation" },
-  { name := "dependent_shape_erasure", statement := "Subtype, Fin, and Vector runtime shapes erase to safe Rust values with checked Fin/Vector constructor nodes" },
+  { name := "dependent_shape_erasure", statement := LeanRustCore.DependentErasure.dependentErasureSummary },
+  { name := "dependent_erasure_policy", statement := "Subtype erases to its carrier, Fin lowers to u32-shaped values, Vector lowers to Vec<T> with source-side length evidence, and proof-only structure fields are removed from safe Rust layouts when unused computationally" },
+  { name := "proof_field_erasure", statement := "proof-only constructor fields are skipped during runtime payload lowering and are absent from emitted Rust structs" },
   { name := "structural_recursion_lowering", statement := "recognized List.map, List.foldl, and Nat.rec shapes lower to explicit safe Rust loop-shaped SurfaceExpr nodes" },
   { name := "exact_integer_modes", statement := "@[rust_nat_exact] and @[rust_int_exact] lower Lean Nat/Int boundaries to exact num_bigint BigUint/BigInt Rust values" },
   { name := "captured_closure_conversion", statement := "captured lambdas inside recognized structural combinators lower to loop bodies that close over ordinary Rust locals" },
@@ -98,7 +101,7 @@ def reportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
   "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.TypeclassPolicy.isSupportedErasedDictionaryType\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
@@ -109,7 +112,8 @@ def reportJson : String :=
   "    \"first_order_recursion_allowed\": true,\n" ++
   "    \"target_validation_snapshot\": \"" ++ LeanRustCore.TargetValidation.targetValidationFormat ++ "\",\n" ++
   "    \"ffi_wrappers_feature_gated\": true,\n" ++
-  "    \"closure_conversion\": \"future-phase\"\n" ++
+  "    \"closure_conversion\": \"future-phase\",\n" ++
+  "    \"dependent_shape_erasure\": \"Subtype/Fin/Vector/proof-field carriers\"\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++
   joinWith ",\n" (facts.map factToJson) ++ "\n" ++

@@ -166,6 +166,7 @@ private def vSome (value : SurfaceValue) : SurfaceValue := .optionSome value
 private def vChoice (variant : String) : SurfaceValue := .enumVal "Choice" variant []
 private def vPoint (x y : Nat) : SurfaceValue := .structVal "Point" [("x", .u32 x), ("y", .u32 y)]
 private def vBoxed (x : Nat) : SurfaceValue := .structVal "Boxed__u32" [("value", .u32 x)]
+private def vBoundedProof (x : Nat) : SurfaceValue := .structVal "Bounded_Proof" [("value", .u32 x)]
 private def vTaggedMissing : SurfaceValue := .enumVal "Tagged__u32" "missing" []
 private def vTaggedPresent (x : Nat) : SurfaceValue := .enumVal "Tagged__u32" "present" [.u32 x]
 private def vStepStay : SurfaceValue := .enumVal "Step" "stay" []
@@ -192,8 +193,17 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "result_bind_inc_u32(Ok(u32::MAX))" (surfaceExpected "result_bind_inc_u32" [SurfaceValue.resultOk (vU32 (u32Modulus - 1))]),
   assertion "nat_sum_to_u32(5)" (surfaceExpected "nat_sum_to_u32" [vU32 5]),
   assertion "subtype_val_u32(42)" (surfaceExpected "subtype_val_u32" [vU32 42]),
+  assertion "subtype_inc_u32(41)" (surfaceExpected "subtype_inc_u32" [vU32 41]),
+  assertion "subtype_roundtrip_u32(77)" (surfaceExpected "subtype_roundtrip_u32" [vU32 77]),
+  assertion "bounded_proof_make_u32(9)" (surfaceExpected "bounded_proof_make_u32" [vU32 9]),
+  assertion "bounded_proof_value_u32(BoundedProof { value: 11 })" (surfaceExpected "bounded_proof_value_u32" [vBoundedProof 11]),
   assertion "fin_val10_u32(7)" (surfaceExpected "fin_val10_u32" [vU32 7]),
+  assertion "fin_checked10_u32(9)" (surfaceExpected "fin_checked10_u32" [vU32 9]),
+  assertion "fin_checked10_u32(10)" (surfaceExpected "fin_checked10_u32" [vU32 10]),
+  assertion "fin_succ_checked10_u32(8)" (surfaceExpected "fin_succ_checked10_u32" [vU32 8]),
+  assertion "fin_succ_checked10_u32(9)" (surfaceExpected "fin_succ_checked10_u32" [vU32 9]),
   assertion "vector_echo3_u32(vec![1, 2, 3])" (surfaceExpected "vector_echo3_u32" [vList [vU32 1, vU32 2, vU32 3]]),
+  assertion "vector_map_inc3_u32(vec![1, 2, u32::MAX])" (surfaceExpected "vector_map_inc3_u32" [vList [vU32 1, vU32 2, vU32 (u32Modulus - 1)]]),
   assertion "exact_nat_add(num_bigint::BigUint::from(40u32), num_bigint::BigUint::from(2u32))" (surfaceExpected "exact_nat_add" [vNat 40, vNat 2]),
   assertion "exact_nat_mul(num_bigint::BigUint::from(7u32), num_bigint::BigUint::from(6u32))" (surfaceExpected "exact_nat_mul" [vNat 7, vNat 6]),
   assertion "exact_int_add(num_bigint::BigInt::from(-7i32), num_bigint::BigInt::from(5i32))" (surfaceExpected "exact_int_add" [vInt (-7), vInt 5]),

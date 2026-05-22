@@ -200,6 +200,7 @@ fn validation_report_records_current_subset_gates() {
     assert!(report.contains("tail-recursion-loop-lowering"));
     assert!(report.contains("list-length-structural-lowering"));
     assert!(report.contains("dependent-shape-erasure"));
+    assert!(report.contains("proof-field-erasure"));
     assert!(report.contains("exact-integer-modes"));
     assert!(report.contains("captured-closure-conversion"));
     assert!(report.contains("typeclass-dictionary-erasure"));
@@ -240,6 +241,7 @@ fn generated_source_stays_inside_safe_subset_textually() {
 
     for required in [
         "pub struct Point",
+        "pub struct BoundedProof",
         "pub struct BoxedU32",
         "pub enum Choice",
         "pub enum TaggedU32",
@@ -268,6 +270,13 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn echo_sum_u32",
         "pub fn helper_chain_u32",
         "pub fn proof_erased_u32",
+        "pub fn bounded_proof_make_u32",
+        "pub fn bounded_proof_value_u32",
+        "pub fn subtype_val_u32",
+        "pub fn subtype_inc_u32",
+        "pub fn subtype_roundtrip_u32",
+        "pub fn fin_checked10_u32",
+        "pub fn vector_map_inc3_u32",
         "pub fn boxed_u32",
         "pub fn tagged_default_u32",
         "pub fn unsupported_higher_order_u32",
@@ -318,6 +327,7 @@ fn target_validation_snapshot_records_generated_subset() {
     let snapshot = include_str!("../target-validation.txt");
 
     assert!(snapshot.contains("FORMAT\tlean-rust-core.target-validation.v2"));
+    assert!(snapshot.contains("TYPE\tstruct\tBoundedProof"));
     assert!(snapshot.contains("TYPE\tstruct\tBoxedU32"));
     assert!(snapshot.contains("TYPE\tenum\tOrdering"));
     assert!(snapshot.contains("FN\tclamp_u32"));
@@ -343,6 +353,12 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("match_option(var(x),none=>none|some(v)=>some(add(var(v),lit(1))))"));
     assert!(snapshot.contains("FN\tclosure_apply_capture_u32"));
     assert!(snapshot.contains("let(y,var(x),add(var(y),var(delta)))"));
+    assert!(snapshot.contains("FN\tbounded_proof_make_u32"));
+    assert!(snapshot.contains("FN\tsubtype_val_u32"));
+    assert!(snapshot.contains("FN\tsubtype_inc_u32"));
+    assert!(snapshot.contains("FN\tsubtype_roundtrip_u32"));
+    assert!(snapshot.contains("FN\tfin_checked10_u32"));
+    assert!(snapshot.contains("FN\tvector_map_inc3_u32"));
     assert!(snapshot.contains("FN\tlist_append_u32"));
     assert!(snapshot.contains("FN\treader_add_env_u32"));
     assert!(snapshot.contains("FN\tstate_tick_u32"));
@@ -362,4 +378,6 @@ fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
     assert!(ffi.contains("extern \"C\" fn lrc_tail_sum_down_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_reader_add_env_u32"));
     assert!(ffi.contains("unsafe extern \"C\" fn lrc_except_do_inc_u32"));
+    assert!(ffi.contains("extern \"C\" fn lrc_subtype_inc_u32"));
+    assert!(ffi.contains("extern \"C\" fn lrc_subtype_roundtrip_u32"));
 }

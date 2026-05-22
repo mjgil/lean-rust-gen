@@ -54,6 +54,7 @@ fn parser_validates_generated_top_level_subset() {
 
     for required in [
         "Point",
+        "BoundedProof",
         "BoxedU32",
         "Choice",
         "TaggedU32",
@@ -79,6 +80,14 @@ fn parser_validates_generated_top_level_subset() {
         "inc_twice_u32",
         "helper_chain_u32",
         "proof_erased_u32",
+        "bounded_proof_make_u32",
+        "bounded_proof_value_u32",
+        "subtype_val_u32",
+        "subtype_inc_u32",
+        "subtype_roundtrip_u32",
+        "fin_checked10_u32",
+        "fin_succ_checked10_u32",
+        "vector_map_inc3_u32",
         "boxed_u32",
         "boxed_value_u32",
         "tagged_default_u32",

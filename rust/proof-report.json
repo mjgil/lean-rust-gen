@@ -15,6 +15,7 @@
     "LeanRustCore.EmitRust.emitSurfaceRustModule",
     "LeanRustCore.TargetValidation.targetValidationSnapshot",
     "LeanRustCore.BoundaryExport.generatedBoundaryRust",
+    "LeanRustCore.DependentErasure.dependentErasureSummary",
     "LeanRustCore.ExtractIR.functionFeatures",
     "rust/tests/parser_validation.rs",
     "rust/tests/semantic_validation.rs",
@@ -37,6 +38,7 @@
     "target_validation_snapshot": "lean-rust-core.target-validation.v2",
     "ffi_wrappers_feature_gated": true,
     "closure_conversion": "future-phase",
+    "dependent_shape_erasure": "Subtype/Fin/Vector/proof-field carriers",
     "corpus_harness": true,
     "std_lowering_policy": true,
     "pure_effect_lowering": true,
@@ -70,6 +72,18 @@
     {
       "name": "list_length_structural_lowering",
       "statement": "List.length lowers to SurfaceExpr.listLength and Rust Vec::len in the owned List representation"
+    },
+    {
+      "name": "dependent_shape_erasure",
+      "statement": "Sprint 10–12 dependent erasure supports Subtype/Fin/Vector runtime carriers and proof-only constructor-field erasure for Eq/True/False/And/Or/Not/Iff/Exists/LT/LE-shaped fields; non-erasable dependent computation remains rejected"
+    },
+    {
+      "name": "dependent_erasure_policy",
+      "statement": "Subtype erases to its carrier, Fin lowers to u32-shaped values, Vector lowers to Vec<T> with source-side length evidence, and proof-only structure fields are removed from safe Rust layouts when unused computationally"
+    },
+    {
+      "name": "proof_field_erasure",
+      "statement": "proof-only constructor fields are skipped during runtime payload lowering and are absent from emitted Rust structs"
     },
     {
       "name": "exact_integer_modes",

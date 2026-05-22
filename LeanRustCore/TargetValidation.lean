@@ -211,9 +211,13 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
   | .subtypeVal _ value => fingerprintSurfaceExpr value
   | .finCheck bound value =>
       "if(lt(" ++ fingerprintSurfaceExpr value ++ ",lit(" ++ Nat.toString bound ++ ")),some(" ++ fingerprintSurfaceExpr value ++ "),none)"
+  | .finMk _ value => fingerprintSurfaceExpr value
   | .finVal _ value => fingerprintSurfaceExpr value
   | .vectorCheck elemTy bound value =>
       "vector_check(" ++ rustType elemTy ++ "," ++ Nat.toString bound ++ "," ++ fingerprintSurfaceExpr value ++ ")"
+  | .vectorErase _ _ value => fingerprintSurfaceExpr value
+  | .vectorMap binder _ _ _ target body =>
+      "list_map(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
   | .listLength _ target =>
       "list_length(" ++ fingerprintSurfaceExpr target ++ ")"
   | .natFold idxName accName _ init n body =>

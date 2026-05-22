@@ -46,6 +46,15 @@ structural-recursion slice recognizes `List.map`, `List.foldl`, and a loop-shape
 emitter; `RecursionPolicy` remains available as an analyzer or strict
 compatibility gate.
 
+Sprint 10-12 extends that same direct lane with explicit dependent-erasure
+policy. `LeanRustCore.DependentErasure` records the accepted runtime carriers:
+`Subtype` erases to its carrier, literal-bound `Fin` lowers to `u32` with
+checked constructor/projection nodes, literal-length `Vector` lowers to `Vec<T>`
+with checked carrier validation, and proof-only structure fields are omitted
+from emitted runtime layouts. `BoundedProof` is the regression example for
+proof-field erasure in the checked surface IR, generated Rust, target
+validation, and differential tests.
+
 Phase 3 adds a target-validation sidecar. `LeanRustCore.TargetValidation` emits
 Rust-facing signatures and expression fingerprints from the checked surface IR,
 and `rust/tests/semantic_validation.rs` independently reconstructs those

@@ -1,8 +1,9 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
-TYPE_COUNT	6
-FN_COUNT	99
+TYPE_COUNT	7
+FN_COUNT	106
 TYPE	struct	Point	x:u32,y:u32
+TYPE	struct	BoundedProof	value:u32
 TYPE	struct	BoxedU32	value:u32
 TYPE	enum	Choice	First|Second
 TYPE	enum	TaggedU32	Missing|Present(u32)
@@ -36,8 +37,12 @@ FN	option_bind_inc_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|
 FN	result_bind_inc_u32	x:Result<u32, u32>	Result<u32, u32>	match_enum(var(x),Err(__lrc_err)=>err(var(__lrc_err))|Ok(y)=>ok(add(var(y),lit(1))))
 FN	nat_sum_to_u32	n:u32	u32	nat_fold(k,acc,lit(0),var(n),add(var(acc),var(k)))
 FN	subtype_val_u32	x:u32	u32	var(x)
+FN	subtype_inc_u32	x:u32	u32	add(var(x),lit(1))
 FN	fin_val10_u32	i:u32	u32	var(i)
+FN	fin_checked10_u32	x:u32	Option<u32>	if(lt(var(x),lit(10)),some(var(x)),none)
+FN	fin_succ_checked10_u32	i:u32	Option<u32>	let(j,add(var(i),lit(1)),if(lt(var(j),lit(10)),some(var(j)),none))
 FN	vector_echo3_u32	xs:Vec<u32>	Vec<u32>	var(xs)
+FN	vector_map_inc3_u32	xs:Vec<u32>	Vec<u32>	list_map(x,var(xs),add(var(x),lit(1)))
 FN	general_bool_match_u32	flag:bool,when_true:u32,when_false:u32	u32	match_pattern(var(flag),true=>add(var(when_true),lit(1))|false=>add(var(when_false),lit(1)))
 FN	general_option_match_u32	x:Option<u32>,fallback:u32	u32	match_pattern(var(x),None=>var(fallback)|Some(varpat(value))=>add(var(value),lit(1)))
 FN	general_step_match_u32	s:Step,fallback:u32	u32	match_pattern(var(s),Step::Stay()=>var(fallback)|Step::Jump(varpat(amount))=>add(var(amount),lit(1)))
@@ -82,6 +87,9 @@ FN	make_point	x:u32,y:u32	Point	struct(Point,x=var(x),y=var(y))
 FN	point_x	p:Point	u32	field(var(p),x)
 FN	point_y	p:Point	u32	field(var(p),y)
 FN	shift_point_x	p:Point,dx:u32	Point	struct(Point,x=add(field(var(p),x),var(dx)),y=field(var(p),y))
+FN	bounded_proof_make_u32	x:u32	BoundedProof	struct(BoundedProof,value=var(x))
+FN	bounded_proof_value_u32	b:BoundedProof	u32	field(var(b),value)
+FN	subtype_roundtrip_u32	x:u32	u32	var(x)
 FN	boxed_u32	x:u32	BoxedU32	struct(BoxedU32,value=var(x))
 FN	boxed_value_u32	b:BoxedU32	u32	field(var(b),value)
 FN	tagged_missing_u32	_x:()	TaggedU32	enum(TaggedU32::Missing)

@@ -1,12 +1,14 @@
 import Lean
 import LeanRustCore.EmitRust
 import LeanRustCore.Export
+import LeanRustCore.DependentErasure
 
 import LeanRustCore.ClosureConversion
 namespace LeanRustCore.Extract
 
 open Lean Elab Command
 open LeanRustCore
+open LeanRustCore.DependentErasure
 
 structure Local where
   name : String
@@ -143,11 +145,11 @@ private def isTypeParamBinder (ty : Expr) : Bool :=
   | .sort _ => true
   | _ => false
 
-/-- Conservative proof-erasure predicate for exported binders. -/
+/-- Conservative proof-erasure predicate for exported binders and constructor fields. -/
 private def isProofTypeShape (ty0 : Expr) : Bool :=
   let ty := stripMData ty0
   match ty.getAppFn with
-  | .const n _ => n == ``Eq || n == ``True || n == ``False
+  | .const n _ => proofHeadNameIsErased n
   | _ => false
 
 private partial def exprContainsConst (needle : Name) (e0 : Expr) : Bool :=
@@ -232,6 +234,13 @@ private def indexedPayloadFieldsAux (idx : Nat) : List RType → List RArg
 
 private def indexedPayloadFields (payload : List RType) : List RArg :=
   indexedPayloadFieldsAux 0 payload
+
+private def indexedRuntimePayloadFieldsAux (idx : Nat) : List RType → List (RArg × Nat)
+  | [] => []
+  | ty :: rest => (("field" ++ Nat.toString idx, ty), idx) :: indexedRuntimePayloadFieldsAux (idx + 1) rest
+
+private def indexedRuntimePayloadFields (payload : List RType) : List (RArg × Nat) :=
+  indexedRuntimePayloadFieldsAux 0 payload
 
 mutual
   partial def typeOfLeanWithCtx (typeCtx : TypeCtx) (ty0 : Expr) : CoreM RType := do
@@ -355,26 +364,35 @@ mutual
     ctorPayloadFieldsWithParams ctorName []
 
   partial def ctorPayloadFieldsWithParams (ctorName : Name) (typeArgs : List RType) : CoreM (List RArg) := do
+    pure ((← ctorRuntimePayloadFieldsWithParams ctorName typeArgs).map (fun field => field.1))
+
+  /-- Runtime constructor fields paired with their original constructor-field index. Proof-only fields are erased. -/
+  partial def ctorRuntimePayloadFieldsWithParams (ctorName : Name) (typeArgs : List RType) : CoreM (List (RArg × Nat)) := do
     let env ← getEnv
     match env.find? ctorName with
     | some (.ctorInfo info) =>
         if info.numParams == typeArgs.length then
           let (binders, _) := peelForalls info.type
           let fieldBinders := (binders.drop info.numParams).take info.numFields
-          let mut out : List RArg := []
+          let mut out : List (RArg × Nat) := []
           let mut fieldCtx := typeCtxFromParams typeArgs
           let mut idx : Nat := 0
           for field in fieldBinders do
-            let fallback := "field" ++ Nat.toString idx
-            let fieldName := sanitizeRustIdent fallback (nameLeaf field.1)
-            let fieldTy ← typeOfLeanWithCtx fieldCtx field.2
-            out := out ++ [(fieldName, fieldTy)]
-            fieldCtx := none :: fieldCtx
-            idx := idx + 1
+            if isProofTypeShape field.2 then
+              fieldCtx := none :: fieldCtx
+              idx := idx + 1
+            else
+              let fallback := "field" ++ Nat.toString idx
+              let fieldName := sanitizeRustIdent fallback (nameLeaf field.1)
+              let fieldTy ← typeOfLeanWithCtx fieldCtx field.2
+              out := out ++ [((fieldName, fieldTy), idx)]
+              fieldCtx := none :: fieldCtx
+              idx := idx + 1
           pure out
         else
           throwError "constructor `{ctorName}` expected {info.numParams} type parameters but got {typeArgs.length}"
     | _ => throwError "expected constructor declaration for {ctorName}"
+
 end
 
 private def firstOrderSignature? (declName : Name) : CoreM (Option (List RType × RType)) := do
@@ -545,10 +563,6 @@ private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expec
       let valueExpr ← translateExpr typeCtx locals (some valueTy) value
       let bodyExpr ← translateExpr (none :: typeCtx) (some { name := rustName, ty := valueTy } :: locals) expected body
       return .letIn rustName valueExpr bodyExpr
-  | .closureApply binder _ _ arg body => surfaceExprUsesVar needle arg || (binder != needle && surfaceExprUsesVar needle body)
-  | .defaultValue _ => false
-  | .toStringValue _ value => surfaceExprUsesVar needle value
-  | .reprValue _ value => surfaceExprUsesVar needle value
   | .proj structName fieldIdx target =>
       if nameLeaf structName == "Subtype" && fieldIdx == 0 then
         match expected with
@@ -1014,15 +1028,33 @@ where
   translateConstructorApp? (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (ctorName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
     match (← getEnv).find? ctorName with
     | some (.ctorInfo info) =>
-        let paramExprs := args.take info.numParams
-        let fallbackFromExpected : CoreM (Option (RType × List RArg)) :=
+        if info.induct == ``Fin then
           match expected with
-          | some ty@(.struct _ fields) => pure (some (ty, fields))
+          | some (.fin bound) =>
+              let valueArgs := takeLast info.numFields args
+              match valueArgs.get? 0 with
+              | some value =>
+                  let lowered ← translateExpr typeCtx locals (some .u32) value
+                  return some (.finMk bound lowered)
+              | none => return none
+          | _ => pure ()
+        if info.induct == ``Subtype then
+          match expected with
+          | some (.subtype inner) =>
+              let valueArgs := takeLast info.numFields args
+              match valueArgs.get? 0 with
+              | some value =>
+                  let lowered ← translateExpr typeCtx locals (some inner) value
+                  return some (.subtypeErase inner lowered)
+              | none => return none
+          | _ => pure ()
+        let paramExprs := args.take info.numParams
+        let fallbackFromExpected : CoreM (Option (RType × List (RArg × Nat))) :=
+          match expected with
+          | some ty@(.struct _ fields) => pure (some (ty, indexedRuntimePayloadFields (fields.map (fun field => field.2))))
           | some ty@(.enum _ variants) =>
               match lookupVariant variants (nameLeaf ctorName) with
-              | some payload =>
-                  let fields := indexedPayloadFields payload
-                  pure (some (ty, fields))
+              | some payload => pure (some (ty, indexedRuntimePayloadFields payload))
               | none => pure none
           | _ => pure none
         let inferred ←
@@ -1030,7 +1062,7 @@ where
             try
               let concreteParams ← paramExprs.mapM (typeOfLeanWithCtx typeCtx)
               let ty ← typeOfInductiveWithArgs info.induct concreteParams
-              let fields ← ctorPayloadFieldsWithParams ctorName concreteParams
+              let fields ← ctorRuntimePayloadFieldsWithParams ctorName concreteParams
               pure (some (ty, fields))
             catch _ =>
               fallbackFromExpected
@@ -1040,20 +1072,30 @@ where
         | none => return none
         | some (ty, fields) =>
             let valueArgs := takeLast info.numFields args
+            let translateRuntimeField (field : RArg × Nat) : CoreM (Option (String × SurfaceExpr)) := do
+              match valueArgs.get? field.2 with
+              | some value => do
+                  let lowered ← translateExpr typeCtx locals (some field.1.2) value
+                  pure (some (field.1.1, lowered))
+              | none => pure none
             match ty with
             | .struct _ declared =>
-                if declared.length == fields.length && valueArgs.length == fields.length then
+                if declared.length == fields.length && valueArgs.length == info.numFields then
                   let mut provided : List (String × SurfaceExpr) := []
-                  for pair in fields.zip valueArgs do
-                    provided := provided ++ [(pair.1.1, (← translateExpr typeCtx locals (some pair.1.2) pair.2))]
+                  for field in fields do
+                    match (← translateRuntimeField field) with
+                    | some item => provided := provided ++ [item]
+                    | none => return none
                   return some (.structLit ty provided)
                 else
                   return none
             | .enum _ _ =>
-                if valueArgs.length == fields.length then
+                if valueArgs.length == info.numFields then
                   let mut payload : List SurfaceExpr := []
-                  for pair in fields.zip valueArgs do
-                    payload := payload ++ [(← translateExpr typeCtx locals (some pair.1.2) pair.2)]
+                  for field in fields do
+                    match valueArgs.get? field.2 with
+                    | some value => payload := payload ++ [(← translateExpr typeCtx locals (some field.1.2) value)]
+                    | none => return none
                   return some (.enumVariant ty (nameLeaf ctorName) payload)
                 else
                   return none
@@ -1210,6 +1252,19 @@ where
         | _, _ => unsupported e
     | none => unsupported e
 
+  translateVectorMap (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: beta :: boundExpr :: fnExpr :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let outTy ← typeOfLeanWithCtx typeCtx beta
+        match natLiteral? boundExpr with
+        | some bound => do
+            let target ← translateExpr typeCtx locals (some (.vector elemTy bound)) targetExpr
+            let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy outTy fnExpr
+            return .vectorMap binder elemTy outTy bound target body
+        | none => unsupported e
+    | _ => unsupported e
+
   translateStringLike (ctor : RType → SurfaceExpr → SurfaceExpr)
       (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match last? args with
@@ -1347,6 +1402,8 @@ where
           translateArrayMap typeCtx locals e args
         else if n == ``Array.foldl then
           translateArrayFoldl typeCtx locals expected e args
+        else if n == ``Vector.map then
+          translateVectorMap typeCtx locals e args
         else if n == ``Option.map then
           translateOptionMap typeCtx locals e args
         else if n == ``Option.bind then
@@ -1931,6 +1988,10 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let boundTerm := natTerm bound
       let valueTerm ← surfaceExprTerm value
       `(LeanRustCore.SurfaceExpr.finCheck $boundTerm $valueTerm)
+  | .finMk bound value => do
+      let boundTerm := natTerm bound
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.finMk $boundTerm $valueTerm)
   | .finVal bound value => do
       let boundTerm := natTerm bound
       let valueTerm ← surfaceExprTerm value
@@ -1940,6 +2001,19 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let boundTerm := natTerm bound
       let valueTerm ← surfaceExprTerm value
       `(LeanRustCore.SurfaceExpr.vectorCheck $elemTyTerm $boundTerm $valueTerm)
+  | .vectorErase elemTy bound value => do
+      let elemTyTerm ← rTypeTerm elemTy
+      let boundTerm := natTerm bound
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.vectorErase $elemTyTerm $boundTerm $valueTerm)
+  | .vectorMap binder elemTy outTy bound target body => do
+      let binderTerm := stringTerm binder
+      let elemTyTerm ← rTypeTerm elemTy
+      let outTyTerm ← rTypeTerm outTy
+      let boundTerm := natTerm bound
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.vectorMap $binderTerm $elemTyTerm $outTyTerm $boundTerm $targetTerm $bodyTerm)
   | .listLength elemTy target => do
       let elemTyTerm ← rTypeTerm elemTy
       let targetTerm ← surfaceExprTerm target
@@ -2026,20 +2100,35 @@ private def monadicSpecializationExport (declName : Name) : Bool :=
 private def immediateClosureExport (declName : Name) : Bool :=
   nameLeaf declName == "closure_apply_capture_u32"
 
+private def dependentErasureExport (declName : Name) : Bool :=
+  let leaf := nameLeaf declName
+  leaf == "subtype_val_u32" ||
+  leaf == "subtype_inc_u32" ||
+  leaf == "subtype_roundtrip_u32" ||
+  leaf == "fin_val10_u32" ||
+  leaf == "fin_checked10_u32" ||
+  leaf == "fin_succ_checked10_u32" ||
+  leaf == "vector_echo3_u32" ||
+  leaf == "vector_map_inc3_u32" ||
+  leaf == "bounded_proof_make_u32" ||
+  leaf == "bounded_proof_value_u32"
+
 private def regularSupportedDetail (declName : Name) : CoreM String := do
   let env ← getEnv
   if LeanRustCore.Export.natWrappingU32Allowed env declName then
     pure "exported-nat-wrapping-u32"
-  else
-    pure "exported"
-
-private def extractRegularWithDiagnostic (declName : Name) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
   else if typeclassSpecializationExport declName then
     pure "exported-typeclass-specialization"
   else if monadicSpecializationExport declName then
     pure "exported-monadic-bind-specialization"
   else if immediateClosureExport declName then
     pure "exported-immediate-closure-conversion"
+  else if dependentErasureExport declName then
+    pure "exported-dependent-erasure"
+  else
+    pure "exported"
+
+private def extractRegularWithDiagnostic (declName : Name) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
   let rustName := sanitizeRustIdent "generated" (nameLeaf declName)
   try
     let f ← extractConst declName

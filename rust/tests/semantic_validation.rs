@@ -65,10 +65,13 @@ fn target_validation_snapshot_records_phase_3_contract() {
         TARGET_VALIDATION_SNAPSHOT,
         &[
             "FORMAT\tlean-rust-core.target-validation.v2",
+            "TYPE\tstruct\tBoundedProof",
             "TYPE\tstruct\tBoxedU32",
             "FN\tclamp_u32",
             "FN\tunsupported_higher_order_u32",
             "call_value(var(f),var(x))",
+            "FN\tbounded_proof_make_u32",
+            "FN\tsubtype_roundtrip_u32",
             "FN\tlist_map_inc_u32",
             "list_map(x,var(xs),add(var(x),lit(1)))",
             "FN\tlist_fold_sum_u32",

@@ -146,6 +146,19 @@ fn struct_literals_and_field_projection_lower() {
 }
 
 #[test]
+fn dependent_shape_and_proof_field_erasure_lower() {
+    assert_eq!(subtype_val_u32(42), 42);
+    assert_eq!(subtype_inc_u32(41), 42);
+    assert_eq!(subtype_roundtrip_u32(77), 77);
+    assert_eq!(fin_val10_u32(7), 7);
+    assert_eq!(vector_echo3_u32(vec![1, 2, 3]), vec![1, 2, 3]);
+
+    let bounded = bounded_proof_make_u32(9);
+    assert_eq!(bounded, BoundedProof { value: 9 });
+    assert_eq!(bounded_proof_value_u32(BoundedProof { value: 11 }), 11);
+}
+
+#[test]
 fn parameterized_structs_and_enums_are_monomorphized() {
     assert_eq!(boxed_u32(9), BoxedU32 { value: 9 });
     assert_eq!(boxed_value_u32(BoxedU32 { value: 11 }), 11);
@@ -188,6 +201,22 @@ fn first_order_function_calls_lower_to_rust_calls() {
     assert_eq!(inc_twice_u32(u32::MAX), 1);
     assert_eq!(helper_inc_fixed(41), 42);
     assert_eq!(helper_chain_u32(40), 42);
+}
+
+#[test]
+fn dependent_shape_erasure_sprint_10_12() {
+    assert_eq!(subtype_val_u32(42), 42);
+    assert_eq!(subtype_inc_u32(u32::MAX), 0);
+    assert_eq!(subtype_roundtrip_u32(7), 7);
+    assert_eq!(fin_val10_u32(9), 9);
+    assert_eq!(fin_checked10_u32(9), Some(9));
+    assert_eq!(fin_checked10_u32(10), None);
+    assert_eq!(fin_succ_checked10_u32(8), Some(9));
+    assert_eq!(fin_succ_checked10_u32(9), None);
+    assert_eq!(vector_echo3_u32(vec![1, 2, 3]), vec![1, 2, 3]);
+    assert_eq!(vector_map_inc3_u32(vec![1, 2, u32::MAX]), vec![2, 3, 0]);
+    assert_eq!(bounded_proof_make_u32(42), BoundedProof { value: 42 });
+    assert_eq!(bounded_proof_value_u32(BoundedProof { value: 42 }), 42);
 }
 
 #[test]

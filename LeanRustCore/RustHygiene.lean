@@ -248,8 +248,11 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .subtypeErase _ value => surfaceBinders value
   | .subtypeVal _ value => surfaceBinders value
   | .finCheck _ value => surfaceBinders value
+  | .finMk _ value => surfaceBinders value
   | .finVal _ value => surfaceBinders value
   | .vectorCheck _ _ value => surfaceBinders value
+  | .vectorErase _ _ value => surfaceBinders value
+  | .vectorMap binder _ _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
   | .listLength _ target => surfaceBinders target
   | .natFold idxName accName _ init n body =>
       surfaceBinders init ++ surfaceBinders n ++ (idxName :: accName :: surfaceBinders body)

@@ -6,6 +6,7 @@ import LeanRustCore.ClosureConversion
 import LeanRustCore.PureEffects
 import LeanRustCore.StdLowering
 import LeanRustCore.TypeclassPolicy
+import LeanRustCore.DependentErasure
 import LeanRustCore.EmitRust
 import LeanRustCore.Extract
 import LeanRustCore.Lowering
@@ -37,6 +38,6 @@ A self-contained direct **Lean emits Rust** workflow:
 * phase-4 raw ABI wrappers are emitted only in a feature-gated boundary module,
 * payload enum branches, first-order calls, structs, enums, Result, parameterized data, containers, and monomorphized extracted surface artifacts are covered by differential tests,
 * Lean `Nat` to Rust `u32` requires explicit wrapping opt-in at exported boundaries,
-* first-order helper extraction, conservative proof erasure, and unary Rust `fn` pointer arguments support the phase-2 large-subset slice,
+* first-order helper extraction, conservative proof erasure, unary Rust `fn` pointer arguments, and dependent-shape erasure support the phase-2 large-subset slice,
 * a compact Chimera-inspired boundary model and feature-gated raw ABI exporter cover the optional boundary lane.
 -/

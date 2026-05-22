@@ -3,11 +3,11 @@
   "architecture": "direct-lean-emits-rust",
   "lean_toolchain": "leanprover/lean4:v4.22.0",
   "rust_toolchain": "1.85.0",
-  "generated_function_count": 99,
-  "generated_type_count": 6,
-  "differential_assertion_count": 127,
+  "generated_function_count": 106,
+  "generated_type_count": 7,
+  "differential_assertion_count": 136,
   "target_validation_format": "lean-rust-core.target-validation.v2",
-  "ffi_boundary_export_count": 36,
+  "ffi_boundary_export_count": 38,
   "required_functions": [
     "clamp_u32",
     "max_u32",
@@ -37,8 +37,12 @@
     "result_bind_inc_u32",
     "nat_sum_to_u32",
     "subtype_val_u32",
+    "subtype_inc_u32",
     "fin_val10_u32",
+    "fin_checked10_u32",
+    "fin_succ_checked10_u32",
     "vector_echo3_u32",
+    "vector_map_inc3_u32",
     "general_bool_match_u32",
     "general_option_match_u32",
     "general_step_match_u32",
@@ -83,6 +87,9 @@
     "point_x",
     "point_y",
     "shift_point_x",
+    "bounded_proof_make_u32",
+    "bounded_proof_value_u32",
+    "subtype_roundtrip_u32",
     "boxed_u32",
     "boxed_value_u32",
     "tagged_missing_u32",
@@ -111,6 +118,7 @@
   ],
   "required_types": [
     "Point",
+    "BoundedProof",
     "BoxedU32",
     "Choice",
     "TaggedU32",
@@ -120,7 +128,7 @@
   "feature_summary": {
     "structural_list_loop_functions": 11,
     "exact_integer_functions": 4,
-    "ffi_wrapper_count": 36,
+    "ffi_wrapper_count": 38,
     "pattern_matching_functions": 4,
     "tail_recursion_loop_functions": 1,
     "std_lowerings": [
@@ -283,7 +291,12 @@
     {
       "name": "dependent-shape-erasure",
       "status": "passed",
-      "detail": "Subtype, Fin, and Vector runtime shapes erase to safe Rust values with checked SurfaceExpr constructors available for Fin and Vector boundaries"
+      "detail": "Sprint 10–12 dependent erasure supports Subtype/Fin/Vector runtime carriers and proof-only constructor-field erasure for Eq/True/False/And/Or/Not/Iff/Exists/LT/LE-shaped fields; non-erasable dependent computation remains rejected"
+    },
+    {
+      "name": "proof-field-erasure",
+      "status": "passed",
+      "detail": "proof-only constructor fields are excluded from SurfaceStruct payloads and generated Rust structs, while runtime fields remain checked by Surface.typeOfExpected"
     },
     {
       "name": "exact-integer-modes",

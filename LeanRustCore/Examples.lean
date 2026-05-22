@@ -32,6 +32,10 @@ inductive Step where
 structure Boxed (α : Type) where
   value : α
 
+structure Bounded_Proof where
+  value : UInt32
+  proof : value = value
+
 inductive Tagged (α : Type) where
   | missing
   | present (value : α)
@@ -149,13 +153,42 @@ def nat_sum_to_u32 (n : Nat) : Nat :=
 def subtype_val_u32 (x : { n : UInt32 // True }) : UInt32 :=
   x.val
 
+@[rust_export]
+def subtype_inc_u32 (x : { n : UInt32 // True }) : UInt32 :=
+  x.val + 1
+
+@[rust_export]
+def subtype_roundtrip_u32 (x : { n : UInt32 // True }) : { n : UInt32 // True } :=
+  x
+
 @[rust_export, rust_nat_wrapping_u32]
 def fin_val10_u32 (i : Fin 10) : Nat :=
   i.val
 
+@[rust_export, rust_nat_wrapping_u32]
+def fin_checked10_u32 (x : Nat) : Option (Fin 10) :=
+  if h : x < 10 then some ⟨x, h⟩ else none
+
+@[rust_export, rust_nat_wrapping_u32]
+def fin_succ_checked10_u32 (i : Fin 10) : Option (Fin 10) :=
+  let j := i.val + 1
+  if h : j < 10 then some ⟨j, h⟩ else none
+
 @[rust_export]
 def vector_echo3_u32 (xs : Vector UInt32 3) : Vector UInt32 3 :=
   xs
+
+@[rust_export]
+def vector_map_inc3_u32 (xs : Vector UInt32 3) : Vector UInt32 3 :=
+  xs.map (fun x => x + 1)
+
+@[rust_export]
+def bounded_proof_make_u32 (x : UInt32) : Bounded_Proof :=
+  { value := x, proof := rfl }
+
+@[rust_export]
+def bounded_proof_value_u32 (b : Bounded_Proof) : UInt32 :=
+  b.value
 
 @[rust_export]
 def general_bool_match_u32 (flag : Bool) (when_true when_false : UInt32) : UInt32 :=

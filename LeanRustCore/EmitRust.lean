@@ -296,10 +296,16 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .subtypeVal _ value => emitSurfaceExpr value
   | .finCheck bound value =>
       "if " ++ emitSurfaceExpr value ++ " < " ++ toString bound ++ " { Some(" ++ emitSurfaceExpr value ++ ") } else { None }"
+  | .finMk _ value => emitSurfaceExpr value
   | .finVal _ value => emitSurfaceExpr value
   | .vectorCheck elemTy bound value =>
       let vecName := "__lrc_vec"
       "{ let " ++ vecName ++ " = " ++ emitSurfaceExpr value ++ "; if " ++ vecName ++ ".len() == " ++ toString bound ++ " { Some(" ++ vecName ++ ") } else { None::<" ++ rustType (.vector elemTy bound) ++ "> } }"
+  | .vectorErase _ _ value => emitSurfaceExpr value
+  | .vectorMap binder _ _ _ target body =>
+      let outName := "__lrc_out"
+      let binderName := rustValueIdent "value" binder
+      "{ let mut " ++ outName ++ " = Vec::new(); for " ++ binderName ++ " in " ++ emitSurfaceExpr target ++ " { " ++ outName ++ ".push(" ++ emitSurfaceExpr body ++ "); } " ++ outName ++ " }"
   | .listLength _ target =>
       "(" ++ emitSurfaceExpr target ++ ").len() as u32"
   | .natFold idxName accName accTy init n body =>
@@ -431,8 +437,12 @@ partial def collectSurfaceStructs : SurfaceExpr → List SurfaceStruct
   | .subtypeErase inner value => collectTypeStructs inner ++ collectSurfaceStructs value
   | .subtypeVal inner value => collectTypeStructs inner ++ collectSurfaceStructs value
   | .finCheck _ value => collectSurfaceStructs value
+  | .finMk _ value => collectSurfaceStructs value
   | .finVal _ value => collectSurfaceStructs value
   | .vectorCheck elemTy _ value => collectTypeStructs elemTy ++ collectSurfaceStructs value
+  | .vectorErase elemTy _ value => collectTypeStructs elemTy ++ collectSurfaceStructs value
+  | .vectorMap _ elemTy outTy _ target body =>
+      collectTypeStructs elemTy ++ collectTypeStructs outTy ++ collectSurfaceStructs target ++ collectSurfaceStructs body
   | .listLength elemTy target => collectTypeStructs elemTy ++ collectSurfaceStructs target
   | .natFold _ _ accTy init n body =>
       collectTypeStructs accTy ++ collectSurfaceStructs init ++ collectSurfaceStructs n ++ collectSurfaceStructs body
@@ -512,8 +522,12 @@ partial def collectSurfaceEnums : SurfaceExpr → List SurfaceEnum
   | .subtypeErase inner value => collectTypeEnums inner ++ collectSurfaceEnums value
   | .subtypeVal inner value => collectTypeEnums inner ++ collectSurfaceEnums value
   | .finCheck _ value => collectSurfaceEnums value
+  | .finMk _ value => collectSurfaceEnums value
   | .finVal _ value => collectSurfaceEnums value
   | .vectorCheck elemTy _ value => collectTypeEnums elemTy ++ collectSurfaceEnums value
+  | .vectorErase elemTy _ value => collectTypeEnums elemTy ++ collectSurfaceEnums value
+  | .vectorMap _ elemTy outTy _ target body =>
+      collectTypeEnums elemTy ++ collectTypeEnums outTy ++ collectSurfaceEnums target ++ collectSurfaceEnums body
   | .listLength elemTy target => collectTypeEnums elemTy ++ collectSurfaceEnums target
   | .natFold _ _ accTy init n body =>
       collectTypeEnums accTy ++ collectSurfaceEnums init ++ collectSurfaceEnums n ++ collectSurfaceEnums body
@@ -581,8 +595,11 @@ partial def collectSurfaceCalls : SurfaceExpr → List String
   | .subtypeErase _ value => collectSurfaceCalls value
   | .subtypeVal _ value => collectSurfaceCalls value
   | .finCheck _ value => collectSurfaceCalls value
+  | .finMk _ value => collectSurfaceCalls value
   | .finVal _ value => collectSurfaceCalls value
   | .vectorCheck _ _ value => collectSurfaceCalls value
+  | .vectorErase _ _ value => collectSurfaceCalls value
+  | .vectorMap _ _ _ _ target body => collectSurfaceCalls target ++ collectSurfaceCalls body
   | .listLength _ target => collectSurfaceCalls target
   | .natFold _ _ _ init n body => collectSurfaceCalls init ++ collectSurfaceCalls n ++ collectSurfaceCalls body
   | .tailRecNat _ _ _ counter init body => collectSurfaceCalls counter ++ collectSurfaceCalls init ++ collectSurfaceCalls body

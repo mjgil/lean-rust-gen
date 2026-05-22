@@ -142,8 +142,18 @@ pub extern "C" fn lrc_subtype_val_u32(x: u32) -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_subtype_inc_u32(x: u32) -> u32 {
+    crate::subtype_inc_u32(x)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_fin_val10_u32(i: u32) -> u32 {
     crate::fin_val10_u32(i)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_subtype_roundtrip_u32(x: u32) -> u32 {
+    crate::subtype_roundtrip_u32(x)
 }
 
 #[no_mangle]
