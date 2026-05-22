@@ -155,6 +155,10 @@ The direct lane still checks `rust/src/generated.rs` for absence of `unsafe` and
 raw `extern "C"` items. Raw ABI wrappers live in `rust/src/ffi_generated.rs` and
 are included only when the Rust `ffi` feature is enabled.
 
+## Sprint 13-14 trusted-core addition
+
+The new trusted surface is the policy layer that classifies accepted closure conversion and defunctionalization shapes. Runtime code remains ordinary safe Rust: environment structs, enum cases, matches, and first-order apply functions.
+
 ## Sprint 3-6 trusted surface
 
 Additional trusted/generated surfaces:

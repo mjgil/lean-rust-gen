@@ -96,6 +96,20 @@ fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(option_do_inc_u32(Some(41)), Some(42u32));
     assert_eq!(option_do_inc_u32(None), None::<u32>);
     assert_eq!(closure_apply_capture_u32(5, 37), 42u32);
+    assert_eq!(closure_env_apply_add_delta_u32(5, 37), 42u32);
+    assert_eq!(
+        closure_env_map_add_delta_u32(5, vec![1, u32::MAX]),
+        vec![6u32, 4u32]
+    );
+    assert_eq!(defun_apply_u32(U32FnCase::Inc, 41), 42u32);
+    assert_eq!(defun_apply_u32(U32FnCase::Double, 21), 42u32);
+    assert_eq!(defun_apply_u32(U32FnCase::Add(5), 37), 42u32);
+    assert_eq!(defun_compose_inc_double_u32(20), 42u32);
+    assert_eq!(defun_apply_add5_u32(37), 42u32);
+    assert_eq!(
+        defun_map_selected_u32(false, vec![1, u32::MAX]),
+        vec![2u32, 0u32]
+    );
     assert_eq!(list_append_u32(vec![1, 2], vec![3]), vec![1u32, 2u32, 3u32]);
     assert_eq!(list_find_nonzero_u32(vec![0, 0, 7]), Some(7u32));
     assert_eq!(array_push_u32(vec![1, 2], 3), vec![1u32, 2u32, 3u32]);

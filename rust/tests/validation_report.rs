@@ -203,6 +203,8 @@ fn validation_report_records_current_subset_gates() {
     assert!(report.contains("proof-field-erasure"));
     assert!(report.contains("exact-integer-modes"));
     assert!(report.contains("captured-closure-conversion"));
+    assert!(report.contains("closure-converted-environment-lowering"));
+    assert!(report.contains("finite-defunctionalization"));
     assert!(report.contains("typeclass-dictionary-erasure"));
     assert!(report.contains("transitive-helper-extraction"));
     assert!(report.contains("proof-erased-binders"));
@@ -243,9 +245,11 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub struct Point",
         "pub struct BoundedProof",
         "pub struct BoxedU32",
+        "pub struct AddDeltaU32Env",
         "pub enum Choice",
         "pub enum TaggedU32",
         "pub enum Step",
+        "pub enum U32FnCase",
         "pub enum Ordering",
         "pub fn clamp_u32",
         "pub fn echo_string",
@@ -299,6 +303,12 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn tail_sum_down_u32",
         "pub fn option_do_inc_u32",
         "pub fn closure_apply_capture_u32",
+        "pub fn closure_env_apply_add_delta_u32",
+        "pub fn closure_env_map_add_delta_u32",
+        "pub fn defun_apply_u32",
+        "pub fn defun_compose_inc_double_u32",
+        "pub fn defun_apply_add5_u32",
+        "pub fn defun_map_selected_u32",
         "pub fn auto_identity_u32",
         "pub fn auto_choose_point",
         "pub fn auto_option_default_step",
@@ -353,6 +363,12 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("match_option(var(x),none=>none|some(v)=>some(add(var(v),lit(1))))"));
     assert!(snapshot.contains("FN\tclosure_apply_capture_u32"));
     assert!(snapshot.contains("let(y,var(x),add(var(y),var(delta)))"));
+    assert!(snapshot.contains("TYPE\tstruct\tAddDeltaU32Env"));
+    assert!(snapshot.contains("TYPE\tenum\tU32FnCase"));
+    assert!(snapshot.contains("FN\tclosure_env_apply_add_delta_u32"));
+    assert!(snapshot.contains("FN\tclosure_env_map_add_delta_u32"));
+    assert!(snapshot.contains("FN\tdefun_apply_u32"));
+    assert!(snapshot.contains("FN\tdefun_compose_inc_double_u32"));
     assert!(snapshot.contains("FN\tbounded_proof_make_u32"));
     assert!(snapshot.contains("FN\tsubtype_val_u32"));
     assert!(snapshot.contains("FN\tsubtype_inc_u32"));
@@ -377,7 +393,23 @@ fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
     assert!(ffi.contains("extern \"C\" fn lrc_pair_sum_match_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_tail_sum_down_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_reader_add_env_u32"));
+    assert!(ffi.contains("extern \"C\" fn lrc_closure_env_apply_add_delta_u32"));
+    assert!(ffi.contains("extern \"C\" fn lrc_defun_compose_inc_double_u32"));
     assert!(ffi.contains("unsafe extern \"C\" fn lrc_except_do_inc_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_inc_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_roundtrip_u32"));
+}
+
+#[test]
+fn proof_report_records_closure_and_defunctionalization_policies() {
+    let report = parse_json_artifact("proof-report.json", PROOF_REPORT);
+
+    assert_eq!(
+        report["policy"]["closure_conversion"].as_str(),
+        Some("explicit-environment-structs")
+    );
+    assert_eq!(
+        report["policy"]["defunctionalization"].as_str(),
+        Some("finite-enum-cases")
+    );
 }

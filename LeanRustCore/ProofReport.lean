@@ -8,6 +8,7 @@ import LeanRustCore.RecursionLowering
 import LeanRustCore.DependentErasure
 
 import LeanRustCore.ClosureConversion
+import LeanRustCore.Defunctionalization
 namespace LeanRustCore.ProofReport
 
 /-- A compact proof-sidecar model for generated Rust artifacts. -/
@@ -57,6 +58,8 @@ def facts : List ProofFact := [
   { name := "transitive_helper_extraction", statement := "first-order helper definitions reached from exported bodies are enqueued and emitted as auto-helper-export functions" },
   { name := "proof_erased_binders", statement := "conservative proof-shaped binders are erased from Rust signatures when their values are not used computationally" },
   { name := "limited_higher_order_function_pointer", statement := "unary function-typed arguments lower to Rust fn-pointer arguments and SurfaceExpr.callValue nodes" },
+  { name := "closure_converted_environments", statement := LeanRustCore.ClosureConversion.closureConversionSummary },
+  { name := "finite_defunctionalization", statement := LeanRustCore.Defunctionalization.defunctionalizationSummary },
 
   { name := "std_library_lowering_table", statement := LeanRustCore.StdLowering.stdLoweringSummary },
   { name := "typeclass_specialization_policy", statement := LeanRustCore.TypeclassPolicy.typeclassPolicySummary },
@@ -101,7 +104,7 @@ def reportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
   "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
@@ -112,7 +115,8 @@ def reportJson : String :=
   "    \"first_order_recursion_allowed\": true,\n" ++
   "    \"target_validation_snapshot\": \"" ++ LeanRustCore.TargetValidation.targetValidationFormat ++ "\",\n" ++
   "    \"ffi_wrappers_feature_gated\": true,\n" ++
-  "    \"closure_conversion\": \"future-phase\",\n" ++
+  "    \"closure_conversion\": \"explicit-environment-structs\",\n" ++
+  "    \"defunctionalization\": \"finite-enum-cases\",\n" ++
   "    \"dependent_shape_erasure\": \"Subtype/Fin/Vector/proof-field carriers\"\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++

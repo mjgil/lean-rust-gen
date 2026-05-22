@@ -32,6 +32,16 @@ inductive Step where
 structure Boxed (α : Type) where
   value : α
 
+/-- Explicit closure-converted environment used by the Sprint 13-14 examples. -/
+structure AddDeltaU32Env where
+  delta : UInt32
+
+/-- Finite defunctionalized family for selected UInt32 unary functions. -/
+inductive U32FnCase where
+  | inc
+  | double
+  | add (delta : UInt32)
+
 structure Bounded_Proof where
   value : UInt32
   proof : value = value
@@ -304,6 +314,35 @@ def state_tick_u32 (s : UInt32) : UInt32 × UInt32 :=
 @[rust_export]
 def closure_apply_capture_u32 (delta x : UInt32) : UInt32 :=
   (fun y => y + delta) x
+
+@[rust_export]
+def closure_env_apply_add_delta_u32 (delta x : UInt32) : UInt32 :=
+  let env : AddDeltaU32Env := { delta := delta }
+  x + env.delta
+
+@[rust_export]
+def closure_env_map_add_delta_u32 (delta : UInt32) (xs : List UInt32) : List UInt32 :=
+  let env : AddDeltaU32Env := { delta := delta }
+  List.map (fun x => x + env.delta) xs
+
+@[rust_export]
+def defun_apply_u32 (f : U32FnCase) (x : UInt32) : UInt32 :=
+  match f with
+  | .inc => x + 1
+  | .double => x + x
+  | .add delta => x + delta
+
+@[rust_export]
+def defun_compose_inc_double_u32 (x : UInt32) : UInt32 :=
+  defun_apply_u32 .double (defun_apply_u32 .inc x)
+
+@[rust_export]
+def defun_apply_add5_u32 (x : UInt32) : UInt32 :=
+  defun_apply_u32 (.add 5) x
+
+@[rust_export]
+def defun_map_selected_u32 (useDouble : Bool) (xs : List UInt32) : List UInt32 :=
+  List.map (fun x => if useDouble then defun_apply_u32 .double x else defun_apply_u32 .inc x) xs
 
 @[rust_export]
 def echo_prod_u32 (x : UInt32 × UInt32) : UInt32 × UInt32 :=

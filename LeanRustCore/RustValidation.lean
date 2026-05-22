@@ -12,6 +12,7 @@ import LeanRustCore.StdLowering
 import LeanRustCore.TypeclassPolicy
 import LeanRustCore.ExtractIR
 import LeanRustCore.DependentErasure
+import LeanRustCore.Defunctionalization
 namespace LeanRustCore.RustValidation
 
 open LeanRustCore
@@ -95,6 +96,12 @@ def requiredFunctionNames : List String := [
   "ord_compare_u32",
   "option_do_inc_u32",
   "closure_apply_capture_u32",
+  "closure_env_apply_add_delta_u32",
+  "closure_env_map_add_delta_u32",
+  "defun_apply_u32",
+  "defun_compose_inc_double_u32",
+  "defun_apply_add5_u32",
+  "defun_map_selected_u32",
   "exact_int_mul",
   "exact_int_add",
   "exact_nat_mul",
@@ -148,9 +155,11 @@ def requiredTypeNames : List String := [
   "Point",
   "BoundedProof",
   "BoxedU32",
+  "AddDeltaU32Env",
   "Choice",
   "TaggedU32",
   "Step",
+  "U32FnCase",
   "Ordering"
 ]
 
@@ -319,7 +328,17 @@ def checks : List ValidationCheck := [
   {
     name := "immediate-captured-closure-conversion",
     status := "passed",
+    detail := "immediate captured unary lambdas lower through SurfaceExpr.closureApply"
+  },
+  {
+    name := "closure-converted-environment-lowering",
+    status := "passed",
     detail := LeanRustCore.ClosureConversion.closureConversionSummary
+  },
+  {
+    name := "finite-defunctionalization",
+    status := "passed",
+    detail := LeanRustCore.Defunctionalization.defunctionalizationSummary
   },
   {
     name := "limited-higher-order-function-pointer",

@@ -2,7 +2,7 @@
   "format": "lean-rust-core.compatibility-report.v1",
   "architecture": "direct-lean-emits-rust",
   "feature_tag_schema": "lean-rust-core.feature-tags.v1",
-  "generated_function_count": 106,
+  "generated_function_count": 112,
   "diagnostics": [
     {
       "source": "LeanRustCore.Examples.clamp_u32",
@@ -471,6 +471,66 @@
       "detail": "checked-in generated artifact matches current emitted subset",
       "features": [
         "captured-closure-conversion"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.closure_env_apply_add_delta_u32",
+      "rust_name": "closure_env_apply_add_delta_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "closure-converted-environment-lowering"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.closure_env_map_add_delta_u32",
+      "rust_name": "closure_env_map_add_delta_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "closure-converted-environment-lowering"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.defun_apply_u32",
+      "rust_name": "defun_apply_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "finite-defunctionalization"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.defun_compose_inc_double_u32",
+      "rust_name": "defun_compose_inc_double_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "finite-defunctionalization"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.defun_apply_add5_u32",
+      "rust_name": "defun_apply_add5_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "finite-defunctionalization"
+      ],
+      "next_feature": null
+    },
+    {
+      "source": "LeanRustCore.Examples.defun_map_selected_u32",
+      "rust_name": "defun_map_selected_u32",
+      "code": "supported",
+      "detail": "checked-in generated artifact matches current emitted subset",
+      "features": [
+        "finite-defunctionalization"
       ],
       "next_feature": null
     },

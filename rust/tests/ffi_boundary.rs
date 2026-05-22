@@ -13,6 +13,9 @@ fn primitive_ffi_wrappers_call_generated_functions() {
     assert_eq!(lrc_decidable_eq_u32(7, 7), 1);
     assert_eq!(lrc_decidable_eq_u32(7, 8), 0);
     assert_eq!(lrc_closure_apply_capture_u32(5, 37), 42);
+    assert_eq!(lrc_closure_env_apply_add_delta_u32(5, 37), 42);
+    assert_eq!(lrc_defun_compose_inc_double_u32(20), 42);
+    assert_eq!(lrc_defun_apply_add5_u32(37), 42);
     assert_eq!(lrc_nat_sum_to_u32(5), 10);
     assert_eq!(lrc_subtype_val_u32(42), 42);
     assert_eq!(lrc_subtype_inc_u32(u32::MAX), 0);

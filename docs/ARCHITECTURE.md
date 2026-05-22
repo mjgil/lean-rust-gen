@@ -270,6 +270,10 @@ The boundary policy is intentionally narrow:
 Default builds retain `unsafe_code` forbiddance. The optional boundary lane is
 checked with `cargo test --features ffi`.
 
+## Sprint 13-14 closure lane
+
+Captured values are represented explicitly before emission. The safe direct lane now has two first-order encodings: environment structs for closure conversion and enum/apply-function pairs for finite defunctionalization. Both encodings remain monomorphic and avoid Rust `unsafe`, trait objects, and dynamic dispatch.
+
 ## Sprint 3-6: general pattern and recursion lowering
 
 `LeanRustCore.Pattern` exposes the Sprint-3/4 constructor-pattern facade. The

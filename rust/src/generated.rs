@@ -11,6 +11,9 @@ pub struct BoundedProof { pub value: u32 }
 pub struct BoxedU32 { pub value: u32 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AddDeltaU32Env { pub delta: u32 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Choice { First, Second }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -18,6 +21,9 @@ pub enum TaggedU32 { Missing, Present(u32) }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Step { Stay, Jump(u32) }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum U32FnCase { Inc, Double, Add(u32) }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Ordering { Lt, Eq, Gt }
@@ -217,6 +223,49 @@ pub fn option_do_inc_u32(x: Option<u32>) -> Option<u32> {
 
 pub fn closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
     { let y = x; (y).wrapping_add(delta) }
+}
+
+pub fn closure_env_apply_add_delta_u32(delta: u32, x: u32) -> u32 {
+    { let env = AddDeltaU32Env { delta: delta }; (x).wrapping_add((env).delta) }
+}
+
+pub fn closure_env_map_add_delta_u32(delta: u32, xs: Vec<u32>) -> Vec<u32> {
+    {
+        let env = AddDeltaU32Env { delta: delta };
+        let mut out = Vec::new();
+        for x in xs {
+            out.push((x).wrapping_add((env).delta));
+        }
+        out
+    }
+}
+
+pub fn defun_apply_u32(f: U32FnCase, x: u32) -> u32 {
+    match f {
+        U32FnCase::Inc => (x).wrapping_add(1),
+        U32FnCase::Double => (x).wrapping_add(x),
+        U32FnCase::Add(delta) => (x).wrapping_add(delta),
+    }
+}
+
+pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
+    defun_apply_u32(U32FnCase::Double, defun_apply_u32(U32FnCase::Inc, x))
+}
+
+pub fn defun_apply_add5_u32(x: u32) -> u32 {
+    defun_apply_u32(U32FnCase::Add(5), x)
+}
+
+pub fn defun_map_selected_u32(use_double: bool, xs: Vec<u32>) -> Vec<u32> {
+    let mut out = Vec::new();
+    for x in xs {
+        out.push(if use_double {
+            defun_apply_u32(U32FnCase::Double, x)
+        } else {
+            defun_apply_u32(U32FnCase::Inc, x)
+        });
+    }
+    out
 }
 
 

@@ -84,8 +84,38 @@ pub extern "C" fn lrc_decidable_eq_u32(a: u32, b: u32) -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_nat_sum_to_u32(n: u32) -> u32 {
+    crate::nat_sum_to_u32(n)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_subtype_val_u32(x: u32) -> u32 {
+    crate::subtype_val_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_fin_val10_u32(i: u32) -> u32 {
+    crate::fin_val10_u32(i)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
     crate::closure_apply_capture_u32(delta, x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_closure_env_apply_add_delta_u32(delta: u32, x: u32) -> u32 {
+    crate::closure_env_apply_add_delta_u32(delta, x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_defun_compose_inc_double_u32(x: u32) -> u32 {
+    crate::defun_compose_inc_double_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_defun_apply_add5_u32(x: u32) -> u32 {
+    crate::defun_apply_add5_u32(x)
 }
 
 #[no_mangle]

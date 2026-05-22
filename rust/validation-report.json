@@ -3,11 +3,11 @@
   "architecture": "direct-lean-emits-rust",
   "lean_toolchain": "leanprover/lean4:v4.22.0",
   "rust_toolchain": "1.85.0",
-  "generated_function_count": 106,
-  "generated_type_count": 7,
-  "differential_assertion_count": 136,
+  "generated_function_count": 112,
+  "generated_type_count": 9,
+  "differential_assertion_count": 139,
   "target_validation_format": "lean-rust-core.target-validation.v2",
-  "ffi_boundary_export_count": 38,
+  "ffi_boundary_export_count": 44,
   "required_functions": [
     "clamp_u32",
     "max_u32",
@@ -56,6 +56,12 @@
     "ord_compare_u32",
     "option_do_inc_u32",
     "closure_apply_capture_u32",
+    "closure_env_apply_add_delta_u32",
+    "closure_env_map_add_delta_u32",
+    "defun_apply_u32",
+    "defun_compose_inc_double_u32",
+    "defun_apply_add5_u32",
+    "defun_map_selected_u32",
     "list_append_u32",
     "list_find_nonzero_u32",
     "array_push_u32",
@@ -120,15 +126,17 @@
     "Point",
     "BoundedProof",
     "BoxedU32",
+    "AddDeltaU32Env",
     "Choice",
     "TaggedU32",
     "Step",
+    "U32FnCase",
     "Ordering"
   ],
   "feature_summary": {
     "structural_list_loop_functions": 11,
     "exact_integer_functions": 4,
-    "ffi_wrapper_count": 38,
+    "ffi_wrapper_count": 44,
     "pattern_matching_functions": 4,
     "tail_recursion_loop_functions": 1,
     "std_lowerings": [
@@ -307,6 +315,16 @@
       "name": "captured-closure-conversion",
       "status": "passed",
       "detail": "captured lambdas in recognized structural combinators are converted into loop bodies whose environments are ordinary Rust locals"
+    },
+    {
+      "name": "closure-converted-environment-lowering",
+      "status": "passed",
+      "detail": "captured unary closures can lower to explicit first-order environment structs before safe Rust emission"
+    },
+    {
+      "name": "finite-defunctionalization",
+      "status": "passed",
+      "detail": "known finite higher-order families lower to enum cases plus first-order apply functions without dynamic dispatch"
     },
     {
       "name": "typeclass-dictionary-erasure",

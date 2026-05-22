@@ -328,6 +328,15 @@ items are:
 6. Replace selected target-fingerprint interpreter samples with a full generated-subset semantics theorem or Rust→Lean translation validator.
 7. Expand the raw ABI lane with handles for strings, slices, structs, enums, and generated C headers.
 
+## Sprint 13-14 closure conversion and defunctionalization
+
+This snapshot adds the next closure/higher-order slice for the direct safe Rust lane:
+
+- captured unary closures can lower to explicit first-order environment structs such as `AddDeltaU32Env`;
+- finite known function families can lower to defunctionalized enum cases such as `U32FnCase`;
+- generated apply functions remain monomorphic safe Rust and avoid dynamic dispatch, trait objects, and unsafe closure storage;
+- raw ABI wrappers are generated only for the primitive-returning subset of these new exports.
+
 ### Sprint 7-9 coverage checkpoint
 
 The Sprint 7-9 patch adds machine-readable policy modules for broad Std

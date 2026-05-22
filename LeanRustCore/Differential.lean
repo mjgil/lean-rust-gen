@@ -171,6 +171,9 @@ private def vTaggedMissing : SurfaceValue := .enumVal "Tagged__u32" "missing" []
 private def vTaggedPresent (x : Nat) : SurfaceValue := .enumVal "Tagged__u32" "present" [.u32 x]
 private def vStepStay : SurfaceValue := .enumVal "Step" "stay" []
 private def vStepJump (amount : Nat) : SurfaceValue := .enumVal "Step" "jump" [.u32 amount]
+private def vU32FnInc : SurfaceValue := .enumVal "U32FnCase" "inc" []
+private def vU32FnDouble : SurfaceValue := .enumVal "U32FnCase" "double" []
+private def vU32FnAdd (delta : Nat) : SurfaceValue := .enumVal "U32FnCase" "add" [.u32 delta]
 
 /-- Additional cases whose expectations are computed by the checked `SurfaceExpr` evaluator. -/
 def extractedDeclarationAssertions : List RustAssertion := [
@@ -218,6 +221,14 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "option_do_inc_u32(Some(41))" (surfaceExpected "option_do_inc_u32" [vSome (vU32 41)]),
   assertion "option_do_inc_u32(None)" (surfaceExpected "option_do_inc_u32" [vNone .u32]),
   assertion "closure_apply_capture_u32(5, 37)" (surfaceExpected "closure_apply_capture_u32" [vU32 5, vU32 37]),
+  assertion "closure_env_apply_add_delta_u32(5, 37)" (surfaceExpected "closure_env_apply_add_delta_u32" [vU32 5, vU32 37]),
+  assertion "closure_env_map_add_delta_u32(5, vec![1, u32::MAX])" (surfaceExpected "closure_env_map_add_delta_u32" [vU32 5, vList [vU32 1, vU32 (u32Modulus - 1)]]),
+  assertion "defun_apply_u32(U32FnCase::Inc, 41)" (surfaceExpected "defun_apply_u32" [vU32FnInc, vU32 41]),
+  assertion "defun_apply_u32(U32FnCase::Double, 21)" (surfaceExpected "defun_apply_u32" [vU32FnDouble, vU32 21]),
+  assertion "defun_apply_u32(U32FnCase::Add(5), 37)" (surfaceExpected "defun_apply_u32" [vU32FnAdd 5, vU32 37]),
+  assertion "defun_compose_inc_double_u32(20)" (surfaceExpected "defun_compose_inc_double_u32" [vU32 20]),
+  assertion "defun_apply_add5_u32(37)" (surfaceExpected "defun_apply_add5_u32" [vU32 37]),
+  assertion "defun_map_selected_u32(false, vec![1, u32::MAX])" (surfaceExpected "defun_map_selected_u32" [vBool false, vList [vU32 1, vU32 (u32Modulus - 1)]]),
   assertion "list_append_u32(vec![1, 2], vec![3])" "vec![1u32, 2u32, 3u32]",
   assertion "list_find_nonzero_u32(vec![0, 0, 7])" "Some(7u32)",
   assertion "array_push_u32(vec![1, 2], 3)" "vec![1u32, 2u32, 3u32]",

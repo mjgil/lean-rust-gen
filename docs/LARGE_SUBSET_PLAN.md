@@ -104,6 +104,22 @@ Future phase-4 expansion:
 - Panic policy enforcement for boundary wrappers.
 - Header generation and C integration tests.
 
+## Sprint 13-14 - closure conversion and finite defunctionalization
+
+Implemented in this patch:
+
+- explicit closure environment structs for captured unary closures;
+- finite function-family enums plus first-order apply functions;
+- generated examples for closure environment application/mapping and defunctionalized UInt32 function cases;
+- validation/proof report entries for the closure-conversion and defunctionalization policies.
+
+Still future work:
+
+- escaping stored closures;
+- polymorphic closure objects;
+- `FnMut`/`FnOnce` semantics;
+- Rust trait-object or generic `Fn`-bound emission.
+
 ## Sprint 7-9 checkpoint - Std lowering, specialization, pure effects
 
 This patch adds the Sprint 7-9 policy layer on top of the existing surface

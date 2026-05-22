@@ -93,3 +93,7 @@ Sprint 5/6 extends structural lowering with `SurfaceExpr.listLength` and
 Rust `while` loop and remains fuel-bounded in the Surface evaluator.
 
 The current follow-on pass broadens resolved typeclass specialization for common executable operations (`DecidableEq`/`BEq`, `Ord.compare`, `Inhabited.default`, `ToString`/`Repr`, and pure `Option`/`Except` bind/pure) and adds immediate captured unary-lambda closure conversion through `SurfaceExpr.closureApply`. Escaping or stored captured closures remain future work.
+
+## Sprint 13-14 notes
+
+The examples `closure_env_apply_add_delta_u32`, `closure_env_map_add_delta_u32`, `defun_apply_u32`, `defun_compose_inc_double_u32`, `defun_apply_add5_u32`, and `defun_map_selected_u32` exercise the newly explicit closure-environment and finite-defunctionalization paths.

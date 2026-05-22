@@ -17,6 +17,8 @@
     "LeanRustCore.BoundaryExport.generatedBoundaryRust",
     "LeanRustCore.DependentErasure.dependentErasureSummary",
     "LeanRustCore.ExtractIR.functionFeatures",
+    "LeanRustCore.ClosureConversion.closureConversionSummary",
+    "LeanRustCore.Defunctionalization.defunctionalizationSummary",
     "rust/tests/parser_validation.rs",
     "rust/tests/semantic_validation.rs",
     "rust/tests/target_interpreter.rs",
@@ -37,7 +39,8 @@
     "tail_recursion_loop_lowering": true,
     "target_validation_snapshot": "lean-rust-core.target-validation.v2",
     "ffi_wrappers_feature_gated": true,
-    "closure_conversion": "future-phase",
+    "closure_conversion": "explicit-environment-structs",
+    "defunctionalization": "finite-enum-cases",
     "dependent_shape_erasure": "Subtype/Fin/Vector/proof-field carriers",
     "corpus_harness": true,
     "std_lowering_policy": true,
@@ -92,6 +95,14 @@
     {
       "name": "captured_closure_conversion",
       "statement": "captured lambdas inside recognized structural combinators lower to loop bodies that close over ordinary Rust locals"
+    },
+    {
+      "name": "closure_converted_environments",
+      "statement": "captured unary lambdas lower either to immediate closure-apply SurfaceExpr nodes or to explicit first-order environment structs; escaping or stored dynamic closures remain rejected"
+    },
+    {
+      "name": "finite_defunctionalization",
+      "statement": "known finite higher-order function families lower to monomorphic enum cases plus first-order apply functions; captured values become enum payloads or explicit closure environment fields"
     },
     {
       "name": "target_validation_snapshot",

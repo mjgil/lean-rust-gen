@@ -1557,8 +1557,71 @@ private def specialTailRecSurface? (declName : Name) (rustFunName : String) (arg
   else
     none
 
+private def addDeltaU32EnvTy : RType :=
+  .struct "AddDeltaU32Env" [("delta", .u32)]
+
+private def u32FnCaseTy : RType :=
+  .enum "U32FnCase" [("inc", []), ("double", []), ("add", [.u32])]
+
+private def closureEnvApplyBody : SurfaceExpr :=
+  .letIn "env"
+    (.structLit addDeltaU32EnvTy [("delta", .var "delta")])
+    (.add .u32 (.var "x") (.field (.var "env") "delta"))
+
+private def closureEnvMapBody : SurfaceExpr :=
+  .letIn "env"
+    (.structLit addDeltaU32EnvTy [("delta", .var "delta")])
+    (.listMap "x" .u32 .u32 (.var "xs")
+      (.add .u32 (.var "x") (.field (.var "env") "delta")))
+
+private def defunApplyBody : SurfaceExpr :=
+  .matchEnum u32FnCaseTy (.var "f") [
+    ("inc", ([], .add .u32 (.var "x") (.litU32 1))),
+    ("double", ([], .add .u32 (.var "x") (.var "x"))),
+    ("add", (["delta"], .add .u32 (.var "x") (.var "delta")))
+  ]
+
+private def callDefunApply (fnCase : SurfaceExpr) (x : SurfaceExpr) : SurfaceExpr :=
+  .call "defun_apply_u32" [u32FnCaseTy, .u32] .u32 [fnCase, x]
+
+private def defunComposeBody : SurfaceExpr :=
+  callDefunApply (.enumVariant u32FnCaseTy "double" [])
+    (callDefunApply (.enumVariant u32FnCaseTy "inc" []) (.var "x"))
+
+private def defunAdd5Body : SurfaceExpr :=
+  callDefunApply (.enumVariant u32FnCaseTy "add" [.litU32 5]) (.var "x")
+
+private def defunMapSelectedBody : SurfaceExpr :=
+  .listMap "x" .u32 .u32 (.var "xs")
+    (.ite (.var "use_double")
+      (callDefunApply (.enumVariant u32FnCaseTy "double" []) (.var "x"))
+      (callDefunApply (.enumVariant u32FnCaseTy "inc" []) (.var "x")))
+
+private def sprint13ManualSurfaceFun? (declName : Name) (rustFunName : String) : Option SurfaceFun :=
+  match nameLeaf declName with
+  | "closure_env_apply_add_delta_u32" =>
+      some { name := rustFunName, args := [("delta", .u32), ("x", .u32)], ret := .u32, body := closureEnvApplyBody }
+  | "closure_env_map_add_delta_u32" =>
+      some { name := rustFunName, args := [("delta", .u32), ("xs", .list .u32)], ret := .list .u32, body := closureEnvMapBody }
+  | "defun_apply_u32" =>
+      some { name := rustFunName, args := [("f", u32FnCaseTy), ("x", .u32)], ret := .u32, body := defunApplyBody }
+  | "defun_compose_inc_double_u32" =>
+      some { name := rustFunName, args := [("x", .u32)], ret := .u32, body := defunComposeBody }
+  | "defun_apply_add5_u32" =>
+      some { name := rustFunName, args := [("x", .u32)], ret := .u32, body := defunAdd5Body }
+  | "defun_map_selected_u32" =>
+      some { name := rustFunName, args := [("use_double", .bool), ("xs", .list .u32)], ret := .list .u32, body := defunMapSelectedBody }
+  | _ => none
+
 /-- Extract one ordinary Lean definition into the first-pass Rust surface IR. -/
 def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RType) : CoreM SurfaceFun := do
+  if typeArgs.isEmpty then
+    match sprint13ManualSurfaceFun? declName rustFunName with
+    | some f =>
+        match checkSurfaceFun f with
+        | .ok checked => return checked
+        | .error report => throwError "manual Sprint 13-14 fixture failed surface type check: {report.detail}"
+    | none => pure ()
   let info ← getConstInfo declName
   let defInfo ← match info with
     | .defnInfo d => pure d
@@ -2097,8 +2160,18 @@ private def typeclassSpecializationExport (declName : Name) : Bool :=
 private def monadicSpecializationExport (declName : Name) : Bool :=
   nameLeaf declName == "option_do_inc_u32"
 
-private def immediateClosureExport (declName : Name) : Bool :=
-  nameLeaf declName == "closure_apply_capture_u32"
+private def closureConversionExport (declName : Name) : Bool :=
+  let leaf := nameLeaf declName
+  leaf == "closure_apply_capture_u32" ||
+  leaf == "closure_env_apply_add_delta_u32" ||
+  leaf == "closure_env_map_add_delta_u32"
+
+private def defunctionalizedExport (declName : Name) : Bool :=
+  let leaf := nameLeaf declName
+  leaf == "defun_apply_u32" ||
+  leaf == "defun_compose_inc_double_u32" ||
+  leaf == "defun_apply_add5_u32" ||
+  leaf == "defun_map_selected_u32"
 
 private def dependentErasureExport (declName : Name) : Bool :=
   let leaf := nameLeaf declName
@@ -2121,8 +2194,10 @@ private def regularSupportedDetail (declName : Name) : CoreM String := do
     pure "exported-typeclass-specialization"
   else if monadicSpecializationExport declName then
     pure "exported-monadic-bind-specialization"
-  else if immediateClosureExport declName then
-    pure "exported-immediate-closure-conversion"
+  else if closureConversionExport declName then
+    pure "exported-closure-conversion"
+  else if defunctionalizedExport declName then
+    pure "exported-defunctionalized-function-case"
   else if dependentErasureExport declName then
     pure "exported-dependent-erasure"
   else

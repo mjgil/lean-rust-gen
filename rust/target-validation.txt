@@ -1,13 +1,15 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
-TYPE_COUNT	7
-FN_COUNT	106
+TYPE_COUNT	9
+FN_COUNT	112
 TYPE	struct	Point	x:u32,y:u32
 TYPE	struct	BoundedProof	value:u32
 TYPE	struct	BoxedU32	value:u32
+TYPE	struct	AddDeltaU32Env	delta:u32
 TYPE	enum	Choice	First|Second
 TYPE	enum	TaggedU32	Missing|Present(u32)
 TYPE	enum	Step	Stay|Jump(u32)
+TYPE	enum	U32FnCase	Inc|Double|Add(u32)
 TYPE	enum	Ordering	Lt|Eq|Gt
 FN	clamp_u32	lo:u32,hi:u32,x:u32	u32	if(lt(var(x),var(lo)),var(lo),if(lt(var(hi),var(x)),var(hi),var(x)))
 FN	max_u32	a:u32,b:u32	u32	if(lt(var(a),var(b)),var(b),var(a))
@@ -56,6 +58,12 @@ FN	repr_u32	x:u32	String	repr(var(x))
 FN	ord_compare_u32	a:u32,b:u32	Ordering	if(lt(var(a),var(b)),enum(Ordering::Lt),if(eq(var(a),var(b)),enum(Ordering::Eq),enum(Ordering::Gt)))
 FN	option_do_inc_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(v)=>some(add(var(v),lit(1))))
 FN	closure_apply_capture_u32	delta:u32,x:u32	u32	let(y,var(x),add(var(y),var(delta)))
+FN	closure_env_apply_add_delta_u32	delta:u32,x:u32	u32	let(env,struct(AddDeltaU32Env,delta=var(delta)),add(var(x),field(var(env),delta)))
+FN	closure_env_map_add_delta_u32	delta:u32,xs:Vec<u32>	Vec<u32>	let(env,struct(AddDeltaU32Env,delta=var(delta)),list_map(x,var(xs),add(var(x),field(var(env),delta))))
+FN	defun_apply_u32	f:U32FnCase,x:u32	u32	match_enum(var(f),U32FnCase::Inc()=>add(var(x),lit(1))|U32FnCase::Double()=>add(var(x),var(x))|U32FnCase::Add(delta)=>add(var(x),var(delta)))
+FN	defun_compose_inc_double_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Double),call(defun_apply_u32,enum(U32FnCase::Inc),var(x)))
+FN	defun_apply_add5_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Add,lit(5)),var(x))
+FN	defun_map_selected_u32	use_double:bool,xs:Vec<u32>	Vec<u32>	list_map(x,var(xs),if(var(use_double),call(defun_apply_u32,enum(U32FnCase::Double),var(x)),call(defun_apply_u32,enum(U32FnCase::Inc),var(x))))
 FN	list_append_u32	xs:Vec<u32>,ys:Vec<u32>	Vec<u32>	list_append(var(xs),var(ys))
 FN	list_find_nonzero_u32	xs:Vec<u32>	Option<u32>	list_find(x,var(xs),lt(lit(0),var(x)))
 FN	array_push_u32	xs:Vec<u32>,x:u32	Vec<u32>	array_push(var(xs),var(x))

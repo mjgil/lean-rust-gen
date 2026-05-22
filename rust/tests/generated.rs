@@ -104,6 +104,22 @@ fn typeclass_and_closure_specializations_lower() {
     assert_eq!(reader_add_env_u32(5, 37), 42);
     assert_eq!(state_tick_u32(41), (41, 42));
     assert_eq!(closure_apply_capture_u32(5, 37), 42);
+    assert_eq!(closure_env_apply_add_delta_u32(5, 37), 42);
+    assert_eq!(closure_env_apply_add_delta_u32(1, u32::MAX), 0);
+    assert_eq!(
+        closure_env_map_add_delta_u32(5, vec![1, u32::MAX]),
+        vec![6, 4]
+    );
+    assert_eq!(defun_apply_u32(U32FnCase::Inc, 41), 42);
+    assert_eq!(defun_apply_u32(U32FnCase::Double, 21), 42);
+    assert_eq!(defun_apply_u32(U32FnCase::Add(5), 37), 42);
+    assert_eq!(defun_compose_inc_double_u32(20), 42);
+    assert_eq!(defun_apply_add5_u32(37), 42);
+    assert_eq!(defun_map_selected_u32(false, vec![1, u32::MAX]), vec![2, 0]);
+    assert_eq!(
+        defun_map_selected_u32(true, vec![1, u32::MAX]),
+        vec![2, u32::MAX.wrapping_add(u32::MAX)]
+    );
 }
 
 #[test]
