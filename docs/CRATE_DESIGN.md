@@ -13,3 +13,11 @@ code, validation tooling, and header generation.
 
 A crate row is complete only when the crate is a Cargo workspace member, has its
 own tests, has crate-level documentation, and is included in the release matrix.
+
+## Publishing metadata
+
+Every crate participates in the publishing/versioning policy in
+`docs/PUBLISHING.md`. A crate is release-ready only when its README, changelog
+entry, semver policy, docs build, dependency audit, and cargo publish dry-run are
+recorded in `LeanRustCore.Publishing` and checked by the remaining-completion
+gate.

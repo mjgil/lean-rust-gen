@@ -7,3 +7,10 @@ objects can be tested and documented independently.
 
 A helper is not considered complete until it has unit/property tests in this
 crate and documentation in `docs/CRATE_DESIGN.md` or the feature-specific docs.
+
+## Remaining completion helpers
+
+This crate also owns the runtime test surface for generated dictionary structs,
+first-class closure objects, pure do-notation helpers, controlled IO transcript
+helpers, and deterministic property generator values. A helper is complete only
+when it has unit tests and feature documentation.

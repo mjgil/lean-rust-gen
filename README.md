@@ -377,3 +377,13 @@ generic policy, numeric semantics, dependent erasure, recursive layouts,
 ownership, pattern matrix, recursion analysis, Std lowering implementation, and
 resolved typeclass specialization. Each feature has a concrete Lean metadata
 module, Rust/runtime tests, and feature-specific documentation.
+
+## Checklist rows 41-63 completion
+
+The remaining design-doc rows are completed by `LeanRustCore.RemainingCompletion`.
+They add generated typeclass dictionaries, first-class closure objects, full pure
+do-notation metadata, controlled IO boundary metadata, complete generated-subset
+semantics, preservation obligations, real property generators, feature-complete
+coverage, CI release matrix metadata, and publishing/versioning policy. Run
+`./scripts/check-remaining-completion.py` to validate the implementation/test/doc
+contract for these rows.

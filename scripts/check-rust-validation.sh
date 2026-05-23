@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 ./scripts/check-first-20-completion.py
 ./scripts/check-next-20-completion.py
 ./scripts/check-final-16-completion.py
+./scripts/check-remaining-completion.py
 
 generated="rust/src/generated.rs"
 validation_report="rust/validation-report.json"

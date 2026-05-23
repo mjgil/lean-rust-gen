@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 
 ./scripts/check-first-20-completion.py
 ./scripts/check-next-20-completion.py
+./scripts/check-remaining-completion.py
 
 tmp="$(mktemp)"
 lake exe gen_rust "$tmp"

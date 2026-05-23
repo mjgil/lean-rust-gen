@@ -37,3 +37,21 @@ scripts/check-first-20-completion.py
 It verifies ExtractIR, runtime denotation coverage, expanded diagnostics,
 source-span metadata, corpus fixtures, generated report metadata, and the docs
 required for every feature in rows 1 through 20.
+
+## Remaining rows 41-63 gate
+
+The release matrix now includes `scripts/check-remaining-completion.py`, which
+checks generated dictionaries, first-class closures, pure do-notation,
+controlled IO boundary metadata, complete target semantics, preservation
+obligations, property generators, feature-complete coverage, CI matrix metadata,
+and publishing/versioning metadata.
+
+Publishing dry-runs are required before external crate release:
+
+```text
+cargo publish --dry-run -p lean-rust-core-generated
+cargo publish --dry-run -p lean-rust-core-runtime
+cargo publish --dry-run -p lean-rust-core-abi
+cargo publish --dry-run -p lean-rust-core-validate
+cargo publish --dry-run -p lean-rust-core-headers
+```

@@ -2,8 +2,12 @@
 name = "lean-rust-core-generated"
 version = "0.2.0"
 edition = "2021"
+rust-version = "1.85"
 build = "build.rs"
 license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/lean-rust-core-generated"
+readme = "README.md"
+description = "Generated safe Rust API for LeanRustCore"
 
 [lib]
 name = "lean_rust_core_generated"

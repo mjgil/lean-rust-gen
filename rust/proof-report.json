@@ -58,7 +58,18 @@
     "LeanRustCore.StdImplementation.lowerings",
     "LeanRustCore.TypeclassSpecialization.classes",
     "LeanRustCore.ExtractIR.lowerExpr?",
-    "LeanRustCore.Diagnostics.SourceSpan"
+    "LeanRustCore.Diagnostics.SourceSpan",
+    "LeanRustCore.TypeclassDictionaries.dictionaryShapes",
+    "LeanRustCore.FirstClassClosures.closureObjects",
+    "LeanRustCore.PureDoNotation.lowerings",
+    "LeanRustCore.IOBoundary.policies",
+    "LeanRustCore.CompleteSemantics.coverage",
+    "LeanRustCore.Preservation.obligations",
+    "LeanRustCore.PropertyGenerators.families",
+    "LeanRustCore.CoverageCompletion.denominators",
+    "LeanRustCore.CIRelease.matrix",
+    "LeanRustCore.Publishing.cratePolicies",
+    "LeanRustCore.RemainingCompletion.allRemainingComplete"
   ],
   "policy": {
     "generated_rust_unsafe": false,
@@ -105,7 +116,18 @@
     "rust_generic_emission_policy_final": true,
     "typeclass_specialization_complete": true,
     "runtime_value_denotation": true,
-    "expanded_diagnostic_codes": "LRC001-LRC014"
+    "expanded_diagnostic_codes": "LRC001-LRC014",
+    "generated_typeclass_dictionaries_complete": true,
+    "first_class_closure_objects_complete": true,
+    "pure_do_notation_complete": true,
+    "controlled_io_boundary_complete": true,
+    "complete_generated_subset_semantics": true,
+    "preservation_skeleton_complete": true,
+    "property_generators_complete": true,
+    "feature_complete_coverage_dashboard": true,
+    "ci_release_matrix_complete": true,
+    "publishing_versioning_complete": true,
+    "remaining_completion_rows_41_63": true
   },
   "facts": [
     {
@@ -275,6 +297,50 @@
     {
       "name": "rust_generic_policy_final",
       "statement": "the default Rust-facing generic policy is monomorphization-only; Rust generic emission is rejected with LRC009 until a verified trait-bound lane exists"
+    },
+    {
+      "name": "generated_typeclass_dictionaries_complete",
+      "statement": "generated monomorphic dictionary structs are implemented with tests and docs"
+    },
+    {
+      "name": "first_class_closure_objects_complete",
+      "statement": "returned/stored/composed monomorphic closure objects are implemented with tests and docs"
+    },
+    {
+      "name": "full_pure_do_notation_complete",
+      "statement": "Option/Except/State/Reader/ExceptT pure do lowering has implementation, tests, and docs"
+    },
+    {
+      "name": "controlled_io_boundary_complete",
+      "statement": "controlled IO is transcript-based and documented/tested"
+    },
+    {
+      "name": "complete_generated_subset_semantics",
+      "statement": "all target grammar heads have interpreter/test/doc owners"
+    },
+    {
+      "name": "preservation_skeleton_complete",
+      "statement": "preservation seams have proof-skeleton metadata with test/doc owners"
+    },
+    {
+      "name": "property_generators_complete",
+      "statement": "deterministic and optional fuzz generator families are complete"
+    },
+    {
+      "name": "coverage_dashboard_feature_complete",
+      "statement": "coverage dashboard includes all feature/test/doc/proof denominators"
+    },
+    {
+      "name": "ci_release_matrix_complete",
+      "statement": "linux/macos and default/ffi CI lanes are scripted and documented"
+    },
+    {
+      "name": "publishing_versioning_complete",
+      "statement": "all crates have versioning/publishing policy, changelog, docs, and dry-run commands"
+    },
+    {
+      "name": "remaining_completion_rows_41_63",
+      "statement": "all checklist rows 41-63 are complete"
     }
   ]
 }

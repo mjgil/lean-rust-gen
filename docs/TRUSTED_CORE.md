@@ -245,3 +245,12 @@ The semantic claim is still bounded: these modules complete the design-doc
 requirements for the 21-40 checklist rows, but full compiler correctness still
 requires the broader generated-subset semantic validator and preservation proof
 tracks.
+
+## Remaining completion trust surface
+
+Rows 41-63 add metadata and test gates for generated dictionaries, first-class
+closure objects, pure do-notation, controlled IO, complete generated-subset
+semantics, preservation obligations, property generators, feature-complete
+coverage, CI release matrix, and crate publishing/versioning. These gates are
+aggregated by `LeanRustCore.RemainingCompletion` and checked by
+`scripts/check-remaining-completion.py`.

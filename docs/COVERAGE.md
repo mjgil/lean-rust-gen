@@ -16,3 +16,11 @@ Required denominators for the design-doc completion track:
 
 A dashboard entry may be marked complete only when the implementation, tests,
 and documentation are all present.
+
+## Rows 41-63 completion
+
+The remaining completion patch adds the `checklist_rows_41_63`,
+`generated_subset_semantics_heads`, and `preservation_obligations` denominators.
+Each denominator is complete only when the implementation module, Rust/Lean test,
+and documentation page are all present. The gate is
+`scripts/check-remaining-completion.py`.

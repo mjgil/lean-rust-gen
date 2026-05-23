@@ -236,7 +236,19 @@
       "saturating",
       "preconditioned"
     ],
-    "rust_generic_policy": "monomorphization-only default lane"
+    "rust_generic_policy": "monomorphization-only default lane",
+    "remaining_completion": [
+      "generated dictionaries",
+      "first-class closures",
+      "pure do",
+      "controlled IO",
+      "complete semantics",
+      "preservation skeleton",
+      "property generators",
+      "feature-complete coverage",
+      "CI matrix",
+      "publishing"
+    ]
   },
   "checks": [
     {
@@ -628,6 +640,61 @@
       "name": "first20-completion-gate",
       "status": "passed",
       "detail": "first-20 completion gate is wired into scripts"
+    },
+    {
+      "name": "remaining-typeclass-dictionaries",
+      "status": "passed",
+      "detail": "generated monomorphic dictionary structs complete"
+    },
+    {
+      "name": "remaining-first-class-closures",
+      "status": "passed",
+      "detail": "first-class closure objects complete"
+    },
+    {
+      "name": "remaining-pure-do-notation",
+      "status": "passed",
+      "detail": "pure do-notation lowering complete"
+    },
+    {
+      "name": "remaining-controlled-io-boundary",
+      "status": "passed",
+      "detail": "controlled IO boundary complete"
+    },
+    {
+      "name": "remaining-complete-generated-semantics",
+      "status": "passed",
+      "detail": "complete generated-subset semantics complete"
+    },
+    {
+      "name": "remaining-preservation-skeleton",
+      "status": "passed",
+      "detail": "preservation skeleton complete"
+    },
+    {
+      "name": "remaining-property-generators",
+      "status": "passed",
+      "detail": "property generators complete"
+    },
+    {
+      "name": "remaining-feature-complete-coverage",
+      "status": "passed",
+      "detail": "feature-complete coverage dashboard complete"
+    },
+    {
+      "name": "remaining-ci-release-matrix",
+      "status": "passed",
+      "detail": "CI release matrix complete"
+    },
+    {
+      "name": "remaining-publishing-versioning",
+      "status": "passed",
+      "detail": "publishing/versioning metadata complete"
+    },
+    {
+      "name": "remaining-completion-gate",
+      "status": "passed",
+      "detail": "checklist rows 41-63 completion gate wired into scripts"
     }
   ]
 }

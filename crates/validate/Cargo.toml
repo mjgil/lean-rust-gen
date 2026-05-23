@@ -2,7 +2,10 @@
 name = "lean-rust-core-validate"
 version = "0.2.0"
 edition = "2021"
+rust-version = "1.85"
 license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/lean-rust-core-validate"
+readme = "README.md"
 description = "Validation helpers for LeanRustCore generated artifacts"
 
 [lib]

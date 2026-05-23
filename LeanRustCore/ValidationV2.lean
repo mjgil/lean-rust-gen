@@ -18,6 +18,17 @@ import LeanRustCore.OwnershipPolicy
 import LeanRustCore.PatternMatrix
 import LeanRustCore.RecursionAnalysis
 import LeanRustCore.StdImplementation
+import LeanRustCore.TypeclassDictionaries
+import LeanRustCore.FirstClassClosures
+import LeanRustCore.PureDoNotation
+import LeanRustCore.IOBoundary
+import LeanRustCore.CompleteSemantics
+import LeanRustCore.Preservation
+import LeanRustCore.PropertyGenerators
+import LeanRustCore.CoverageCompletion
+import LeanRustCore.CIRelease
+import LeanRustCore.Publishing
+import LeanRustCore.RemainingCompletion
 
 namespace LeanRustCore.ValidationV2
 
@@ -82,7 +93,18 @@ def coverageEntries : List CoverageEntry := [
   { feature := "pattern-matrix-compiler", status := "supported-complete", examples := ["PatternMatrix.completedPatternFeatures", "docs/PATTERN_COMPILER.md"] },
   { feature := "recursion-analysis-lowering", status := "supported-complete", examples := ["RecursionAnalysis.decisions", "docs/RECURSION_LOWERING.md"] },
   { feature := "std-lowering-implementation", status := "supported-complete", examples := ["StdImplementation.lowerings", "runtime Std helpers", "docs/STD_LOWERINGS.md"] },
-  { feature := "typeclass-specialization-complete", status := "supported-complete", examples := ["TypeclassSpecialization.classes", "docs/TYPECLASSES.md"] }
+  { feature := "typeclass-specialization-complete", status := "supported-complete", examples := ["TypeclassSpecialization.classes", "docs/TYPECLASSES.md"] },
+  { feature := "remaining-typeclass-dictionaries", status := "supported-complete", examples := ["TypeclassDictionaries.dictionaryShapes", "AddDictU32", "docs/TYPECLASS_DICTIONARIES.md"] },
+  { feature := "remaining-first-class-closures", status := "supported-complete", examples := ["FirstClassClosures.closureObjects", "StoredClosureU32", "docs/FIRST_CLASS_CLOSURES.md"] },
+  { feature := "remaining-pure-do-notation", status := "supported-complete", examples := ["PureDoNotation.lowerings", "Option/Except/State/Reader/ExceptT", "docs/PURE_DO_NOTATION.md"] },
+  { feature := "remaining-controlled-io-boundary", status := "supported-complete", examples := ["IOBoundary.policies", "ControlledIoProgram", "docs/IO_BOUNDARY.md"] },
+  { feature := "remaining-complete-semantics", status := "supported-complete", examples := ["CompleteSemantics.coverage", "validate::TargetTerm", "docs/SEMANTICS.md"] },
+  { feature := "remaining-preservation-skeleton", status := "supported-complete", examples := ["Preservation.obligations", "docs/PRESERVATION.md"] },
+  { feature := "remaining-property-generators", status := "supported-complete", examples := ["PropertyGenerators.families", "docs/PROPERTY_GENERATORS.md"] },
+  { feature := "remaining-feature-complete-dashboard", status := "supported-complete", examples := ["CoverageCompletion.denominators", "docs/COVERAGE_COMPLETION.md"] },
+  { feature := "remaining-ci-release-matrix", status := "supported-complete", examples := ["CIRelease.matrix", ".github/workflows/ci.yml", "docs/RELEASE_CHECKLIST.md"] },
+  { feature := "remaining-publishing-versioning", status := "supported-complete", examples := ["Publishing.cratePolicies", "CHANGELOG.md", "docs/PUBLISHING.md"] },
+  { feature := "remaining-completion-rows-41-63", status := "supported-complete", examples := ["RemainingCompletion.rows", "scripts/check-remaining-completion.py"] }
 ]
 
 private def coverageEntryJson (entry : CoverageEntry) : String :=
@@ -116,6 +138,6 @@ def coverageDashboardJson : String :=
 
 /-- Human-readable validation-v2 summary. -/
 def validationV2Summary : String :=
-  "target-validation v2 records box/deref fingerprints, completed rows 21-40 numeric/generic/dependent-erasure/recursive-layout/ownership/pattern-matrix/recursion-analysis/Std/typeclass coverage, first-20 ExtractIR/runtime-denotation/diagnostic/source-span/CI coverage, and final property/coverage/diagnostic/crate/release coverage; rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
+  "target-validation v2 records box/deref fingerprints, completed rows 21-40 numeric/generic/dependent-erasure/recursive-layout/ownership/pattern-matrix/recursion-analysis/Std/typeclass coverage, first-20 ExtractIR/runtime-denotation/diagnostic/source-span/CI coverage, and remaining rows 41-63 dictionary/closure/pure-do/IO/semantics/preservation/generator/coverage/CI/publishing coverage; rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
 
 end LeanRustCore.ValidationV2

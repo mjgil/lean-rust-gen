@@ -2,7 +2,10 @@
 name = "lean-rust-core-runtime"
 version = "0.2.0"
 edition = "2021"
+rust-version = "1.85"
 license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/lean-rust-core-runtime"
+readme = "README.md"
 description = "Safe runtime helpers for generated LeanRustCore Rust code"
 
 [lib]

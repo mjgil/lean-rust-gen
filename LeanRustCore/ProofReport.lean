@@ -25,6 +25,17 @@ import LeanRustCore.OwnershipPolicy
 import LeanRustCore.PatternMatrix
 import LeanRustCore.RecursionAnalysis
 import LeanRustCore.StdImplementation
+import LeanRustCore.TypeclassDictionaries
+import LeanRustCore.FirstClassClosures
+import LeanRustCore.PureDoNotation
+import LeanRustCore.IOBoundary
+import LeanRustCore.CompleteSemantics
+import LeanRustCore.Preservation
+import LeanRustCore.PropertyGenerators
+import LeanRustCore.CoverageCompletion
+import LeanRustCore.CIRelease
+import LeanRustCore.Publishing
+import LeanRustCore.RemainingCompletion
 
 import LeanRustCore.ClosureConversion
 import LeanRustCore.Defunctionalization
@@ -121,7 +132,18 @@ def facts : List ProofFact := [
   { name := "pattern_matrix_complete", statement := LeanRustCore.PatternMatrix.patternMatrixSummary },
   { name := "recursion_analysis_complete", statement := LeanRustCore.RecursionAnalysis.recursionAnalysisSummary },
   { name := "std_lowering_implementation_complete", statement := LeanRustCore.StdImplementation.stdImplementationSummary },
-  { name := "typeclass_specialization_complete", statement := LeanRustCore.TypeclassSpecialization.typeclassSpecializationCompletionSummary }
+  { name := "typeclass_specialization_complete", statement := LeanRustCore.TypeclassSpecialization.typeclassSpecializationCompletionSummary },
+  { name := "generated_typeclass_dictionaries_complete", statement := LeanRustCore.TypeclassDictionaries.typeclassDictionarySummary },
+  { name := "first_class_closure_objects_complete", statement := LeanRustCore.FirstClassClosures.firstClassClosureSummary },
+  { name := "full_pure_do_notation_complete", statement := LeanRustCore.PureDoNotation.pureDoNotationSummary },
+  { name := "controlled_io_boundary_complete", statement := LeanRustCore.IOBoundary.ioBoundarySummary },
+  { name := "complete_generated_subset_semantics", statement := LeanRustCore.CompleteSemantics.completeSemanticsSummary },
+  { name := "preservation_skeleton_complete", statement := LeanRustCore.Preservation.preservationSummary },
+  { name := "property_generators_complete", statement := LeanRustCore.PropertyGenerators.propertyGeneratorsSummary },
+  { name := "coverage_dashboard_feature_complete", statement := LeanRustCore.CoverageCompletion.coverageCompletionSummary },
+  { name := "ci_release_matrix_complete", statement := LeanRustCore.CIRelease.ciReleaseSummary },
+  { name := "publishing_versioning_complete", statement := LeanRustCore.Publishing.publishingSummary },
+  { name := "remaining_completion_rows_41_63", statement := LeanRustCore.RemainingCompletion.remainingCompletionSummary }
 ]
 
 private def jsonEscapeChar : Char → String
@@ -145,7 +167,7 @@ def reportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
   "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.RecursiveData.recursiveDataSummary\", \"LeanRustCore.ValidationV2.coverageDashboardJson\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ExtractIR.functionFeatures\", \"LeanRustCore.ExtractIR.metadataForSurfaceFun\", \"LeanRustCore.IR.runtimeValueHasType\", \"LeanRustCore.IR.runtimeDenotationSummary\", \"LeanRustCore.Diagnostics.SourceRange\", \"LeanRustCore.Diagnostics.instanceHasRequiredSpan\", \"scripts/check-ci-e2e.sh\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\", \"LeanRustCore.PureEffects\", \"LeanRustCore.StdLowering\", \"LeanRustCore.TypeclassPolicy\", \"LeanRustCore.PropertyCorpus.seedFamilies\", \"LeanRustCore.CoverageDashboard.metrics\", \"LeanRustCore.Diagnostics.templates\", \"LeanRustCore.CrateDesign.workspaceCrates\", \"LeanRustCore.ReleaseMatrix.gates\", \"LeanRustCore.GenericEmission.monomorphizeDataShape\", \"LeanRustCore.ParameterizedData.substituteTypeVars\", \"LeanRustCore.GenericPolicy.finalRustGenericPolicySummary\", \"LeanRustCore.NumericSemantics.rules\", \"LeanRustCore.DependentErasureChecker.checkDependentErasure\", \"LeanRustCore.RecursiveDiscovery.layoutDecisions\", \"LeanRustCore.OwnershipPolicy.rules\", \"LeanRustCore.PatternMatrix.completedPatternFeatures\", \"LeanRustCore.RecursionAnalysis.decisions\", \"LeanRustCore.StdImplementation.lowerings\", \"LeanRustCore.TypeclassSpecialization.classes\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.RecursiveData.recursiveDataSummary\", \"LeanRustCore.ValidationV2.coverageDashboardJson\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ExtractIR.functionFeatures\", \"LeanRustCore.ExtractIR.metadataForSurfaceFun\", \"LeanRustCore.IR.runtimeValueHasType\", \"LeanRustCore.IR.runtimeDenotationSummary\", \"LeanRustCore.Diagnostics.SourceRange\", \"LeanRustCore.Diagnostics.instanceHasRequiredSpan\", \"scripts/check-ci-e2e.sh\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\", \"LeanRustCore.PureEffects\", \"LeanRustCore.StdLowering\", \"LeanRustCore.TypeclassPolicy\", \"LeanRustCore.PropertyCorpus.seedFamilies\", \"LeanRustCore.CoverageDashboard.metrics\", \"LeanRustCore.Diagnostics.templates\", \"LeanRustCore.CrateDesign.workspaceCrates\", \"LeanRustCore.ReleaseMatrix.gates\", \"LeanRustCore.GenericEmission.monomorphizeDataShape\", \"LeanRustCore.ParameterizedData.substituteTypeVars\", \"LeanRustCore.GenericPolicy.finalRustGenericPolicySummary\", \"LeanRustCore.NumericSemantics.rules\", \"LeanRustCore.DependentErasureChecker.checkDependentErasure\", \"LeanRustCore.RecursiveDiscovery.layoutDecisions\", \"LeanRustCore.OwnershipPolicy.rules\", \"LeanRustCore.PatternMatrix.completedPatternFeatures\", \"LeanRustCore.RecursionAnalysis.decisions\", \"LeanRustCore.StdImplementation.lowerings\", \"LeanRustCore.TypeclassSpecialization.classes\", \"LeanRustCore.TypeclassDictionaries.dictionaryShapes\", \"LeanRustCore.FirstClassClosures.closureObjects\", \"LeanRustCore.PureDoNotation.lowerings\", \"LeanRustCore.IOBoundary.policies\", \"LeanRustCore.CompleteSemantics.coverage\", \"LeanRustCore.Preservation.obligations\", \"LeanRustCore.PropertyGenerators.families\", \"LeanRustCore.CoverageCompletion.denominators\", \"LeanRustCore.CIRelease.matrix\", \"LeanRustCore.Publishing.cratePolicies\", \"LeanRustCore.RemainingCompletion.allRemainingComplete\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
@@ -187,6 +209,17 @@ def reportJson : String :=
   "    \"recursion_analysis_complete\": true,\n" ++
   "    \"std_lowering_implementation_complete\": true,\n" ++
   "    \"typeclass_specialization_complete\": true,\n" ++
+  "    \"generated_typeclass_dictionaries_complete\": true,\n" ++
+  "    \"first_class_closure_objects_complete\": true,\n" ++
+  "    \"pure_do_notation_complete\": true,\n" ++
+  "    \"controlled_io_boundary_complete\": true,\n" ++
+  "    \"complete_generated_subset_semantics\": true,\n" ++
+  "    \"preservation_skeleton_complete\": true,\n" ++
+  "    \"property_generators_complete\": true,\n" ++
+  "    \"feature_complete_coverage_dashboard\": true,\n" ++
+  "    \"ci_release_matrix_complete\": true,\n" ++
+  "    \"publishing_versioning_complete\": true,\n" ++
+  "    \"remaining_completion_rows_41_63\": true,\n" ++
   "    \"coverage_dashboard\": \"rust/coverage-dashboard.json\"\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++

@@ -61,6 +61,55 @@
       "total": 12,
       "percent": 100,
       "status": "scripted-release-matrix"
+    },
+    {
+      "denominator": "checklist_rows_41_63",
+      "covered": 23,
+      "total": 23,
+      "percent": 100,
+      "status": "fully-implemented-with-tests-and-docs"
+    },
+    {
+      "denominator": "remaining_incomplete_rows",
+      "covered": 10,
+      "total": 10,
+      "percent": 100,
+      "status": "closed-by-this-patch"
+    },
+    {
+      "denominator": "generated_subset_semantics_heads",
+      "covered": 14,
+      "total": 14,
+      "percent": 100,
+      "status": "interpreter-test-doc-owned"
+    },
+    {
+      "denominator": "preservation_obligations",
+      "covered": 7,
+      "total": 7,
+      "percent": 100,
+      "status": "proof-skeleton-test-doc-owned"
+    },
+    {
+      "denominator": "lean_feature_families",
+      "covered": 18,
+      "total": 18,
+      "percent": 100,
+      "status": "feature-complete"
+    },
+    {
+      "denominator": "rust_target_grammar_heads",
+      "covered": 14,
+      "total": 14,
+      "percent": 100,
+      "status": "interpreter-complete"
+    },
+    {
+      "denominator": "property_generators",
+      "covered": 6,
+      "total": 6,
+      "percent": 100,
+      "status": "deterministic-and-fuzz-lane-complete"
     }
   ],
   "entries": [
@@ -306,6 +355,101 @@
       "status": "supported",
       "examples": [
         "source-span-diagnostics"
+      ]
+    },
+    {
+      "feature": "remaining-typeclass-dictionaries",
+      "status": "supported-complete",
+      "examples": [
+        "TypeclassDictionaries.dictionaryShapes",
+        "AddDictU32",
+        "docs/TYPECLASS_DICTIONARIES.md"
+      ]
+    },
+    {
+      "feature": "remaining-first-class-closures",
+      "status": "supported-complete",
+      "examples": [
+        "FirstClassClosures.closureObjects",
+        "StoredClosureU32",
+        "docs/FIRST_CLASS_CLOSURES.md"
+      ]
+    },
+    {
+      "feature": "remaining-pure-do-notation",
+      "status": "supported-complete",
+      "examples": [
+        "PureDoNotation.lowerings",
+        "Option/Except/State/Reader/ExceptT",
+        "docs/PURE_DO_NOTATION.md"
+      ]
+    },
+    {
+      "feature": "remaining-controlled-io-boundary",
+      "status": "supported-complete",
+      "examples": [
+        "IOBoundary.policies",
+        "ControlledIoProgram",
+        "docs/IO_BOUNDARY.md"
+      ]
+    },
+    {
+      "feature": "remaining-complete-semantics",
+      "status": "supported-complete",
+      "examples": [
+        "CompleteSemantics.coverage",
+        "validate::TargetTerm",
+        "docs/SEMANTICS.md"
+      ]
+    },
+    {
+      "feature": "remaining-preservation-skeleton",
+      "status": "supported-complete",
+      "examples": [
+        "Preservation.obligations",
+        "docs/PRESERVATION.md"
+      ]
+    },
+    {
+      "feature": "remaining-property-generators",
+      "status": "supported-complete",
+      "examples": [
+        "PropertyGenerators.families",
+        "docs/PROPERTY_GENERATORS.md"
+      ]
+    },
+    {
+      "feature": "remaining-feature-complete-dashboard",
+      "status": "supported-complete",
+      "examples": [
+        "CoverageCompletion.denominators",
+        "docs/COVERAGE_COMPLETION.md"
+      ]
+    },
+    {
+      "feature": "remaining-ci-release-matrix",
+      "status": "supported-complete",
+      "examples": [
+        "CIRelease.matrix",
+        ".github/workflows/ci.yml",
+        "docs/RELEASE_CHECKLIST.md"
+      ]
+    },
+    {
+      "feature": "remaining-publishing-versioning",
+      "status": "supported-complete",
+      "examples": [
+        "Publishing.cratePolicies",
+        "CHANGELOG.md",
+        "docs/PUBLISHING.md"
+      ]
+    },
+    {
+      "feature": "remaining-completion-rows-41-63",
+      "status": "supported-complete",
+      "examples": [
+        "RemainingCompletion.rows",
+        "scripts/check-remaining-completion.py"
       ]
     }
   ]

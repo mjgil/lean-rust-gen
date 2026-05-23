@@ -2,7 +2,10 @@
 name = "lean-rust-core-headers"
 version = "0.2.0"
 edition = "2021"
+rust-version = "1.85"
 license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/lean-rust-core-headers"
+readme = "README.md"
 description = "C header generation helpers for LeanRustCore ABI exports"
 
 [lib]

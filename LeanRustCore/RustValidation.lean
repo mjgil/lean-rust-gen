@@ -31,6 +31,17 @@ import LeanRustCore.OwnershipPolicy
 import LeanRustCore.PatternMatrix
 import LeanRustCore.RecursionAnalysis
 import LeanRustCore.StdImplementation
+import LeanRustCore.TypeclassDictionaries
+import LeanRustCore.FirstClassClosures
+import LeanRustCore.PureDoNotation
+import LeanRustCore.IOBoundary
+import LeanRustCore.CompleteSemantics
+import LeanRustCore.Preservation
+import LeanRustCore.PropertyGenerators
+import LeanRustCore.CoverageCompletion
+import LeanRustCore.CIRelease
+import LeanRustCore.Publishing
+import LeanRustCore.RemainingCompletion
 namespace LeanRustCore.RustValidation
 
 open LeanRustCore
@@ -530,7 +541,18 @@ def checks : List ValidationCheck := [
   { name := "next20-pattern-matrix", status := "passed", detail := LeanRustCore.PatternMatrix.patternMatrixSummary },
   { name := "next20-recursion-analysis", status := "passed", detail := LeanRustCore.RecursionAnalysis.recursionAnalysisSummary },
   { name := "next20-std-implementation", status := "passed", detail := LeanRustCore.StdImplementation.stdImplementationSummary },
-  { name := "next20-typeclass-specialization", status := "passed", detail := LeanRustCore.TypeclassPolicy.typeclassPolicySummary }
+  { name := "next20-typeclass-specialization", status := "passed", detail := LeanRustCore.TypeclassPolicy.typeclassPolicySummary },
+  { name := "remaining-typeclass-dictionaries", status := "passed", detail := LeanRustCore.TypeclassDictionaries.typeclassDictionarySummary },
+  { name := "remaining-first-class-closures", status := "passed", detail := LeanRustCore.FirstClassClosures.firstClassClosureSummary },
+  { name := "remaining-pure-do-notation", status := "passed", detail := LeanRustCore.PureDoNotation.pureDoNotationSummary },
+  { name := "remaining-controlled-io-boundary", status := "passed", detail := LeanRustCore.IOBoundary.ioBoundarySummary },
+  { name := "remaining-complete-generated-semantics", status := "passed", detail := LeanRustCore.CompleteSemantics.completeSemanticsSummary },
+  { name := "remaining-preservation-skeleton", status := "passed", detail := LeanRustCore.Preservation.preservationSummary },
+  { name := "remaining-property-generators", status := "passed", detail := LeanRustCore.PropertyGenerators.propertyGeneratorsSummary },
+  { name := "remaining-feature-complete-coverage", status := "passed", detail := LeanRustCore.CoverageCompletion.coverageCompletionSummary },
+  { name := "remaining-ci-release-matrix", status := "passed", detail := LeanRustCore.CIRelease.ciReleaseSummary },
+  { name := "remaining-publishing-versioning", status := "passed", detail := LeanRustCore.Publishing.publishingSummary },
+  { name := "remaining-completion-gate", status := "passed", detail := LeanRustCore.RemainingCompletion.remainingCompletionSummary }
 ]
 
 private def jsonEscapeChar : Char → String
@@ -566,7 +588,8 @@ private def featureSummaryJson : String :=
   "    \"typeclass_specialization\": [\"BEq\", \"Decidable\", \"DecidableEq\", \"Ord\", \"Inhabited\", \"ToString\", \"Repr\", \"Monad.Option\", \"Monad.Except\"],\n" ++
   "    \"pure_effects\": [\"Option\", \"Except\", \"ReaderT\", \"StateM\"],\n" ++
   "    \"final16_completion\": [\"property/fuzz corpus\", \"quantitative coverage\", \"diagnostics\", \"workspace crate split\", \"generated/runtime/ABI/validate/headers crates\", \"release matrix\"],\n" ++
-  "    \"first20_completion\": [\"ci end-to-end matrix\", \"expanded diagnostics\", \"source spans\", \"ExtractIR pipeline\", \"RuntimeValue denotation\"]\n" ++
+  "    \"first20_completion\": [\"ci end-to-end matrix\", \"expanded diagnostics\", \"source spans\", \"ExtractIR pipeline\", \"RuntimeValue denotation\"],\n" ++
+  "    \"remaining_completion\": [\"generated dictionaries\", \"first-class closures\", \"pure do\", \"controlled IO\", \"complete semantics\", \"preservation skeleton\", \"property generators\", \"feature-complete coverage\", \"CI matrix\", \"publishing\"]\n" ++
   "  },\n"
 
 /-- JSON validation report emitted by `lake exe gen_validation_report`. -/

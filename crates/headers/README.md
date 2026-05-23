@@ -6,3 +6,9 @@ annotations.
 
 Header generation is complete only when tests verify exported signatures and
 ownership comments, and when `docs/FFI_BOUNDARY.md` includes a C usage example.
+
+## Release policy
+
+Header output is tested as part of the workspace release matrix and versioned
+with the ABI crate. Signature changes require changelog entries and semver-major
+review.

@@ -240,6 +240,148 @@ pub fn dictionary_compare_u32(dict: OrdDictU32, a: u32, b: u32) -> Ordering {
     (dict.compare)(a, b)
 }
 
+#[derive(Clone, Copy)]
+pub struct AddDictU32 {
+    pub add: fn(u32, u32) -> u32,
+}
+
+#[derive(Clone, Copy)]
+pub struct DefaultDictU32 {
+    pub default: fn() -> u32,
+}
+
+#[derive(Clone, Copy)]
+pub struct ToStringDictU32 {
+    pub to_string: fn(u32) -> String,
+}
+
+pub const ADD_U32: AddDictU32 = AddDictU32 {
+    add: |a, b| a.wrapping_add(b),
+};
+
+pub const DEFAULT_U32: DefaultDictU32 = DefaultDictU32 { default: || 0 };
+
+pub const TO_STRING_U32: ToStringDictU32 = ToStringDictU32 {
+    to_string: |value| value.to_string(),
+};
+
+pub fn dictionary_add_u32(dict: AddDictU32, a: u32, b: u32) -> u32 {
+    (dict.add)(a, b)
+}
+
+pub fn dictionary_default_u32(dict: DefaultDictU32) -> u32 {
+    (dict.default)()
+}
+
+pub fn dictionary_to_string_u32(dict: ToStringDictU32, value: u32) -> String {
+    (dict.to_string)(value)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StoredClosureU32 {
+    inner: U32ClosureObject,
+}
+
+impl StoredClosureU32 {
+    pub fn new(inner: U32ClosureObject) -> Self {
+        Self { inner }
+    }
+
+    pub fn apply(&self, value: u32) -> u32 {
+        self.inner.apply(value)
+    }
+
+    pub fn compose(self, next: U32ClosureObject) -> Self {
+        Self::new(U32ClosureObject::Compose(
+            Box::new(self.inner),
+            Box::new(next),
+        ))
+    }
+}
+
+pub fn closure_store_add_delta(delta: u32) -> StoredClosureU32 {
+    StoredClosureU32::new(U32ClosureObject::AddDelta(delta))
+}
+
+pub fn closure_return_stored_inc_then_add(delta: u32) -> StoredClosureU32 {
+    StoredClosureU32::new(U32ClosureObject::Inc).compose(U32ClosureObject::AddDelta(delta))
+}
+
+pub fn closure_apply_stored(f: &StoredClosureU32, value: u32) -> u32 {
+    f.apply(value)
+}
+
+pub fn option_result_do_runtime(input: Option<Result<u32, u32>>) -> Result<Option<u32>, u32> {
+    match input {
+        None => Ok(None),
+        Some(Ok(value)) => Ok(Some(value.wrapping_add(1))),
+        Some(Err(error)) => Err(error),
+    }
+}
+
+pub fn except_state_do_runtime(input: Result<u32, u32>, state: u32) -> (Result<u32, u32>, u32) {
+    match input {
+        Ok(value) => (Ok(value.wrapping_add(state)), state.wrapping_add(1)),
+        Err(error) => (Err(error), state),
+    }
+}
+
+pub fn reader_state_do_runtime(env: u32, state: u32) -> (u32, u32) {
+    (env.wrapping_add(state), state.wrapping_add(1))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ControlledIoOp {
+    PrintLine(String),
+    ReadEnv(String),
+    MonotonicTime(u64),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ControlledIoProgram {
+    ops: Vec<ControlledIoOp>,
+}
+
+impl ControlledIoProgram {
+    pub fn new() -> Self {
+        Self { ops: Vec::new() }
+    }
+
+    pub fn print_line(mut self, line: impl Into<String>) -> Self {
+        self.ops.push(ControlledIoOp::PrintLine(line.into()));
+        self
+    }
+
+    pub fn read_env(mut self, key: impl Into<String>) -> Self {
+        self.ops.push(ControlledIoOp::ReadEnv(key.into()));
+        self
+    }
+
+    pub fn monotonic_time(mut self, timestamp: u64) -> Self {
+        self.ops.push(ControlledIoOp::MonotonicTime(timestamp));
+        self
+    }
+
+    pub fn transcript(&self) -> Vec<String> {
+        self.ops
+            .iter()
+            .map(|op| match op {
+                ControlledIoOp::PrintLine(line) => format!("print:{line}"),
+                ControlledIoOp::ReadEnv(key) => format!("read-env:{key}"),
+                ControlledIoOp::MonotonicTime(timestamp) => format!("time:{timestamp}"),
+            })
+            .collect()
+    }
+}
+
+pub fn scalar_property_values_u32() -> Vec<u32> {
+    vec![0, 1, 2, 41, 42, u32::MAX]
+}
+
+pub fn container_property_values_u32() -> Vec<Vec<u32>> {
+    vec![Vec::new(), vec![0], vec![1, 2, u32::MAX]]
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum U32ClosureObject {
     Id,
@@ -427,6 +569,52 @@ mod tests {
         let f = closure_return_add_delta(5);
         assert_eq!(f.apply(37), 42);
         assert_eq!(closure_map_u32(&f, vec![0, 37]), vec![5, 42]);
+    }
+
+    #[test]
+    fn generated_dictionary_structs_are_first_order() {
+        assert_eq!(dictionary_add_u32(ADD_U32, u32::MAX, 1), 0);
+        assert_eq!(dictionary_default_u32(DEFAULT_U32), 0);
+        assert_eq!(dictionary_to_string_u32(TO_STRING_U32, 42), "42");
+    }
+
+    #[test]
+    fn first_class_closure_objects_can_be_returned_stored_and_composed() {
+        let stored = closure_store_add_delta(5);
+        assert_eq!(closure_apply_stored(&stored, 37), 42);
+        let composed = closure_return_stored_inc_then_add(4);
+        assert_eq!(closure_apply_stored(&composed, 37), 42);
+    }
+
+    #[test]
+    fn pure_do_notation_runtime_covers_option_except_state_reader() {
+        assert_eq!(option_result_do_runtime(Some(Ok(41))), Ok(Some(42)));
+        assert_eq!(option_result_do_runtime(None), Ok(None));
+        assert_eq!(option_result_do_runtime(Some(Err(7))), Err(7));
+        assert_eq!(except_state_do_runtime(Ok(40), 2), (Ok(42), 3));
+        assert_eq!(except_state_do_runtime(Err(9), 2), (Err(9), 2));
+        assert_eq!(reader_state_do_runtime(5, 37), (42, 38));
+    }
+
+    #[test]
+    fn controlled_io_boundary_is_transcript_based() {
+        let program = ControlledIoProgram::new()
+            .print_line("hello")
+            .read_env("HOME")
+            .monotonic_time(42);
+        assert_eq!(
+            program.transcript(),
+            vec!["print:hello", "read-env:HOME", "time:42"]
+        );
+    }
+
+    #[test]
+    fn property_generators_cover_scalars_and_containers() {
+        assert_eq!(
+            scalar_property_values_u32(),
+            vec![0, 1, 2, 41, 42, u32::MAX]
+        );
+        assert_eq!(container_property_values_u32()[2], vec![1, 2, u32::MAX]);
     }
 
     #[test]
