@@ -202,3 +202,21 @@ The final completion layer adds the following metadata surfaces:
 A feature in this layer cannot be marked complete unless tests and documentation
 are present. The non-toolchain gate is `scripts/check-final-16-completion.py`;
 the full release gate is `docs/RELEASE_CHECKLIST.md`.
+
+## First-20 completion checkpoint
+
+The first twenty design rows are complete only when implementation, tests, and
+documentation are all present. The checkpoint is enforced by
+`scripts/check-first-20-completion.py` and covers:
+
+- `LeanRustCore.ExtractIR` as an explicit pre-`SurfaceExpr` metadata stage;
+- `RuntimeValue` and `runtimeValueHasType` as the non-placeholder denotation for
+  generated structs, enums, and recursive names;
+- `SourceSpan` and concrete diagnostic instances for source-aware failures;
+- expanded diagnostic codes `LRC001` through `LRC014`;
+- positive, negative, and unsupported corpus fixtures; and
+- proof/validation-report metadata proving these items are wired into generated
+  artifacts.
+
+The unknown-span fallback is intentional: it records that Lean metadata did not
+provide a range without dropping the source declaration or diagnostic code.

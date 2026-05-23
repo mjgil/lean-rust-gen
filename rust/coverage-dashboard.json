@@ -7,6 +7,13 @@
   "recursive_data_policy": "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work",
   "metrics": [
     {
+      "denominator": "checklist_rows_1_20",
+      "covered": 20,
+      "total": 20,
+      "percent": 100,
+      "status": "implemented-with-tests-and-docs"
+    },
+    {
       "denominator": "checklist_rows_41_56",
       "covered": 16,
       "total": 16,
@@ -100,7 +107,7 @@
       "status": "supported-stable-codes",
       "examples": [
         "Diagnostics.templates",
-        "LRC001-LRC005",
+        "LRC001-LRC014",
         "docs/DIAGNOSTICS.md"
       ]
     },
@@ -122,6 +129,51 @@
         "ReleaseMatrix.gates",
         "scripts/check-final-16-completion.py",
         "docs/RELEASE_CHECKLIST.md"
+      ]
+    },
+    {
+      "feature": "extract-ir-pipeline",
+      "status": "supported-first20",
+      "examples": [
+        "LeanRustCore.ExtractIR",
+        "lowerExpr?",
+        "DeclarationMetadata"
+      ]
+    },
+    {
+      "feature": "runtime-value-denotation",
+      "status": "supported-first20",
+      "examples": [
+        "RuntimeValue",
+        "runtimeValueHasType",
+        "docs/RUNTIME_SEMANTICS.md"
+      ]
+    },
+    {
+      "feature": "expanded-diagnostics",
+      "status": "supported-first20",
+      "examples": [
+        "LRC001-LRC014",
+        "SourceSpan",
+        "docs/DIAGNOSTICS.md"
+      ]
+    },
+    {
+      "feature": "source-span-diagnostics",
+      "status": "supported-first20",
+      "examples": [
+        "DiagnosticInstance",
+        "SourceSpan.unknown",
+        "corpus negative fixtures"
+      ]
+    },
+    {
+      "feature": "first20-completion",
+      "status": "supported-scripted-gate",
+      "examples": [
+        "scripts/check-first-20-completion.py",
+        "rust/tests/first20_completion.rs",
+        "positive/negative/unsupported corpus"
       ]
     }
   ]

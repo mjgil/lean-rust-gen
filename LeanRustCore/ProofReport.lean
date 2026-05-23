@@ -62,6 +62,10 @@ def facts : List ProofFact := [
   { name := "typeclass_dictionary_erasure", statement := LeanRustCore.TypeclassPolicy.typeclassPolicySummary },
   { name := "closure_conversion_policy", statement := LeanRustCore.ClosureConversion.closureConversionSummary },
   { name := "extract_ir_feature_tags", statement := LeanRustCore.ExtractIR.extractIRSummary },
+  { name := "extract_ir_lowering_stage", statement := "ExtractIR.lowerExpr? blocks policy-only recursor/Std/dictionary residue from reaching Rust emission" },
+  { name := "runtime_value_denotation", statement := LeanRustCore.runtimeDenotationSummary },
+  { name := "expanded_user_diagnostics", statement := LeanRustCore.Diagnostics.diagnosticSummary },
+  { name := "source_span_diagnostics", statement := LeanRustCore.Diagnostics.sourceSpanSummary },
   { name := "transitive_helper_extraction", statement := "first-order helper definitions reached from exported bodies are enqueued and emitted as auto-helper-export functions" },
   { name := "proof_erased_binders", statement := "conservative proof-shaped binders are erased from Rust signatures when their values are not used computationally" },
   { name := "limited_higher_order_function_pointer", statement := "unary function-typed arguments lower to Rust fn-pointer arguments and SurfaceExpr.callValue nodes" },
@@ -117,7 +121,7 @@ def reportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
   "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.RecursiveData.recursiveDataSummary\", \"LeanRustCore.ValidationV2.coverageDashboardJson\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ExtractIR.functionFeatures\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\", \"LeanRustCore.PureEffects\", \"LeanRustCore.StdLowering\", \"LeanRustCore.TypeclassPolicy\", \"LeanRustCore.PropertyCorpus.seedFamilies\", \"LeanRustCore.CoverageDashboard.metrics\", \"LeanRustCore.Diagnostics.templates\", \"LeanRustCore.CrateDesign.workspaceCrates\", \"LeanRustCore.ReleaseMatrix.gates\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.RecursiveData.recursiveDataSummary\", \"LeanRustCore.ValidationV2.coverageDashboardJson\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ExtractIR.functionFeatures\", \"LeanRustCore.ExtractIR.lowerExpr?\", \"LeanRustCore.IR.runtimeValueHasType\", \"LeanRustCore.Diagnostics.SourceSpan\", \"LeanRustCore.Diagnostics.instantiate\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\", \"LeanRustCore.PureEffects\", \"LeanRustCore.StdLowering\", \"LeanRustCore.TypeclassPolicy\", \"LeanRustCore.PropertyCorpus.seedFamilies\", \"LeanRustCore.CoverageDashboard.metrics\", \"LeanRustCore.Diagnostics.templates\", \"LeanRustCore.CrateDesign.workspaceCrates\", \"LeanRustCore.ReleaseMatrix.gates\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
@@ -143,6 +147,11 @@ def reportJson : String :=
   "    \"user_facing_diagnostics\": true,\n" ++
   "    \"rust_workspace_crate_split\": true,\n" ++
   "    \"release_acceptance_matrix\": true,\n" ++
+  "    \"extract_ir_pipeline\": true,\n" ++
+  "    \"runtime_value_denotation\": true,\n" ++
+  "    \"expanded_diagnostic_codes\": \"LRC001-LRC014\",\n" ++
+  "    \"source_span_diagnostics\": true,\n" ++
+  "    \"first20_completion_gate\": \"scripts/check-first-20-completion.py\",\n" ++
   "    \"coverage_dashboard\": \"rust/coverage-dashboard.json\"\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++

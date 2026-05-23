@@ -356,3 +356,15 @@ validation tooling, and header generation live in dedicated workspace crates.
 
 Run `scripts/check-final-16-completion.py` for the non-toolchain gate, and
 `docs/RELEASE_CHECKLIST.md` lists the full release matrix.
+
+## First-20 completion gate
+
+Rows 1 through 20 of the implementation checklist are guarded by:
+
+```bash
+scripts/check-first-20-completion.py
+```
+
+The gate checks the explicit `ExtractIR` layer, `RuntimeValue` denotations,
+expanded `LRC001`-`LRC014` diagnostics, source-span metadata, positive/negative
+/unsupported corpus fixtures, generated report metadata, tests, and docs.

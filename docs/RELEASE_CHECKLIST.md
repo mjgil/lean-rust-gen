@@ -25,3 +25,15 @@ documentation, reproducible generated artifacts, and safe-lane/FFI separation.
 Every feature must point to a documentation page before it is marked complete.
 Every diagnostic must have a code and an example. Every ABI function must have
 an ownership or safety contract. Every crate must have a README.
+
+## First-20 gate
+
+The first-20 implementation gate must pass before release:
+
+```bash
+scripts/check-first-20-completion.py
+```
+
+It verifies ExtractIR, runtime denotation coverage, expanded diagnostics,
+source-span metadata, corpus fixtures, generated report metadata, and the docs
+required for every feature in rows 1 through 20.

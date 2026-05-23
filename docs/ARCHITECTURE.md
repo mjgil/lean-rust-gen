@@ -304,3 +304,18 @@ Surface evaluator remains fuel-bounded.
 Known recursive, index-free user inductives now lower recursive payload fields through owned `Box<T>` in the safe Rust lane. The initial fixtures are `BinaryTreeU32` and `ExprU32`, including recursive construction, recursive pattern matching, and recursive function calls.
 
 The target-validation artifact now uses `lean-rust-core.target-validation.v2`, which records `box(...)` and `deref(...)` fingerprints. `LeanRustCore.ValidationV2` also emits `rust/coverage-dashboard.json`, a machine-readable feature-family dashboard consumed by validation gates.
+
+## First-20 pipeline completion
+
+The implementation now includes an explicit `ExtractIR` stage between elaborated
+Lean declarations and checked `SurfaceExpr`. `ExtractIR` records source spans,
+erased binders, recursor/Std-lowering recognition, dictionary metadata, feature
+tags, and next-feature diagnostics. Policy-only `ExtractIR` nodes must be
+discharged through `lowerExpr?` before Rust emission; otherwise they become
+stable `LRC` diagnostics.
+
+Runtime semantics for generated aggregate types are provided by `RuntimeValue`
+and `runtimeValueHasType`, so structs, enums, and recursive payload names have a
+checked semantic carrier rather than placeholder values. This is covered by
+`docs/RUNTIME_SEMANTICS.md`, `rust/tests/first20_completion.rs`, and
+`scripts/check-first-20-completion.py`.

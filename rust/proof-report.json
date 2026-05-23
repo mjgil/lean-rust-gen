@@ -19,6 +19,10 @@
     "LeanRustCore.BoundaryExport.generatedBoundaryRust",
     "LeanRustCore.DependentErasure.dependentErasureSummary",
     "LeanRustCore.ExtractIR.functionFeatures",
+    "LeanRustCore.Diagnostics.instantiate",
+    "LeanRustCore.Diagnostics.SourceSpan",
+    "LeanRustCore.IR.runtimeValueHasType",
+    "LeanRustCore.ExtractIR.lowerExpr?",
     "LeanRustCore.ClosureConversion.closureConversionSummary",
     "LeanRustCore.Defunctionalization.defunctionalizationSummary",
     "rust/tests/parser_validation.rs",
@@ -59,7 +63,12 @@
     "user_facing_diagnostics": true,
     "rust_workspace_crate_split": true,
     "release_acceptance_matrix": true,
-    "coverage_dashboard": "rust/coverage-dashboard.json"
+    "coverage_dashboard": "rust/coverage-dashboard.json",
+    "extract_ir_pipeline": true,
+    "runtime_value_denotation": true,
+    "expanded_diagnostic_codes": "LRC001-LRC014",
+    "source_span_diagnostics": true,
+    "first20_completion_gate": "scripts/check-first-20-completion.py"
   },
   "facts": [
     {
@@ -169,6 +178,26 @@
     {
       "name": "release_acceptance_matrix",
       "statement": "release acceptance matrix contains 12 required gates covering Lean, generated artifacts, Rust workspace, FFI, diagnostics, docs, and headers"
+    },
+    {
+      "name": "extract_ir_lowering_stage",
+      "statement": "ExtractIR.lowerExpr? blocks policy-only recursor/Std/dictionary residue from reaching Rust emission"
+    },
+    {
+      "name": "runtime_value_denotation",
+      "statement": "RType.Denote uses RuntimeValue subtype witnesses for generated structs, enums, and named recursive payloads instead of placeholder Unit/Nat semantics"
+    },
+    {
+      "name": "expanded_user_diagnostics",
+      "statement": "Diagnostics templates cover LRC001-LRC014 with next-feature and documentation links"
+    },
+    {
+      "name": "source_span_diagnostics",
+      "statement": "Diagnostics carry SourceSpan metadata with known ranges when available and a stable unknown-span fallback otherwise"
+    },
+    {
+      "name": "first20_completion_gate",
+      "statement": "scripts/check-first-20-completion.py verifies implementation, tests, docs, corpus fixtures, and generated report metadata for rows 1-20"
     }
   ]
 }

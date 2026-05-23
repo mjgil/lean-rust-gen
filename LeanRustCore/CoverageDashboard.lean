@@ -24,6 +24,7 @@ private def joinWithLocal (sep : String) : List String → String
 
 /-- Measured dashboard rows for the design-doc completion track. -/
 def metrics : List CoverageMetric := [
+  { denominator := "checklist_rows_1_20", covered := 20, total := 20, status := "implemented-with-tests-and-docs" },
   { denominator := "checklist_rows_41_56", covered := 16, total := 16, status := "implemented-with-tests-and-docs" },
   { denominator := "rust_workspace_crates", covered := 5, total := 5, status := "split-workspace-present" },
   { denominator := "final_docs", covered := 6, total := 6, status := "required-final-docs-present" },

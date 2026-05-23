@@ -7,7 +7,7 @@
   "generated_type_count": 11,
   "differential_assertion_count": 139,
   "target_validation_format": "lean-rust-core.target-validation.v2",
-  "ffi_boundary_export_count": 44,
+  "ffi_boundary_export_count": 41,
   "required_functions": [
     "clamp_u32",
     "max_u32",
@@ -145,7 +145,7 @@
   "feature_summary": {
     "structural_list_loop_functions": 11,
     "exact_integer_functions": 4,
-    "ffi_wrapper_count": 44,
+    "ffi_wrapper_count": 41,
     "pattern_matching_functions": 4,
     "tail_recursion_loop_functions": 1,
     "std_lowerings": [
@@ -190,6 +190,14 @@
       "workspace crate split",
       "generated/runtime/ABI/validate/headers crates",
       "release matrix"
+    ],
+    "first20_completion": [
+      "extract-ir pipeline",
+      "runtime-value denotation",
+      "expanded diagnostics",
+      "source-span diagnostics",
+      "positive/negative/unsupported corpus",
+      "CI completion gate"
     ]
   },
   "checks": [
@@ -477,6 +485,31 @@
       "name": "compatibility-report-output-consistency",
       "status": "passed",
       "detail": "rust/tests/validation_report.rs compares compatibility diagnostics and generated function counts against the parsed generated.rs AST"
+    },
+    {
+      "name": "extract-ir-pipeline",
+      "status": "passed",
+      "detail": "ExtractIR records source spans, erased binders, recursor metadata, resolved dictionaries, feature tags, and next-feature diagnostics before SurfaceExpr emission"
+    },
+    {
+      "name": "runtime-value-denotation",
+      "status": "passed",
+      "detail": "RuntimeValue and runtimeValueHasType replace placeholder Unit/Nat aggregate denotations for generated structs, enums, and recursive names"
+    },
+    {
+      "name": "expanded-diagnostic-codes",
+      "status": "passed",
+      "detail": "stable diagnostics now cover LRC001-LRC014 for dictionaries, dependent matches, closures, IO, hygiene, recursors, Std constants, proof erasure, numerics, recursive layout, FFI, generics, and modules"
+    },
+    {
+      "name": "source-span-diagnostics",
+      "status": "passed",
+      "detail": "diagnostic instances carry SourceSpan metadata with known ranges when available and a stable unknown-span fallback"
+    },
+    {
+      "name": "first20-completion-gate",
+      "status": "passed",
+      "detail": "scripts/check-first-20-completion.py checks rows 1-20 for implementation, tests, docs, corpus fixtures, and report metadata"
     }
   ]
 }

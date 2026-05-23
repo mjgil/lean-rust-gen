@@ -1,0 +1,11 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "unsupported",
+  "source": "Corpus.Unsupported.ioEffect",
+  "expected_status": "unsupported",
+  "diagnostic_code": "LRC004",
+  "source_span_required": true,
+  "next_feature": "controlled IO boundary",
+  "tests": ["scripts/check-first-20-completion.py"],
+  "documentation": ["docs/DIAGNOSTICS.md#lrc004"]
+}

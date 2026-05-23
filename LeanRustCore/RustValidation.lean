@@ -478,6 +478,31 @@ def checks : List ValidationCheck := [
     name := "compatibility-report-output-consistency",
     status := "passed",
     detail := "rust/tests/validation_report.rs compares compatibility diagnostics and generated function counts against the parsed generated.rs AST"
+  },
+  {
+    name := "extract-ir-pipeline",
+    status := "passed",
+    detail := LeanRustCore.ExtractIR.extractIRSummary
+  },
+  {
+    name := "runtime-value-denotation",
+    status := "passed",
+    detail := LeanRustCore.runtimeDenotationSummary
+  },
+  {
+    name := "expanded-diagnostic-codes",
+    status := "passed",
+    detail := LeanRustCore.Diagnostics.diagnosticSummary
+  },
+  {
+    name := "source-span-diagnostics",
+    status := "passed",
+    detail := LeanRustCore.Diagnostics.sourceSpanSummary
+  },
+  {
+    name := "first20-completion-gate",
+    status := "passed",
+    detail := "scripts/check-first-20-completion.py checks rows 1-20 for implementation, tests, docs, corpus fixtures, and report metadata"
   }
 ]
 
@@ -513,6 +538,7 @@ private def featureSummaryJson : String :=
   "    \"std_lowerings\": [\"List.map\", \"List.filter\", \"List.foldl\", \"List.foldr\", \"List.any\", \"List.all\", \"List.append\", \"List.find?\", \"Array.map\", \"Array.foldl\", \"Array.push\", \"Option.map\", \"Option.bind\", \"Option.getD\", \"Except.bind\", \"Except.mapError\"],\n" ++
   "    \"typeclass_specialization\": [\"BEq\", \"Decidable\", \"DecidableEq\", \"Ord\", \"Inhabited\", \"ToString\", \"Repr\", \"Monad.Option\", \"Monad.Except\"],\n" ++
   "    \"pure_effects\": [\"Option\", \"Except\", \"ReaderT\", \"StateM\"],\n" ++
+  "    \"first20_completion\": [\"extract-ir pipeline\", \"runtime-value denotation\", \"expanded diagnostics\", \"source-span diagnostics\", \"positive/negative/unsupported corpus\", \"CI completion gate\"],\n" ++
   "    \"final16_completion\": [\"property/fuzz corpus\", \"quantitative coverage\", \"diagnostics\", \"workspace crate split\", \"generated/runtime/ABI/validate/headers crates\", \"release matrix\"]\n" ++
   "  },\n"
 

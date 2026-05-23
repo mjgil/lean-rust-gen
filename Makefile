@@ -1,4 +1,4 @@
-.PHONY: gen check rust-test rust-test-ffi workspace-test no-placeholders rust-validation toolchain-pins
+.PHONY: gen check rust-test rust-test-ffi workspace-test no-placeholders rust-validation toolchain-pins first20
 
 gen:
 	./scripts/gen.sh
@@ -23,3 +23,6 @@ toolchain-pins:
 
 rust-validation:
 	./scripts/check-rust-validation.sh
+
+first20:
+	./scripts/check-first-20-completion.py

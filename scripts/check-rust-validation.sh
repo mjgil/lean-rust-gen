@@ -3,6 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ./scripts/check-final-16-completion.py
+./scripts/check-first-20-completion.py
 
 generated="rust/src/generated.rs"
 validation_report="rust/validation-report.json"

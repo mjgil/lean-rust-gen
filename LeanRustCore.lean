@@ -6,6 +6,7 @@ import LeanRustCore.ClosureConversion
 import LeanRustCore.PureEffects
 import LeanRustCore.StdLowering
 import LeanRustCore.TypeclassPolicy
+import LeanRustCore.ExtractIR
 import LeanRustCore.Defunctionalization
 import LeanRustCore.DependentErasure
 import LeanRustCore.EmitRust

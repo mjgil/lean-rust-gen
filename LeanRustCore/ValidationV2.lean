@@ -47,13 +47,18 @@ private def jsonArray (items : List String) : String :=
   "[" ++ joinWith ", " (items.map jsonString) ++ "]"
 
 def coverageEntries : List CoverageEntry := [
+  { feature := "extract-ir-pipeline", status := "supported-first20", examples := ["LeanRustCore.ExtractIR", "lowerExpr?", "DeclarationMetadata"] },
+  { feature := "runtime-value-denotation", status := "supported-first20", examples := ["RuntimeValue", "runtimeValueHasType", "docs/RUNTIME_SEMANTICS.md"] },
+  { feature := "expanded-diagnostics", status := "supported-first20", examples := ["LRC001-LRC014", "SourceSpan", "docs/DIAGNOSTICS.md"] },
+  { feature := "source-span-diagnostics", status := "supported-first20", examples := ["DiagnosticInstance", "SourceSpan.unknown", "corpus negative fixtures"] },
+  { feature := "first20-completion", status := "supported-scripted-gate", examples := ["scripts/check-first-20-completion.py", "rust/tests/first20_completion.rs", "positive/negative/unsupported corpus"] },
   { feature := "recursive-owned-box-data", status := "supported-known-slice", examples := ["BinaryTreeU32", "ExprU32", "tree_size_u32", "expr_eval_u32"] },
   { feature := "target-validation-v2", status := "supported", examples := ["FORMAT lean-rust-core.target-validation.v2", "box/deref fingerprints"] },
   { feature := "property-seed-validation", status := "supported-deterministic-seeds", examples := ["recursive tree size/sum", "expression evaluation", "closure/defun regression"] },
   { feature := "coverage-dashboard", status := "supported", examples := ["rust/coverage-dashboard.json"] },
   { feature := "property-fuzz-corpus", status := "supported-deterministic-seeds", examples := ["PropertyCorpus.seedFamilies", "corpus/property/seeds.json", "rust/tests/final16_property_coverage.rs"] },
   { feature := "quantitative-coverage-dashboard", status := "supported-metrics", examples := ["CoverageDashboard.metrics", "explicit denominators", "docs/COVERAGE.md"] },
-  { feature := "user-facing-diagnostics", status := "supported-stable-codes", examples := ["Diagnostics.templates", "LRC001-LRC005", "docs/DIAGNOSTICS.md"] },
+  { feature := "user-facing-diagnostics", status := "supported-stable-codes", examples := ["Diagnostics.templates", "LRC001-LRC014", "docs/DIAGNOSTICS.md"] },
   { feature := "rust-workspace-crate-split", status := "supported-workspace", examples := ["lean-rust-core-generated", "lean-rust-core-runtime", "lean-rust-core-abi", "lean-rust-core-validate", "lean-rust-core-headers"] },
   { feature := "release-acceptance-matrix", status := "supported-scripted-gates", examples := ["ReleaseMatrix.gates", "scripts/check-final-16-completion.py", "docs/RELEASE_CHECKLIST.md"] }
 ]
@@ -89,6 +94,6 @@ def coverageDashboardJson : String :=
 
 /-- Human-readable validation-v2 summary. -/
 def validationV2Summary : String :=
-  "target-validation v2 records box/deref fingerprints, next-20 numeric/pattern/recursion/Std/typeclass/effect/closure/ABI/semantic-validator/preservation coverage and final property/coverage/diagnostic/crate/release coverage, and rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
+  "target-validation v2 records first-20 ExtractIR/runtime-denotation/diagnostic/source-span completion, box/deref fingerprints, next-20 numeric/pattern/recursion/Std/typeclass/effect/closure/ABI/semantic-validator/preservation coverage and final property/coverage/diagnostic/crate/release coverage, and rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
 
 end LeanRustCore.ValidationV2

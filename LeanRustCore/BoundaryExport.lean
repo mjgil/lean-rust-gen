@@ -75,9 +75,26 @@ private def boundaryWrapper? (f : SurfaceFun) : Option String :=
   | some wrapper => some wrapper
   | none => directWrapper? f
 
+private def containsWrapperName (name : String) : List String → Bool
+  | [] => false
+  | candidate :: rest => candidate == name || containsWrapperName name rest
+
+private def dedupBoundaryFunctionsAux (seen : List String) : List SurfaceFun → List SurfaceFun
+  | [] => []
+  | f :: rest =>
+      let rendered := wrapperName f.name
+      if containsWrapperName rendered seen then
+        dedupBoundaryFunctionsAux seen rest
+      else
+        f :: dedupBoundaryFunctionsAux (rendered :: seen) rest
+
+/-- Source functions for the conservative raw ABI subset, deduplicated by wrapper symbol. -/
+def boundaryFunctions : List SurfaceFun :=
+  dedupBoundaryFunctionsAux [] LeanRustCore.Examples.extractedSurfaceFunctions
+
 /-- Wrappers generated for the current conservative raw ABI subset. -/
 def boundaryWrappers : List String :=
-  LeanRustCore.Examples.extractedSurfaceFunctions.filterMap boundaryWrapper?
+  boundaryFunctions.filterMap boundaryWrapper?
 
 /-- Number of generated raw ABI wrappers. -/
 def boundaryExportCount : Nat :=

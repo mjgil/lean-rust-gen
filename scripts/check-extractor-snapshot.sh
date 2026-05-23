@@ -47,3 +47,4 @@ tmp_coverage="$(mktemp)"
 lake exe gen_coverage_dashboard "$tmp_coverage"
 diff -u rust/coverage-dashboard.json "$tmp_coverage"
 rm -f "$tmp_coverage"
+./scripts/check-first-20-completion.py

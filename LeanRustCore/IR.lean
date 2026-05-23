@@ -38,6 +38,115 @@ inductive RType where
   | enum : String → List (String × List RType) → RType
   deriving Repr, BEq
 
+/-- The modulus used by Rust `u32::wrapping_*` operations. -/
+def u32Modulus : Nat := 4294967296
+
+/-- The modulus used by Rust `u64::wrapping_*` operations. -/
+def u64Modulus : Nat := 18446744073709551616
+
+/--
+Runtime values used to give all Rust-shaped aggregate types a non-placeholder
+semantic carrier.  Primitive and container `Denote` cases still use ordinary
+Lean values; generated structs, enums, and recursive names use a subtype of
+`RuntimeValue` with `runtimeValueHasType = true`, so they no longer collapse to
+`Unit` or arbitrary `Nat` placeholders.
+-/
+inductive RuntimeValue where
+  | unit
+  | bool : Bool → RuntimeValue
+  | ordering : Ordering → RuntimeValue
+  | nat : Nat → RuntimeValue
+  | int : Int → RuntimeValue
+  | u32 : Nat → RuntimeValue
+  | u64 : Nat → RuntimeValue
+  | i32 : Int → RuntimeValue
+  | i64 : Int → RuntimeValue
+  | char : Char → RuntimeValue
+  | string : String → RuntimeValue
+  | optionNone : RuntimeValue
+  | optionSome : RuntimeValue → RuntimeValue
+  | list : List RuntimeValue → RuntimeValue
+  | array : List RuntimeValue → RuntimeValue
+  | prod : RuntimeValue → RuntimeValue → RuntimeValue
+  | sumInl : RuntimeValue → RuntimeValue
+  | sumInr : RuntimeValue → RuntimeValue
+  | functionOpaque : String → RuntimeValue
+  | boxed : RuntimeValue → RuntimeValue
+  | recursive : String → RuntimeValue → RuntimeValue
+  | resultOk : RuntimeValue → RuntimeValue
+  | resultErr : RuntimeValue → RuntimeValue
+  | struct : String → List (String × RuntimeValue) → RuntimeValue
+  | enum : String → String → List RuntimeValue → RuntimeValue
+  deriving Repr, BEq
+
+private def lookupRuntimeField (fields : List (String × RuntimeValue)) (name : String) : Option RuntimeValue :=
+  match fields with
+  | [] => none
+  | (candidate, value) :: rest => if candidate == name then some value else lookupRuntimeField rest name
+
+private def lookupVariantTypes (variants : List (String × List RType)) (name : String) : Option (List RType) :=
+  match variants with
+  | [] => none
+  | (candidate, payload) :: rest => if candidate == name then some payload else lookupVariantTypes rest name
+
+mutual
+  /-- Check that runtime values match runtime types field-by-field and payload-by-payload. -/
+  partial def runtimeValueHasType : RuntimeValue → RType → Bool
+    | .unit, .unit => true
+    | .bool _, .bool => true
+    | .ordering _, .ordering => true
+    | .nat _, .nat => true
+    | .int _, .int => true
+    | .u32 n, .u32 => decide (n < u32Modulus)
+    | .u64 n, .u64 => decide (n < u64Modulus)
+    | .i32 _, .i32 => true
+    | .i64 _, .i64 => true
+    | .char _, .char => true
+    | .string _, .string => true
+    | .optionNone, .option _ => true
+    | .optionSome value, .option t => runtimeValueHasType value t
+    | .list values, .list t => runtimeListHasType values t
+    | .array values, .array t => runtimeListHasType values t
+    | .prod a b, .prod aTy bTy => runtimeValueHasType a aTy && runtimeValueHasType b bTy
+    | .sumInl value, .sum aTy _ => runtimeValueHasType value aTy
+    | .sumInr value, .sum _ bTy => runtimeValueHasType value bTy
+    | .functionOpaque _, .func _ _ => true
+    | .boxed value, .boxed t => runtimeValueHasType value t
+    | .recursive name _, .recursive expected => name == expected
+    | value, .subtype t => runtimeValueHasType value t
+    | .u32 n, .fin bound => decide (n < bound)
+    | .list values, .vector t n => (values.length == n) && runtimeListHasType values t
+    | .array values, .vector t n => (values.length == n) && runtimeListHasType values t
+    | .resultOk value, .result ok _ => runtimeValueHasType value ok
+    | .resultErr value, .result _ err => runtimeValueHasType value err
+    | .struct name fields, .struct expected declFields =>
+        name == expected && runtimeFieldsHaveTypes fields declFields
+    | .enum name variant payload, .enum expected variants =>
+        name == expected &&
+        match lookupVariantTypes variants variant with
+        | some payloadTypes => runtimePayloadHasTypes payload payloadTypes
+        | none => false
+    | _, _ => false
+
+  partial def runtimeListHasType : List RuntimeValue → RType → Bool
+    | [], _ => true
+    | value :: rest, t => runtimeValueHasType value t && runtimeListHasType rest t
+
+  partial def runtimePayloadHasTypes : List RuntimeValue → List RType → Bool
+    | [], [] => true
+    | value :: restValues, ty :: restTypes =>
+        runtimeValueHasType value ty && runtimePayloadHasTypes restValues restTypes
+    | _, _ => false
+
+  partial def runtimeFieldsHaveTypes : List (String × RuntimeValue) → List (String × RType) → Bool
+    | [], [] => true
+    | _, [] => false
+    | fields, (name, ty) :: restDecls =>
+        match lookupRuntimeField fields name with
+        | some value => runtimeValueHasType value ty && runtimeFieldsHaveTypes fields restDecls
+        | none => false
+end
+
 /-- Denotational meaning of an IR type inside Lean. -/
 def Denote : RType → Type
   | .unit => Unit
@@ -58,19 +167,17 @@ def Denote : RType → Type
   | .sum a b => Sum (Denote a) (Denote b)
   | .func a b => Denote a → Denote b
   | .boxed t => Denote t
-  | .recursive _ => Unit
+  | .recursive name => { value : RuntimeValue // runtimeValueHasType value (.recursive name) = true }
   | .subtype t => Denote t
   | .fin _ => Nat
   | .vector t _ => List (Denote t)
   | .result ok err => Except (Denote err) (Denote ok)
-  | .struct _ _ => Unit
-  | .enum _ _ => Nat
+  | .struct name fields => { value : RuntimeValue // runtimeValueHasType value (.struct name fields) = true }
+  | .enum name variants => { value : RuntimeValue // runtimeValueHasType value (.enum name variants) = true }
 
-/-- The modulus used by Rust `u32::wrapping_*` operations. -/
-def u32Modulus : Nat := 4294967296
-
-/-- The modulus used by Rust `u64::wrapping_*` operations. -/
-def u64Modulus : Nat := 18446744073709551616
+/-- Human-readable summary for proof/validation reports. -/
+def runtimeDenotationSummary : String :=
+  "RType.Denote uses precise Lean values for primitives/containers/functions and RuntimeValue subtype witnesses for generated structs, enums, and named recursive payloads; placeholder Unit/Nat aggregate semantics are no longer used"
 
 /-- Normalize a mathematical natural number to the `u32` wrapping domain. -/
 def u32Wrap (n : Nat) : Nat := n % u32Modulus
