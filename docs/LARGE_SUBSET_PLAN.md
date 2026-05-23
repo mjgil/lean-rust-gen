@@ -158,3 +158,17 @@ Completed in this sprint slice:
 - `rust/target-validation.txt` now uses `lean-rust-core.target-validation.v2`.
 - `LeanRustCore.ValidationV2` emits `rust/coverage-dashboard.json` for machine-readable feature-family coverage.
 - `rust/tests/property_validation.rs` adds deterministic property-style seeds for recursive tree size/sum, expression evaluation, and closure/defunctionalization regression cases.
+
+## Final checklist rows 41-56 checkpoint
+
+This patch adds the remaining design-document completion infrastructure:
+
+- deterministic property/fuzz seed families in `corpus/property/seeds.json`;
+- quantitative coverage denominators in `LeanRustCore.CoverageDashboard` and `rust/coverage-dashboard.json`;
+- stable user-facing diagnostic templates in `LeanRustCore.Diagnostics` and `docs/DIAGNOSTICS.md`;
+- a concrete Rust workspace split into generated/runtime/ABI/validate/header crates;
+- crate-local tests and README files for each new crate;
+- release acceptance gates in `LeanRustCore.ReleaseMatrix`, `docs/RELEASE_CHECKLIST.md`, and `scripts/check-final-16-completion.py`.
+
+Every final-row feature is considered complete only when implementation, tests,
+documentation, and generated report metadata are all present.

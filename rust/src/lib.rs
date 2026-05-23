@@ -7,8 +7,12 @@
 )]
 
 pub mod abi;
+pub use lean_rust_core_runtime as runtime;
+pub use lean_rust_core_runtime as runtime_crate;
 
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
+#[cfg(feature = "ffi")]
+pub use lean_rust_core_abi as abi_crate;
 #[cfg(feature = "ffi")]
 pub mod ffi_generated;

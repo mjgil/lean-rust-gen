@@ -188,3 +188,17 @@ Additional generated/trusted artifacts:
 - `rust/tests/property_validation.rs`
 
 Recursive user data currently uses a conservative owned `Box<T>` layout for known index-free recursive fixtures. The validation-v2 dashboard records this feature family and the target-validation format used by downstream checks.
+
+## Final rows 41-56 trusted metadata
+
+The final completion layer adds the following metadata surfaces:
+
+- `LeanRustCore.PropertyCorpus.seedFamilies` records deterministic property/fuzz families.
+- `LeanRustCore.CoverageDashboard.metrics` records quantitative dashboard denominators.
+- `LeanRustCore.Diagnostics.templates` records stable LRC diagnostic codes.
+- `LeanRustCore.CrateDesign.workspaceCrates` records the concrete Rust workspace split.
+- `LeanRustCore.ReleaseMatrix.gates` records release acceptance commands.
+
+A feature in this layer cannot be marked complete unless tests and documentation
+are present. The non-toolchain gate is `scripts/check-final-16-completion.py`;
+the full release gate is `docs/RELEASE_CHECKLIST.md`.

@@ -1,0 +1,10 @@
+[package]
+name = "lean-rust-core-headers"
+version = "0.2.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "C header generation helpers for LeanRustCore ABI exports"
+
+[lib]
+name = "lean_rust_core_headers"
+path = "src/lib.rs"

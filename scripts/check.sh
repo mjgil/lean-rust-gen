@@ -4,7 +4,11 @@ cd "$(dirname "$0")/.."
 
 ./scripts/check-no-placeholders.sh
 ./scripts/check-toolchain-pins.sh
+./scripts/check-final-16-completion.py
 lake build
 ./scripts/check-extractor-snapshot.sh
 ./scripts/check-rust-validation.sh
-(cd rust && cargo fmt --check && cargo clippy -- -D warnings && cargo test && cargo test --features ffi)
+cargo fmt --check --all
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo test -p lean-rust-core-generated --features ffi

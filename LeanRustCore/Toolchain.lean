@@ -52,6 +52,13 @@ def buildMetadataJson : String :=
   "    \"rust/src/ffi_generated.rs\",\n" ++
   "    \"rust/build-metadata.json\",\n" ++
   "    \"rust/coverage-dashboard.json\"\n" ++
+  "  ],\n" ++
+  "  \"workspace_crates\": [\n" ++
+  "    \"lean-rust-core-generated\",\n" ++
+  "    \"lean-rust-core-runtime\",\n" ++
+  "    \"lean-rust-core-abi\",\n" ++
+  "    \"lean-rust-core-validate\",\n" ++
+  "    \"lean-rust-core-headers\"\n" ++
   "  ]\n" ++
   "}\n"
 

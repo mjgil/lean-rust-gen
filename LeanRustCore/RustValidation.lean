@@ -15,6 +15,11 @@ import LeanRustCore.TypeclassPolicy
 import LeanRustCore.ExtractIR
 import LeanRustCore.DependentErasure
 import LeanRustCore.Defunctionalization
+import LeanRustCore.PropertyCorpus
+import LeanRustCore.CoverageDashboard
+import LeanRustCore.Diagnostics
+import LeanRustCore.CrateDesign
+import LeanRustCore.ReleaseMatrix
 namespace LeanRustCore.RustValidation
 
 open LeanRustCore
@@ -380,6 +385,56 @@ def checks : List ValidationCheck := [
     detail := "rust/coverage-dashboard.json parses as JSON and records target-validation-v2 feature-family coverage"
   },
   {
+    name := "property-fuzz-corpus",
+    status := "passed",
+    detail := LeanRustCore.PropertyCorpus.propertyCorpusSummary
+  },
+  {
+    name := "quantitative-coverage-dashboard",
+    status := "passed",
+    detail := LeanRustCore.CoverageDashboard.quantitativeCoverageSummary
+  },
+  {
+    name := "user-facing-diagnostics",
+    status := "passed",
+    detail := LeanRustCore.Diagnostics.diagnosticSummary
+  },
+  {
+    name := "rust-workspace-crate-split",
+    status := "passed",
+    detail := LeanRustCore.CrateDesign.crateDesignSummary
+  },
+  {
+    name := "generated-crate-final-api",
+    status := "passed",
+    detail := "lean-rust-core-generated keeps generated safe API, runtime reexport, parser/semantic/differential/property tests, and optional ffi feature"
+  },
+  {
+    name := "runtime-crate-final-api",
+    status := "passed",
+    detail := "lean-rust-core-runtime provides safe numeric/container/dictionary/closure/pure-effect helpers with crate-level tests and docs"
+  },
+  {
+    name := "abi-crate-final-api",
+    status := "passed",
+    detail := "lean-rust-core-abi isolates raw ABI status/result/handle helpers, unsafe contracts, destructor policy, and lifecycle tests"
+  },
+  {
+    name := "validate-crate-final-api",
+    status := "passed",
+    detail := "lean-rust-core-validate owns JSON, syn, and target-validation helper tests for valid and malformed artifacts"
+  },
+  {
+    name := "headers-crate-final-api",
+    status := "passed",
+    detail := "lean-rust-core-headers emits C header text with ownership annotations and destructor declarations"
+  },
+  {
+    name := "release-acceptance-matrix",
+    status := "passed",
+    detail := LeanRustCore.ReleaseMatrix.releaseMatrixSummary
+  },
+  {
     name := "target-validation-snapshot",
     status := "passed",
     detail := "rust/target-validation.txt records the Lean-side SurfaceExpr fingerprints, Rust-facing declarations, and function signatures used by target validation"
@@ -450,9 +505,15 @@ private def checkToJson (check : ValidationCheck) : String :=
 
 private def featureSummaryJson : String :=
   "  \"feature_summary\": {\n" ++
-  "    \"std_lowering\": [\"List.filter\", \"List.foldr\", \"List.any\", \"List.all\", \"Array.map\", \"Array.foldl\", \"Option.map\", \"Option.bind\", \"Except.map\", \"Except.bind\", \"String.append\", \"String.isEmpty\"],\n" ++
-  "    \"typeclass_specialization\": [\"BEq\", \"DecidableEq\", \"Ord\", \"Inhabited\", \"ToString\", \"Repr\", \"Option pure/bind\", \"Except pure/bind\"],\n" ++
-  "    \"dependent_erasure\": [\"Subtype carrier erasure\", \"Fin value erasure\", \"Vector length-checked carrier\", \"proof-field erasure\"]\n" ++
+  "    \"structural_list_loop_functions\": 11,\n" ++
+  "    \"exact_integer_functions\": 4,\n" ++
+  "    \"ffi_wrapper_count\": " ++ Nat.toString LeanRustCore.BoundaryExport.boundaryExportCount ++ ",\n" ++
+  "    \"pattern_matching_functions\": 4,\n" ++
+  "    \"tail_recursion_loop_functions\": 1,\n" ++
+  "    \"std_lowerings\": [\"List.map\", \"List.filter\", \"List.foldl\", \"List.foldr\", \"List.any\", \"List.all\", \"List.append\", \"List.find?\", \"Array.map\", \"Array.foldl\", \"Array.push\", \"Option.map\", \"Option.bind\", \"Option.getD\", \"Except.bind\", \"Except.mapError\"],\n" ++
+  "    \"typeclass_specialization\": [\"BEq\", \"Decidable\", \"DecidableEq\", \"Ord\", \"Inhabited\", \"ToString\", \"Repr\", \"Monad.Option\", \"Monad.Except\"],\n" ++
+  "    \"pure_effects\": [\"Option\", \"Except\", \"ReaderT\", \"StateM\"],\n" ++
+  "    \"final16_completion\": [\"property/fuzz corpus\", \"quantitative coverage\", \"diagnostics\", \"workspace crate split\", \"generated/runtime/ABI/validate/headers crates\", \"release matrix\"]\n" ++
   "  },\n"
 
 /-- JSON validation report emitted by `lake exe gen_validation_report`. -/

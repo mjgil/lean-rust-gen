@@ -15,5 +15,12 @@
     "rust/src/ffi_generated.rs",
     "rust/build-metadata.json",
     "rust/coverage-dashboard.json"
+  ],
+  "workspace_crates": [
+    "lean-rust-core-generated",
+    "lean-rust-core-runtime",
+    "lean-rust-core-abi",
+    "lean-rust-core-validate",
+    "lean-rust-core-headers"
   ]
 }

@@ -1,4 +1,4 @@
-.PHONY: gen check rust-test rust-test-ffi no-placeholders rust-validation toolchain-pins
+.PHONY: gen check rust-test rust-test-ffi workspace-test no-placeholders rust-validation toolchain-pins
 
 gen:
 	./scripts/gen.sh
@@ -7,10 +7,13 @@ check:
 	./scripts/check.sh
 
 rust-test:
-	cd rust && cargo test
+	cargo test -p lean-rust-core-generated
 
 rust-test-ffi:
-	cd rust && cargo test --features ffi
+	cargo test -p lean-rust-core-generated --features ffi
+
+workspace-test:
+	cargo test --workspace
 
 no-placeholders:
 	./scripts/check-no-placeholders.sh
@@ -20,8 +23,3 @@ toolchain-pins:
 
 rust-validation:
 	./scripts/check-rust-validation.sh
-
-rust-test-ffi:
-	cd rust && cargo test --features ffi
-rust-test-ffi:
-	cd rust && cargo test --features ffi

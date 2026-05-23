@@ -1,0 +1,10 @@
+[package]
+name = "lean-rust-core-abi"
+version = "0.2.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Feature-gated raw ABI helpers for LeanRustCore generated Rust"
+
+[lib]
+name = "lean_rust_core_abi"
+path = "src/lib.rs"

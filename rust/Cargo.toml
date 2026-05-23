@@ -11,10 +11,12 @@ path = "src/lib.rs"
 
 [features]
 default = []
-ffi = []
+ffi = ["dep:lean-rust-core-abi"]
 
 [dependencies]
 num-bigint = "0.4"
+lean-rust-core-runtime = { path = "../crates/runtime" }
+lean-rust-core-abi = { path = "../crates/abi", optional = true }
 
 [dev-dependencies]
 serde_json = "1"

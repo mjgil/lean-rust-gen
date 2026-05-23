@@ -24,6 +24,11 @@ import LeanRustCore.Differential
 import LeanRustCore.RustValidation
 import LeanRustCore.Toolchain
 import LeanRustCore.ValidationV2
+import LeanRustCore.PropertyCorpus
+import LeanRustCore.CoverageDashboard
+import LeanRustCore.Diagnostics
+import LeanRustCore.CrateDesign
+import LeanRustCore.ReleaseMatrix
 
 /-!
 # LeanRustCore
@@ -41,6 +46,6 @@ A self-contained direct **Lean emits Rust** workflow:
 * phase-4 raw ABI wrappers are emitted only in a feature-gated boundary module,
 * payload enum branches, first-order calls, structs, enums, Result, parameterized data, containers, and monomorphized extracted surface artifacts are covered by differential tests,
 * Lean `Nat` to Rust `u32` requires explicit wrapping opt-in at exported boundaries,
-* first-order helper extraction, conservative proof erasure, unary Rust `fn` pointer arguments, explicit closure-converted environments, finite defunctionalized function cases, dependent-shape erasure, recursive Box-owned data, and validation-v2 coverage metadata support the phase-2 large-subset slice,
+* first-order helper extraction, conservative proof erasure, unary Rust `fn` pointer arguments, explicit closure-converted environments, finite defunctionalized function cases, dependent-shape erasure, recursive Box-owned data, validation-v2 coverage metadata, deterministic property seeds, stable diagnostics, workspace crate design, and release-matrix metadata support the phase-2 large-subset slice,
 * a compact Chimera-inspired boundary model and feature-gated raw ABI exporter cover the optional boundary lane.
 -/

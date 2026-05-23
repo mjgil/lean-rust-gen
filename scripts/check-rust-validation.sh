@@ -2,6 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+./scripts/check-final-16-completion.py
+
 generated="rust/src/generated.rs"
 validation_report="rust/validation-report.json"
 differential_tests="rust/tests/differential_generated.rs"
@@ -180,7 +182,7 @@ grep -q 'parser_rejects_raw_boundary_or_panic_constructs' "$parser_validation_te
 
 # Optional raw ABI wrappers are present but isolated from the default safe direct-emission lane.
 grep -q '#\[cfg(feature = "ffi")\]' rust/src/lib.rs
-grep -q 'ffi = \[\]' rust/Cargo.toml
+grep -qF 'ffi = ["dep:lean-rust-core-abi"]' rust/Cargo.toml
 grep -q 'extern "C" fn lrc_add_u32' "$ffi_generated"
 grep -q 'unsafe extern "C" fn lrc_result_ok_u32' "$ffi_generated"
 grep -q 'lower_result_u32_u32' rust/src/abi.rs

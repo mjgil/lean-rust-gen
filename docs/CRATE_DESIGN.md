@@ -1,0 +1,15 @@
+# Rust crate design
+
+The final Rust workspace separates generated safe code, runtime helpers, raw ABI
+code, validation tooling, and header generation.
+
+| Crate | Path | Unsafe policy | Purpose | Tests required |
+|---|---|---:|---|---|
+| `lean-rust-core-generated` | `rust` | no unsafe in default lane | generated functions/types and minimal reexports | parser, semantic, differential, property, FFI feature |
+| `lean-rust-core-runtime` | `crates/runtime` | forbidden | numeric, container, dictionary, closure, and pure-effect helpers | unit and property seeds |
+| `lean-rust-core-abi` | `crates/abi` | allowed only at raw boundary | status codes, result lowering, opaque handles, destructors | handle lifecycle, null out-params, double-drop |
+| `lean-rust-core-validate` | `crates/validate` | forbidden | JSON, `syn`, target-validation helpers | valid and malformed artifacts |
+| `lean-rust-core-headers` | `crates/headers` | forbidden | C header generation with ownership annotations | signature and ownership-comment checks |
+
+A crate row is complete only when the crate is a Cargo workspace member, has its
+own tests, has crate-level documentation, and is included in the release matrix.

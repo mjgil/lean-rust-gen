@@ -345,3 +345,14 @@ The Sprint 7-9 patch adds machine-readable policy modules for broad Std
 lowerings, typeclass specialization, and pure monadic `do` lowering. The
 default generated Rust lane remains safe Rust; raw ABI wrappers stay isolated
 behind the `ffi` feature.
+
+## Final rows 41-56 checkpoint
+
+The final completion layer now includes deterministic property seeds, a
+quantitative coverage dashboard, stable diagnostic templates, a split Rust
+workspace, crate-local tests/docs, and a release acceptance matrix. The generated
+safe crate remains `lean-rust-core-generated`; runtime helpers, raw ABI handles,
+validation tooling, and header generation live in dedicated workspace crates.
+
+Run `scripts/check-final-16-completion.py` for the non-toolchain gate, and
+`docs/RELEASE_CHECKLIST.md` lists the full release matrix.

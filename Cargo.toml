@@ -1,3 +1,9 @@
 [workspace]
-members = ["rust"]
+members = [
+  "rust",
+  "crates/runtime",
+  "crates/abi",
+  "crates/validate",
+  "crates/headers",
+]
 resolver = "2"

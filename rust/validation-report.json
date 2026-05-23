@@ -182,6 +182,14 @@
       "Except",
       "ReaderT",
       "StateM"
+    ],
+    "final16_completion": [
+      "property/fuzz corpus",
+      "quantitative coverage",
+      "diagnostics",
+      "workspace crate split",
+      "generated/runtime/ABI/validate/headers crates",
+      "release matrix"
     ]
   },
   "checks": [
@@ -374,6 +382,56 @@
       "name": "coverage-dashboard-json-parse-validation",
       "status": "passed",
       "detail": "rust/coverage-dashboard.json parses as JSON and records target-validation-v2 feature-family coverage"
+    },
+    {
+      "name": "property-fuzz-corpus",
+      "status": "passed",
+      "detail": "property/fuzz corpus has deterministic CI seeds, optional fuzz expansion, tests, and docs"
+    },
+    {
+      "name": "quantitative-coverage-dashboard",
+      "status": "passed",
+      "detail": "coverage dashboard records explicit denominators and fails completion when tests/docs are missing"
+    },
+    {
+      "name": "user-facing-diagnostics",
+      "status": "passed",
+      "detail": "stable LRC001-LRC005 diagnostics include construct, next feature, docs, and corpus snapshots"
+    },
+    {
+      "name": "rust-workspace-crate-split",
+      "status": "passed",
+      "detail": "Cargo workspace includes generated, runtime, ABI, validate, and headers crates"
+    },
+    {
+      "name": "generated-crate-final-api",
+      "status": "passed",
+      "detail": "lean-rust-core-generated keeps generated safe API, runtime reexport, parser/semantic/differential/property tests, and optional ffi feature"
+    },
+    {
+      "name": "runtime-crate-final-api",
+      "status": "passed",
+      "detail": "lean-rust-core-runtime provides safe numeric/container/dictionary/closure/pure-effect helpers with crate-level tests and docs"
+    },
+    {
+      "name": "abi-crate-final-api",
+      "status": "passed",
+      "detail": "lean-rust-core-abi isolates raw ABI status/result/handle helpers, unsafe contracts, destructor policy, and lifecycle tests"
+    },
+    {
+      "name": "validate-crate-final-api",
+      "status": "passed",
+      "detail": "lean-rust-core-validate owns JSON, syn, and target-validation helper tests for valid and malformed artifacts"
+    },
+    {
+      "name": "headers-crate-final-api",
+      "status": "passed",
+      "detail": "lean-rust-core-headers emits C header text with ownership annotations and destructor declarations"
+    },
+    {
+      "name": "release-acceptance-matrix",
+      "status": "passed",
+      "detail": "release acceptance matrix contains required Lean, generated-artifact, Rust workspace, FFI, diagnostics, docs, and header gates"
     },
     {
       "name": "target-validation-snapshot",

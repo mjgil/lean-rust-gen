@@ -1,0 +1,10 @@
+{
+  "format": "lean-rust-core.property-seeds.v1",
+  "families": [
+    { "name": "numeric-edge-cases", "seeds": [0, 1, 2, 41, 42, 4294967295] },
+    { "name": "container-roundtrip", "seeds": [[], [0], [1, 2, 4294967295]] },
+    { "name": "closure-and-dictionary", "seeds": ["id", "inc", "add-delta", "compose"] },
+    { "name": "ffi-handle-lifecycle", "seeds": ["new-drop", "double-drop", "push-len", "null-out-param"] },
+    { "name": "generated-subset-target-grammar", "seeds": ["literal", "let", "match", "loop", "box", "deref"] }
+  ]
+}

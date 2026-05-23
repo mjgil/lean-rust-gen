@@ -27,7 +27,12 @@
     "LeanRustCore.IR.eval",
     "LeanRustCore.PureEffects",
     "LeanRustCore.StdLowering",
-    "LeanRustCore.TypeclassPolicy"
+    "LeanRustCore.TypeclassPolicy",
+    "LeanRustCore.PropertyCorpus.seedFamilies",
+    "LeanRustCore.CoverageDashboard.metrics",
+    "LeanRustCore.Diagnostics.templates",
+    "LeanRustCore.CrateDesign.workspaceCrates",
+    "LeanRustCore.ReleaseMatrix.gates"
   ],
   "policy": {
     "generated_rust_unsafe": false,
@@ -49,6 +54,11 @@
     "pure_effect_lowering": true,
     "typeclass_specialization_policy": true,
     "recursive_data_layout": "owned-box",
+    "property_fuzz_corpus": true,
+    "quantitative_coverage_dashboard": true,
+    "user_facing_diagnostics": true,
+    "rust_workspace_crate_split": true,
+    "release_acceptance_matrix": true,
     "coverage_dashboard": "rust/coverage-dashboard.json"
   },
   "facts": [
@@ -139,6 +149,26 @@
     {
       "name": "target_validation_v2_dashboard",
       "statement": "target-validation v2 records box/deref fingerprints for recursive data, and rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
+    },
+    {
+      "name": "property_fuzz_corpus",
+      "statement": "property/fuzz corpus requires deterministic CI seeds before completion; families: numeric-edge-cases=12, container-roundtrip=10, closure-and-dictionary=8, ffi-handle-lifecycle=9, generated-subset-target-grammar=14"
+    },
+    {
+      "name": "quantitative_coverage_dashboard",
+      "statement": "coverage dashboard records explicit denominators: checklist_rows_41_56=100%; rust_workspace_crates=100%; final_docs=100%; property_seed_families=100%; release_acceptance_gates=100%"
+    },
+    {
+      "name": "user_facing_diagnostics",
+      "statement": "user-facing diagnostics use stable LRC codes with source declaration, construct kind, next feature, and docs: LRC001, LRC002, LRC003, LRC004, LRC005"
+    },
+    {
+      "name": "rust_workspace_crate_split",
+      "statement": "Rust workspace split: lean-rust-core-generated@rust, lean-rust-core-runtime@crates/runtime, lean-rust-core-abi@crates/abi, lean-rust-core-validate@crates/validate, lean-rust-core-headers@crates/headers"
+    },
+    {
+      "name": "release_acceptance_matrix",
+      "statement": "release acceptance matrix contains 12 required gates covering Lean, generated artifacts, Rust workspace, FFI, diagnostics, docs, and headers"
     }
   ]
 }

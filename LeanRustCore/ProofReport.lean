@@ -8,6 +8,11 @@ import LeanRustCore.ValidationV2
 import LeanRustCore.Pattern
 import LeanRustCore.RecursionLowering
 import LeanRustCore.DependentErasure
+import LeanRustCore.PropertyCorpus
+import LeanRustCore.CoverageDashboard
+import LeanRustCore.Diagnostics
+import LeanRustCore.CrateDesign
+import LeanRustCore.ReleaseMatrix
 
 import LeanRustCore.ClosureConversion
 import LeanRustCore.Defunctionalization
@@ -64,10 +69,14 @@ def facts : List ProofFact := [
   { name := "finite_defunctionalization", statement := LeanRustCore.Defunctionalization.defunctionalizationSummary },
   { name := "recursive_box_owned_data_layout", statement := LeanRustCore.RecursiveData.recursiveDataSummary },
   { name := "target_validation_v2_dashboard", statement := LeanRustCore.ValidationV2.validationV2Summary },
-
   { name := "std_library_lowering_table", statement := LeanRustCore.StdLowering.stdLoweringSummary },
   { name := "typeclass_specialization_policy", statement := LeanRustCore.TypeclassPolicy.typeclassPolicySummary },
   { name := "pure_monadic_do_lowering", statement := LeanRustCore.PureEffects.pureEffectsSummary },
+  { name := "property_fuzz_corpus", statement := LeanRustCore.PropertyCorpus.propertyCorpusSummary },
+  { name := "quantitative_coverage_dashboard", statement := LeanRustCore.CoverageDashboard.quantitativeCoverageSummary },
+  { name := "user_facing_diagnostics", statement := LeanRustCore.Diagnostics.diagnosticSummary },
+  { name := "rust_workspace_crate_split", statement := LeanRustCore.CrateDesign.crateDesignSummary },
+  { name := "release_acceptance_matrix", statement := LeanRustCore.ReleaseMatrix.releaseMatrixSummary },
   { name := "toolchain_pins", statement := "Lean and Rust toolchains are pinned exactly and checked before CI/release validation" },
   { name := "release_fallback_ban", statement := "checked-in generated.rs fallback is disabled for CI and release builds" },
   { name := "compatibility_reporting", statement := "unsupported tagged exports are skipped and recorded in a structured compatibility report" },
@@ -108,7 +117,7 @@ def reportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
   "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.ValidationV2.coverageDashboardJson\", \"LeanRustCore.RecursiveData.recursiveDataSummary\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.RecursiveData.recursiveDataSummary\", \"LeanRustCore.ValidationV2.coverageDashboardJson\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ExtractIR.functionFeatures\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\", \"LeanRustCore.PureEffects\", \"LeanRustCore.StdLowering\", \"LeanRustCore.TypeclassPolicy\", \"LeanRustCore.PropertyCorpus.seedFamilies\", \"LeanRustCore.CoverageDashboard.metrics\", \"LeanRustCore.Diagnostics.templates\", \"LeanRustCore.CrateDesign.workspaceCrates\", \"LeanRustCore.ReleaseMatrix.gates\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
@@ -117,12 +126,23 @@ def reportJson : String :=
   "    \"release_fallback_allowed\": false,\n" ++
   "    \"nat_to_u32_requires_opt_in\": true,\n" ++
   "    \"first_order_recursion_allowed\": true,\n" ++
+  "    \"general_pattern_matching\": true,\n" ++
+  "    \"tail_recursion_loop_lowering\": true,\n" ++
   "    \"target_validation_snapshot\": \"" ++ LeanRustCore.TargetValidation.targetValidationFormat ++ "\",\n" ++
   "    \"ffi_wrappers_feature_gated\": true,\n" ++
   "    \"closure_conversion\": \"explicit-environment-structs\",\n" ++
   "    \"defunctionalization\": \"finite-enum-cases\",\n" ++
   "    \"dependent_shape_erasure\": \"Subtype/Fin/Vector/proof-field carriers\",\n" ++
+  "    \"corpus_harness\": true,\n" ++
+  "    \"std_lowering_policy\": true,\n" ++
+  "    \"pure_effect_lowering\": true,\n" ++
+  "    \"typeclass_specialization_policy\": true,\n" ++
   "    \"recursive_data_layout\": \"owned-box\",\n" ++
+  "    \"property_fuzz_corpus\": true,\n" ++
+  "    \"quantitative_coverage_dashboard\": true,\n" ++
+  "    \"user_facing_diagnostics\": true,\n" ++
+  "    \"rust_workspace_crate_split\": true,\n" ++
+  "    \"release_acceptance_matrix\": true,\n" ++
   "    \"coverage_dashboard\": \"rust/coverage-dashboard.json\"\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++

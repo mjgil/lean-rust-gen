@@ -259,6 +259,16 @@ fingerprint interpreter.
 C-compatible subset. This file is feature-gated by `rust/src/lib.rs` under the
 Rust `ffi` feature and is not part of the default safe direct-emission lane.
 
+## Final 16 completion layer
+
+The final completion patch adds metadata and workspace structure around the
+existing direct Lean-to-Rust pipeline rather than widening the executable subset
+again. `LeanRustCore.PropertyCorpus`, `CoverageDashboard`, `Diagnostics`,
+`CrateDesign`, and `ReleaseMatrix` define the completion metadata that feeds the
+proof report, validation report, and coverage dashboard.
+
+The Rust side is now an explicit workspace rooted at [Cargo.toml](/home/m/git/lean-rust-gen/Cargo.toml) with five crates: the generated crate in `rust/`, plus dedicated runtime, ABI, validation, and header crates under `crates/`. This keeps safe runtime helpers, unsafe FFI contracts, artifact-validation code, and header generation isolated while preserving `lean-rust-core-generated` as the main generated API surface.
+
 The boundary policy is intentionally narrow:
 
 - primitive integers cross directly,

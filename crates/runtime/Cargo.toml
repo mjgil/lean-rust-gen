@@ -1,0 +1,13 @@
+[package]
+name = "lean-rust-core-runtime"
+version = "0.2.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Safe runtime helpers for generated LeanRustCore Rust code"
+
+[lib]
+name = "lean_rust_core_runtime"
+path = "src/lib.rs"
+
+[dependencies]
+num-bigint = "0.4"

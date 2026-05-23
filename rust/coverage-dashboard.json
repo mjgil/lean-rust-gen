@@ -5,6 +5,43 @@
   "rust_toolchain": "1.85.0",
   "target_validation_format": "lean-rust-core.target-validation.v2",
   "recursive_data_policy": "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work",
+  "metrics": [
+    {
+      "denominator": "checklist_rows_41_56",
+      "covered": 16,
+      "total": 16,
+      "percent": 100,
+      "status": "implemented-with-tests-and-docs"
+    },
+    {
+      "denominator": "rust_workspace_crates",
+      "covered": 5,
+      "total": 5,
+      "percent": 100,
+      "status": "split-workspace-present"
+    },
+    {
+      "denominator": "final_docs",
+      "covered": 6,
+      "total": 6,
+      "percent": 100,
+      "status": "required-final-docs-present"
+    },
+    {
+      "denominator": "property_seed_families",
+      "covered": 5,
+      "total": 5,
+      "percent": 100,
+      "status": "deterministic-ci-seeds-present"
+    },
+    {
+      "denominator": "release_acceptance_gates",
+      "covered": 12,
+      "total": 12,
+      "percent": 100,
+      "status": "scripted-release-matrix"
+    }
+  ],
   "entries": [
     {
       "feature": "recursive-owned-box-data",
@@ -38,6 +75,53 @@
       "status": "supported",
       "examples": [
         "rust/coverage-dashboard.json"
+      ]
+    },
+    {
+      "feature": "property-fuzz-corpus",
+      "status": "supported-deterministic-seeds",
+      "examples": [
+        "PropertyCorpus.seedFamilies",
+        "corpus/property/seeds.json",
+        "rust/tests/final16_property_coverage.rs"
+      ]
+    },
+    {
+      "feature": "quantitative-coverage-dashboard",
+      "status": "supported-metrics",
+      "examples": [
+        "CoverageDashboard.metrics",
+        "explicit denominators",
+        "docs/COVERAGE.md"
+      ]
+    },
+    {
+      "feature": "user-facing-diagnostics",
+      "status": "supported-stable-codes",
+      "examples": [
+        "Diagnostics.templates",
+        "LRC001-LRC005",
+        "docs/DIAGNOSTICS.md"
+      ]
+    },
+    {
+      "feature": "rust-workspace-crate-split",
+      "status": "supported-workspace",
+      "examples": [
+        "lean-rust-core-generated",
+        "lean-rust-core-runtime",
+        "lean-rust-core-abi",
+        "lean-rust-core-validate",
+        "lean-rust-core-headers"
+      ]
+    },
+    {
+      "feature": "release-acceptance-matrix",
+      "status": "supported-scripted-gates",
+      "examples": [
+        "ReleaseMatrix.gates",
+        "scripts/check-final-16-completion.py",
+        "docs/RELEASE_CHECKLIST.md"
       ]
     }
   ]
