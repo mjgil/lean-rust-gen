@@ -269,6 +269,8 @@ proof report, validation report, and coverage dashboard.
 
 The Rust side is now an explicit workspace rooted at [Cargo.toml](/home/m/git/lean-rust-gen/Cargo.toml) with five crates: the generated crate in `rust/`, plus dedicated runtime, ABI, validation, and header crates under `crates/`. This keeps safe runtime helpers, unsafe FFI contracts, artifact-validation code, and header generation isolated while preserving `lean-rust-core-generated` as the main generated API surface.
 
+`lean-rust-core-validate` now owns strict typed schemas for `rust/validation-report.json`, `rust/compatibility-report.json`, `rust/proof-report.json`, `rust/build-metadata.json`, and `rust/coverage-dashboard.json`. Those structs use `serde` with `deny_unknown_fields`, and `rust/tests/validation_report.rs` parses the checked-in reports through that crate before checking counts, status enums, and feature flags against generated artifacts.
+
 The boundary policy is intentionally narrow:
 
 - primitive integers cross directly,

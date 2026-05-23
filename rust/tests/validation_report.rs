@@ -1,7 +1,12 @@
 use std::collections::BTreeSet;
 
+use lean_rust_core_validate::{
+    parse_build_metadata_report, parse_compatibility_report, parse_coverage_dashboard,
+    parse_proof_report, parse_validation_report, summarize_generated_rust, BuildMetadataReport,
+    CompatibilityDiagnosticCode, CompatibilityReport, CoverageDashboard, ProofReport,
+    ValidationCheckStatus, ValidationReport,
+};
 use serde_json::Value;
-use syn::Item;
 
 const GENERATED_SOURCE: &str = include_str!("../src/generated.rs");
 const VALIDATION_REPORT: &str = include_str!("../validation-report.json");
@@ -15,26 +20,33 @@ fn parse_json_artifact(name: &str, source: &str) -> Value {
 }
 
 fn generated_symbols() -> (BTreeSet<String>, BTreeSet<String>) {
-    let file = syn::parse_file(GENERATED_SOURCE).expect("generated Rust should parse");
-    let mut functions = BTreeSet::new();
-    let mut types = BTreeSet::new();
+    let summary = summarize_generated_rust(GENERATED_SOURCE).expect("generated Rust should parse");
+    (summary.functions, summary.types)
+}
 
-    for item in file.items {
-        match item {
-            Item::Fn(item) => {
-                functions.insert(item.sig.ident.to_string());
-            }
-            Item::Struct(item) => {
-                types.insert(item.ident.to_string());
-            }
-            Item::Enum(item) => {
-                types.insert(item.ident.to_string());
-            }
-            _ => {}
-        }
-    }
+fn typed_validation_report() -> ValidationReport {
+    parse_validation_report(VALIDATION_REPORT)
+        .unwrap_or_else(|err| panic!("validation-report.json should match typed schema: {err}"))
+}
 
-    (functions, types)
+fn typed_compatibility_report() -> CompatibilityReport {
+    parse_compatibility_report(COMPATIBILITY_REPORT)
+        .unwrap_or_else(|err| panic!("compatibility-report.json should match typed schema: {err}"))
+}
+
+fn typed_proof_report() -> ProofReport {
+    parse_proof_report(PROOF_REPORT)
+        .unwrap_or_else(|err| panic!("proof-report.json should match typed schema: {err}"))
+}
+
+fn typed_build_metadata() -> BuildMetadataReport {
+    parse_build_metadata_report(BUILD_METADATA)
+        .unwrap_or_else(|err| panic!("build-metadata.json should match typed schema: {err}"))
+}
+
+fn typed_coverage_dashboard() -> CoverageDashboard {
+    parse_coverage_dashboard(COVERAGE_DASHBOARD)
+        .unwrap_or_else(|err| panic!("coverage-dashboard.json should match typed schema: {err}"))
 }
 
 #[test]
@@ -51,63 +63,206 @@ fn generated_json_artifacts_are_valid_json() {
 }
 
 #[test]
-fn compatibility_report_records_feature_tags() {
-    let report = parse_json_artifact("compatibility-report.json", COMPATIBILITY_REPORT);
+fn typed_report_schemas_are_strict_and_complete() {
+    let validation = typed_validation_report();
+    assert_eq!(validation.format, "lean-rust-core.rust-validation.v1");
+    assert_eq!(validation.architecture, "direct-lean-emits-rust");
+    assert_eq!(validation.lean_toolchain, "leanprover/lean4:v4.22.0");
+    assert_eq!(validation.rust_toolchain, "1.85.0");
     assert_eq!(
-        report["feature_tag_schema"].as_str(),
-        Some("lean-rust-core.feature-tags.v1")
+        validation.target_validation_format,
+        "lean-rust-core.target-validation.v2"
     );
+    assert_eq!(validation.checks[0].status, ValidationCheckStatus::Passed);
+    assert_eq!(
+        validation.feature_summary.rust_generic_policy,
+        "monomorphization-only default lane"
+    );
+    assert_eq!(
+        validation.feature_summary.numeric_modes,
+        validation.feature_summary.numeric_semantics_modes
+    );
+    assert!(!validation.feature_summary.std_lowerings.is_empty());
+    assert!(!validation
+        .feature_summary
+        .typeclass_specialization
+        .is_empty());
+    assert!(!validation.feature_summary.final16_completion.is_empty());
+    assert!(!validation.feature_summary.remaining_completion.is_empty());
 
-    let diagnostics = report["diagnostics"]
-        .as_array()
-        .expect("diagnostics should be an array");
-    assert!(diagnostics.iter().any(|diagnostic| {
-        diagnostic["features"]
-            .as_array()
-            .is_some_and(|features| features.iter().any(|tag| tag == "structural-list-loop"))
-    }));
-    assert!(diagnostics.iter().any(|diagnostic| {
-        diagnostic["features"]
-            .as_array()
-            .is_some_and(|features| features.iter().any(|tag| tag == "exact-integer-mode"))
-    }));
-    assert!(diagnostics
+    let compatibility = typed_compatibility_report();
+    assert_eq!(
+        compatibility.format,
+        "lean-rust-core.compatibility-report.v1"
+    );
+    assert_eq!(compatibility.architecture, "direct-lean-emits-rust");
+    assert_eq!(
+        compatibility.feature_tag_schema,
+        "lean-rust-core.feature-tags.v1"
+    );
+    assert!(compatibility
+        .diagnostics
         .iter()
-        .all(|diagnostic| diagnostic.get("next_feature").is_some()));
+        .all(|diagnostic| !diagnostic.detail.is_empty() && !diagnostic.source.is_empty()));
+
+    let proof = typed_proof_report();
+    assert_eq!(proof.format, "lean-rust-core.proof-report.v1");
+    assert_eq!(proof.architecture, "direct-lean-emits-rust");
+    assert_eq!(proof.lean_toolchain, "leanprover/lean4:v4.22.0");
+    assert_eq!(proof.rust_toolchain, "1.85.0");
+    assert!(!proof.trusted_core.is_empty());
+    assert!(!proof.facts.is_empty());
+
+    let build = typed_build_metadata();
+    assert_eq!(build.format, "lean-rust-core.build-metadata.v1");
+    assert_eq!(build.architecture, "direct-lean-emits-rust");
+    assert_eq!(build.fallback_env_var, "LEAN_RUST_CORE_ALLOW_FALLBACK");
+    assert!(!build.generated_artifacts.is_empty());
+    assert!(!build.workspace_crates.is_empty());
+
+    let coverage = typed_coverage_dashboard();
+    assert_eq!(coverage.format, "lean-rust-core.coverage-dashboard.v1");
+    assert_eq!(coverage.architecture, "direct-lean-emits-rust");
+    assert_eq!(coverage.lean_toolchain, "leanprover/lean4:v4.22.0");
+    assert_eq!(coverage.rust_toolchain, "1.85.0");
+    assert_eq!(
+        coverage.target_validation_format,
+        "lean-rust-core.target-validation.v2"
+    );
+    assert!(!coverage.recursive_data_policy.is_empty());
+    assert!(!coverage.metrics.is_empty());
+    assert!(!coverage.entries.is_empty());
+}
+
+#[test]
+fn compatibility_report_records_feature_tags() {
+    let report = typed_compatibility_report();
+    assert_eq!(report.feature_tag_schema, "lean-rust-core.feature-tags.v1");
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .features
+            .iter()
+            .any(|tag| tag == "structural-list-loop")
+    }));
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .features
+            .iter()
+            .any(|tag| tag == "exact-integer-mode")
+    }));
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.next_feature.is_none()));
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.next_feature.as_deref() == Some("closure-conversion")));
+}
+
+#[test]
+fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
+    let validation = typed_validation_report();
+    let compatibility = typed_compatibility_report();
+    let proof = typed_proof_report();
+    let build = typed_build_metadata();
+    let coverage = typed_coverage_dashboard();
+    let (functions, types) = generated_symbols();
+
+    assert_eq!(validation.generated_function_count, functions.len() as u64);
+    assert_eq!(validation.generated_type_count, types.len() as u64);
+    assert_eq!(
+        validation.feature_summary.ffi_wrapper_count,
+        validation.ffi_boundary_export_count
+    );
+    assert!(validation
+        .feature_summary
+        .first20_completion
+        .iter()
+        .any(|item| item == "ExtractIR pipeline"));
+    assert!(validation
+        .feature_summary
+        .next20_completion
+        .iter()
+        .any(|item| item == "rows 21-40 fully implemented with tests and docs"));
+    assert!(validation
+        .feature_summary
+        .remaining_completion
+        .iter()
+        .any(|item| item == "publishing"));
+
+    assert_eq!(
+        compatibility.generated_function_count,
+        functions.len() as u64
+    );
+    assert!(compatibility.diagnostics.iter().all(|diagnostic| {
+        matches!(
+            diagnostic.code,
+            CompatibilityDiagnosticCode::Supported
+                | CompatibilityDiagnosticCode::UnsupportedDeclaration
+        )
+    }));
+
+    assert_eq!(
+        proof.policy.target_validation_snapshot,
+        validation.target_validation_format
+    );
+    assert_eq!(
+        proof.policy.coverage_dashboard,
+        "rust/coverage-dashboard.json"
+    );
+    assert!(proof.policy.extract_ir_pipeline);
+    assert!(proof.policy.runtime_value_denotation);
+    assert!(proof.policy.source_span_diagnostics);
+    assert!(proof.policy.ci_end_to_end_matrix);
+    assert!(proof.policy.remaining_completion_rows_41_63);
+    assert_eq!(proof.policy.expanded_diagnostic_codes, "LRC001-LRC014");
+
+    assert_eq!(build.generated_artifacts.len(), 9);
+    assert!(build
+        .workspace_crates
+        .iter()
+        .any(|crate_name| crate_name == "lean-rust-core-validate"));
+    assert!(build
+        .generated_artifacts
+        .iter()
+        .any(|path| path == "rust/coverage-dashboard.json"));
+
+    assert!(coverage
+        .metrics
+        .iter()
+        .all(|metric| metric.covered <= metric.total));
+    assert!(coverage.metrics.iter().all(|metric| metric.percent <= 100));
+    assert!(coverage
+        .entries
+        .iter()
+        .any(|entry| entry.feature == "extract-ir-pipeline"));
+    assert!(coverage
+        .entries
+        .iter()
+        .any(|entry| entry.feature == "remaining-completion-rows-41-63"));
 }
 
 #[test]
 fn validation_report_counts_match_generated_rust() {
     let (functions, types) = generated_symbols();
-    let report = parse_json_artifact("validation-report.json", VALIDATION_REPORT);
+    let report = typed_validation_report();
 
-    assert_eq!(
-        report["generated_function_count"].as_u64(),
-        Some(functions.len() as u64)
-    );
-    assert_eq!(
-        report["generated_type_count"].as_u64(),
-        Some(types.len() as u64)
-    );
+    assert_eq!(report.generated_function_count, functions.len() as u64);
+    assert_eq!(report.generated_type_count, types.len() as u64);
 
-    let required_functions = report["required_functions"]
-        .as_array()
-        .expect("required_functions array");
+    let required_functions = &report.required_functions;
     assert_eq!(required_functions.len(), functions.len());
     for name in required_functions {
-        let name = name.as_str().expect("function name string");
         assert!(
             functions.contains(name),
             "required function {name} was not generated"
         );
     }
 
-    let required_types = report["required_types"]
-        .as_array()
-        .expect("required_types array");
+    let required_types = &report.required_types;
     assert_eq!(required_types.len(), types.len());
     for name in required_types {
-        let name = name.as_str().expect("type name string");
         assert!(
             types.contains(name),
             "required type {name} was not generated"
@@ -118,48 +273,34 @@ fn validation_report_counts_match_generated_rust() {
 #[test]
 fn compatibility_report_diagnostics_match_generated_output() {
     let (functions, _) = generated_symbols();
-    let report = parse_json_artifact("compatibility-report.json", COMPATIBILITY_REPORT);
+    let report = typed_compatibility_report();
 
-    assert_eq!(
-        report["generated_function_count"].as_u64(),
-        Some(functions.len() as u64)
-    );
+    assert_eq!(report.generated_function_count, functions.len() as u64);
 
-    let diagnostics = report["diagnostics"]
-        .as_array()
-        .expect("diagnostics should be an array");
     let mut supported_functions = BTreeSet::new();
 
-    for diagnostic in diagnostics {
-        let rust_name = diagnostic["rust_name"].as_str().expect("rust_name string");
-        let code = diagnostic["code"].as_str().expect("code string");
-        let features = diagnostic["features"]
-            .as_array()
-            .expect("diagnostic features should be an array");
+    for diagnostic in &report.diagnostics {
+        let rust_name = &diagnostic.rust_name;
         assert!(
-            !features.is_empty() || code == "unsupported-declaration",
+            !diagnostic.features.is_empty()
+                || diagnostic.code == CompatibilityDiagnosticCode::UnsupportedDeclaration,
             "supported diagnostic {rust_name} should carry at least one feature tag"
         );
-        assert!(
-            diagnostic.get("next_feature").is_some(),
-            "diagnostic {rust_name} should include a next_feature field"
-        );
 
-        match code {
-            "supported" => {
+        match diagnostic.code {
+            CompatibilityDiagnosticCode::Supported => {
                 assert!(
                     functions.contains(rust_name),
                     "supported diagnostic {rust_name} should be generated"
                 );
-                supported_functions.insert(rust_name.to_string());
+                supported_functions.insert(rust_name.clone());
             }
-            "unsupported-declaration" => {
+            CompatibilityDiagnosticCode::UnsupportedDeclaration => {
                 assert!(
                     !functions.contains(rust_name),
                     "unsupported diagnostic {rust_name} must not be generated"
                 );
             }
-            other => panic!("unexpected compatibility diagnostic code: {other}"),
         }
     }
 

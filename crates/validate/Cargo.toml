@@ -13,5 +13,6 @@ name = "lean_rust_core_validate"
 path = "src/lib.rs"
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 syn = { version = "2", features = ["full"] }

@@ -169,10 +169,34 @@ def check_tests_and_docs() -> None:
         "runtimeValueHasType",
     ]:
         require(needle in test, f"first20 Rust test missing {needle}")
+
+    validation_test = read("rust/tests/validation_report.rs")
+    for needle in [
+        "typed_report_schemas_are_strict_and_complete",
+        "typed_report_counts_and_feature_flags_match_generated_artifacts",
+        "parse_validation_report",
+        "parse_coverage_dashboard",
+    ]:
+        require(needle in validation_test, f"validation report test missing {needle}")
+
+    validate_lib = read("crates/validate/src/lib.rs")
+    for needle in [
+        "#[serde(deny_unknown_fields)]",
+        "pub fn parse_validation_report",
+        "pub fn parse_compatibility_report",
+        "pub fn parse_proof_report",
+        "pub fn parse_build_metadata_report",
+        "pub fn parse_coverage_dashboard",
+    ]:
+        require(needle in validate_lib, f"validate crate missing typed report schema support {needle}")
+
     for path in ["docs/EXTRACT_IR.md", "docs/RUNTIME_SEMANTICS.md", "docs/DIAGNOSTICS.md"]:
         text = read(path).lower()
         require("test" in text or "testing" in text, f"{path} must document tests")
         require("complete" in text or "completion" in text, f"{path} must document completion")
+    trusted = read("docs/TRUSTED_CORE.md").lower()
+    for phrase in ["report schema validation", "deny_unknown_fields", "coverage-dashboard.json"]:
+        require(phrase in trusted, f"docs/TRUSTED_CORE.md missing report-schema phrase {phrase}")
 
 
 def main() -> None:

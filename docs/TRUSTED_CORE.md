@@ -97,6 +97,22 @@ and validates the approved AST shape. The expanded differential suite now comput
 expectations through `evalSurfaceFun` for structs, enums, `Result`, calls, and
 monomorphized functions.
 
+## Report schema validation
+
+`lean-rust-core-validate` owns the typed schema for the checked-in JSON reports:
+
+- `rust/validation-report.json`
+- `rust/compatibility-report.json`
+- `rust/proof-report.json`
+- `rust/build-metadata.json`
+- `rust/coverage-dashboard.json`
+
+These structs use `#[serde(deny_unknown_fields)]` so report validation fails on
+unexpected fields instead of relying only on string presence or ad hoc JSON
+lookups. `rust/tests/validation_report.rs` parses each report through the typed
+schema, then cross-checks counts, status enums, and feature flags against
+`generated.rs`, `target-validation.txt`, and the workspace metadata.
+
 
 ## Identifier hygiene and parser-backed validation
 
