@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 ./scripts/check-no-placeholders.sh
 ./scripts/check-toolchain-pins.sh
 ./scripts/check-first-20-completion.py
+./scripts/check-next-20-completion.py
 ./scripts/check-final-16-completion.py
 lake build
 ./scripts/check-extractor-snapshot.sh

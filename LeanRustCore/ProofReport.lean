@@ -11,8 +11,20 @@ import LeanRustCore.DependentErasure
 import LeanRustCore.PropertyCorpus
 import LeanRustCore.CoverageDashboard
 import LeanRustCore.Diagnostics
+import LeanRustCore.ExtractIR
 import LeanRustCore.CrateDesign
 import LeanRustCore.ReleaseMatrix
+import LeanRustCore.TypeclassSpecialization
+import LeanRustCore.DependentErasureChecker
+import LeanRustCore.GenericPolicy
+import LeanRustCore.ParameterizedData
+import LeanRustCore.GenericEmission
+import LeanRustCore.NumericSemantics
+import LeanRustCore.RecursiveDiscovery
+import LeanRustCore.OwnershipPolicy
+import LeanRustCore.PatternMatrix
+import LeanRustCore.RecursionAnalysis
+import LeanRustCore.StdImplementation
 
 import LeanRustCore.ClosureConversion
 import LeanRustCore.Defunctionalization
@@ -62,10 +74,11 @@ def facts : List ProofFact := [
   { name := "typeclass_dictionary_erasure", statement := LeanRustCore.TypeclassPolicy.typeclassPolicySummary },
   { name := "closure_conversion_policy", statement := LeanRustCore.ClosureConversion.closureConversionSummary },
   { name := "extract_ir_feature_tags", statement := LeanRustCore.ExtractIR.extractIRSummary },
-  { name := "extract_ir_lowering_stage", statement := "ExtractIR.lowerExpr? blocks policy-only recursor/Std/dictionary residue from reaching Rust emission" },
-  { name := "runtime_value_denotation", statement := LeanRustCore.runtimeDenotationSummary },
-  { name := "expanded_user_diagnostics", statement := LeanRustCore.Diagnostics.diagnosticSummary },
-  { name := "source_span_diagnostics", statement := LeanRustCore.Diagnostics.sourceSpanSummary },
+  { name := "extract_ir_normalized_pipeline", statement := "ExtractIR records origin names, source ranges, erased binder counts, recognized recursors, resolved dictionaries, features, diagnostics, and next-feature routing before checked SurfaceExpr emission" },
+  { name := "runtime_denotation_model", statement := LeanRustCore.runtimeDenotationSummary },
+  { name := "expanded_diagnostic_templates", statement := LeanRustCore.Diagnostics.diagnosticSummary },
+  { name := "source_span_diagnostics", statement := "diagnostic instances carry optional SourceRange values and templates declare when a range is required" },
+  { name := "ci_end_to_end_matrix", statement := "scripts/check-ci-e2e.sh and the GitHub Actions matrix run Lean generation, snapshot checks, Rust workspace tests, fmt, clippy, FFI, and artifact consistency gates" },
   { name := "transitive_helper_extraction", statement := "first-order helper definitions reached from exported bodies are enqueued and emitted as auto-helper-export functions" },
   { name := "proof_erased_binders", statement := "conservative proof-shaped binders are erased from Rust signatures when their values are not used computationally" },
   { name := "limited_higher_order_function_pointer", statement := "unary function-typed arguments lower to Rust fn-pointer arguments and SurfaceExpr.callValue nodes" },
@@ -97,7 +110,18 @@ def facts : List ProofFact := [
   { name := "ffi_boundary_exporter", statement := "LeanRustCore.BoundaryExport.generatedBoundaryRust emits optional feature-gated raw ABI wrappers for primitive and Result<u32,u32> exports" },
   { name := "ffi_feature_isolation", statement := "raw ABI wrappers are isolated under the Rust ffi feature and are not emitted into rust/src/generated.rs" },
   { name := "rust_adapter_owned_rejected", statement := "owned Rust values cannot cross the raw FFI boundary" },
-  { name := "result_u32_i32_lowering", statement := "Result<u32,i32> lowers to status plus two out parameters" }
+  { name := "result_u32_i32_lowering", statement := "Result<u32,i32> lowers to status plus two out parameters" },
+  { name := "next20_base_type_universe", statement := "Rows 21-22 keep every admitted runtime type and monomorphic struct/enum layout covered by parser, semantic, and report tests" },
+  { name := "parameterized_data_monomorphization", statement := LeanRustCore.GenericEmission.genericEmissionSummary },
+  { name := "numeric_semantics_complete", statement := LeanRustCore.NumericSemantics.numericSemanticsSummary },
+  { name := "rust_generic_policy_final", statement := LeanRustCore.GenericPolicy.finalRustGenericPolicySummary },
+  { name := "dependent_erasure_complete", statement := LeanRustCore.DependentErasureChecker.dependentErasureCheckerSummary },
+  { name := "recursive_discovery_complete", statement := LeanRustCore.RecursiveDiscovery.recursiveDiscoverySummary },
+  { name := "ownership_policy_complete", statement := LeanRustCore.OwnershipPolicy.ownershipPolicySummary },
+  { name := "pattern_matrix_complete", statement := LeanRustCore.PatternMatrix.patternMatrixSummary },
+  { name := "recursion_analysis_complete", statement := LeanRustCore.RecursionAnalysis.recursionAnalysisSummary },
+  { name := "std_lowering_implementation_complete", statement := LeanRustCore.StdImplementation.stdImplementationSummary },
+  { name := "typeclass_specialization_complete", statement := LeanRustCore.TypeclassSpecialization.typeclassSpecializationCompletionSummary }
 ]
 
 private def jsonEscapeChar : Char → String
@@ -121,7 +145,7 @@ def reportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": \"" ++ LeanRustCore.Toolchain.leanToolchain ++ "\",\n" ++
   "  \"rust_toolchain\": \"" ++ LeanRustCore.Toolchain.rustToolchain ++ "\",\n" ++
-  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.RecursiveData.recursiveDataSummary\", \"LeanRustCore.ValidationV2.coverageDashboardJson\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ExtractIR.functionFeatures\", \"LeanRustCore.ExtractIR.lowerExpr?\", \"LeanRustCore.IR.runtimeValueHasType\", \"LeanRustCore.Diagnostics.SourceSpan\", \"LeanRustCore.Diagnostics.instantiate\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\", \"LeanRustCore.PureEffects\", \"LeanRustCore.StdLowering\", \"LeanRustCore.TypeclassPolicy\", \"LeanRustCore.PropertyCorpus.seedFamilies\", \"LeanRustCore.CoverageDashboard.metrics\", \"LeanRustCore.Diagnostics.templates\", \"LeanRustCore.CrateDesign.workspaceCrates\", \"LeanRustCore.ReleaseMatrix.gates\"],\n" ++
+  "  \"trusted_core\": [\"Lean kernel\", \"LeanRustCore.Extract.extractConst\", \"LeanRustCore.Extract.extractWithDiagnostics\", \"LeanRustCore.Extract.extractPendingAutoHelpers\", \"LeanRustCore.Examples.extractedSurfaceFunctions\", \"LeanRustCore.Surface.typeOfExpected\", \"LeanRustCore.Surface.evalSurfaceFun\", \"LeanRustCore.RustHygiene.validateSurfaceModuleHygiene\", \"LeanRustCore.EmitRust.emitSurfaceRustModule\", \"LeanRustCore.TargetValidation.targetValidationSnapshot\", \"LeanRustCore.RecursiveData.recursiveDataSummary\", \"LeanRustCore.ValidationV2.coverageDashboardJson\", \"LeanRustCore.BoundaryExport.generatedBoundaryRust\", \"LeanRustCore.DependentErasure.dependentErasureSummary\", \"LeanRustCore.ExtractIR.functionFeatures\", \"LeanRustCore.ExtractIR.metadataForSurfaceFun\", \"LeanRustCore.IR.runtimeValueHasType\", \"LeanRustCore.IR.runtimeDenotationSummary\", \"LeanRustCore.Diagnostics.SourceRange\", \"LeanRustCore.Diagnostics.instanceHasRequiredSpan\", \"scripts/check-ci-e2e.sh\", \"LeanRustCore.ClosureConversion.closureConversionSummary\", \"LeanRustCore.Defunctionalization.defunctionalizationSummary\", \"rust/tests/parser_validation.rs\", \"rust/tests/semantic_validation.rs\", \"rust/tests/target_interpreter.rs\", \"LeanRustCore.IR.eval\", \"LeanRustCore.PureEffects\", \"LeanRustCore.StdLowering\", \"LeanRustCore.TypeclassPolicy\", \"LeanRustCore.PropertyCorpus.seedFamilies\", \"LeanRustCore.CoverageDashboard.metrics\", \"LeanRustCore.Diagnostics.templates\", \"LeanRustCore.CrateDesign.workspaceCrates\", \"LeanRustCore.ReleaseMatrix.gates\", \"LeanRustCore.GenericEmission.monomorphizeDataShape\", \"LeanRustCore.ParameterizedData.substituteTypeVars\", \"LeanRustCore.GenericPolicy.finalRustGenericPolicySummary\", \"LeanRustCore.NumericSemantics.rules\", \"LeanRustCore.DependentErasureChecker.checkDependentErasure\", \"LeanRustCore.RecursiveDiscovery.layoutDecisions\", \"LeanRustCore.OwnershipPolicy.rules\", \"LeanRustCore.PatternMatrix.completedPatternFeatures\", \"LeanRustCore.RecursionAnalysis.decisions\", \"LeanRustCore.StdImplementation.lowerings\", \"LeanRustCore.TypeclassSpecialization.classes\"],\n" ++
   "  \"policy\": {\n" ++
   "    \"generated_rust_unsafe\": false,\n" ++
   "    \"source_string_matching\": false,\n" ++
@@ -147,11 +171,22 @@ def reportJson : String :=
   "    \"user_facing_diagnostics\": true,\n" ++
   "    \"rust_workspace_crate_split\": true,\n" ++
   "    \"release_acceptance_matrix\": true,\n" ++
-  "    \"extract_ir_pipeline\": true,\n" ++
-  "    \"runtime_value_denotation\": true,\n" ++
-  "    \"expanded_diagnostic_codes\": \"LRC001-LRC014\",\n" ++
+  "    \"first20_completion\": true,\n" ++
   "    \"source_span_diagnostics\": true,\n" ++
-  "    \"first20_completion_gate\": \"scripts/check-first-20-completion.py\",\n" ++
+  "    \"extract_ir_pipeline\": true,\n" ++
+  "    \"runtime_denotation_model\": true,\n" ++
+  "    \"ci_end_to_end_matrix\": true,\n" ++
+  "    \"next20_completion\": true,\n" ++
+  "    \"parameterized_data_monomorphization\": true,\n" ++
+  "    \"rust_generic_emission_policy_final\": true,\n" ++
+  "    \"numeric_semantics_complete\": true,\n" ++
+  "    \"dependent_erasure_complete\": true,\n" ++
+  "    \"recursive_discovery_complete\": true,\n" ++
+  "    \"ownership_policy_complete\": true,\n" ++
+  "    \"pattern_matrix_complete\": true,\n" ++
+  "    \"recursion_analysis_complete\": true,\n" ++
+  "    \"std_lowering_implementation_complete\": true,\n" ++
+  "    \"typeclass_specialization_complete\": true,\n" ++
   "    \"coverage_dashboard\": \"rust/coverage-dashboard.json\"\n" ++
   "  },\n" ++
   "  \"facts\": [\n" ++

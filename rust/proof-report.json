@@ -19,10 +19,6 @@
     "LeanRustCore.BoundaryExport.generatedBoundaryRust",
     "LeanRustCore.DependentErasure.dependentErasureSummary",
     "LeanRustCore.ExtractIR.functionFeatures",
-    "LeanRustCore.Diagnostics.instantiate",
-    "LeanRustCore.Diagnostics.SourceSpan",
-    "LeanRustCore.IR.runtimeValueHasType",
-    "LeanRustCore.ExtractIR.lowerExpr?",
     "LeanRustCore.ClosureConversion.closureConversionSummary",
     "LeanRustCore.Defunctionalization.defunctionalizationSummary",
     "rust/tests/parser_validation.rs",
@@ -36,7 +32,33 @@
     "LeanRustCore.CoverageDashboard.metrics",
     "LeanRustCore.Diagnostics.templates",
     "LeanRustCore.CrateDesign.workspaceCrates",
-    "LeanRustCore.ReleaseMatrix.gates"
+    "LeanRustCore.ReleaseMatrix.gates",
+    "LeanRustCore.ExtractIR.metadataForSurfaceFun",
+    "LeanRustCore.IR.runtimeValueHasType",
+    "LeanRustCore.IR.runtimeDenotationSummary",
+    "LeanRustCore.Diagnostics.SourceRange",
+    "LeanRustCore.Diagnostics.instanceHasRequiredSpan",
+    "scripts/check-ci-e2e.sh",
+    "LeanRustCore.GenericEmission.monomorphizeDataShape",
+    "LeanRustCore.NumericSemantics.rules",
+    "LeanRustCore.DependentErasure.checkDependentErasure",
+    "LeanRustCore.RecursiveDiscovery.chooseLayout",
+    "LeanRustCore.OwnershipPolicy.rules",
+    "LeanRustCore.PatternMatrix.checkMatrix",
+    "LeanRustCore.RecursionAnalysis.decideFunction",
+    "LeanRustCore.StdImplementation.implemented",
+    "rust/tests/next20_completion.rs",
+    "scripts/check-next-20-completion.py",
+    "LeanRustCore.ParameterizedData.substituteTypeVars",
+    "LeanRustCore.GenericPolicy.finalRustGenericPolicySummary",
+    "LeanRustCore.DependentErasureChecker.checkDependentErasure",
+    "LeanRustCore.RecursiveDiscovery.layoutDecisions",
+    "LeanRustCore.PatternMatrix.completedPatternFeatures",
+    "LeanRustCore.RecursionAnalysis.decisions",
+    "LeanRustCore.StdImplementation.lowerings",
+    "LeanRustCore.TypeclassSpecialization.classes",
+    "LeanRustCore.ExtractIR.lowerExpr?",
+    "LeanRustCore.Diagnostics.SourceSpan"
   ],
   "policy": {
     "generated_rust_unsafe": false,
@@ -64,11 +86,26 @@
     "rust_workspace_crate_split": true,
     "release_acceptance_matrix": true,
     "coverage_dashboard": "rust/coverage-dashboard.json",
-    "extract_ir_pipeline": true,
-    "runtime_value_denotation": true,
-    "expanded_diagnostic_codes": "LRC001-LRC014",
+    "first20_completion": true,
     "source_span_diagnostics": true,
-    "first20_completion_gate": "scripts/check-first-20-completion.py"
+    "extract_ir_pipeline": true,
+    "runtime_denotation_model": true,
+    "ci_end_to_end_matrix": true,
+    "next20_completion": true,
+    "parameterized_data_monomorphization": true,
+    "rust_generic_policy_finalized": "monomorphization-only default lane",
+    "numeric_semantics_complete": true,
+    "dependent_erasure_complete": true,
+    "recursive_discovery_complete": true,
+    "recursive_layout_modes": "Box/Rc/arena",
+    "ownership_policy_complete": true,
+    "pattern_matrix_complete": true,
+    "recursion_analysis_complete": true,
+    "std_lowering_implementation_complete": true,
+    "rust_generic_emission_policy_final": true,
+    "typeclass_specialization_complete": true,
+    "runtime_value_denotation": true,
+    "expanded_diagnostic_codes": "LRC001-LRC014"
   },
   "facts": [
     {
@@ -180,24 +217,64 @@
       "statement": "release acceptance matrix contains 12 required gates covering Lean, generated artifacts, Rust workspace, FFI, diagnostics, docs, and headers"
     },
     {
-      "name": "extract_ir_lowering_stage",
-      "statement": "ExtractIR.lowerExpr? blocks policy-only recursor/Std/dictionary residue from reaching Rust emission"
+      "name": "extract_ir_normalized_pipeline",
+      "statement": "ExtractIR records origin names, source ranges, erased binder counts, recognized recursors, resolved dictionaries, features, diagnostics, and next-feature routing before checked SurfaceExpr emission"
     },
     {
-      "name": "runtime_value_denotation",
-      "statement": "RType.Denote uses RuntimeValue subtype witnesses for generated structs, enums, and named recursive payloads instead of placeholder Unit/Nat semantics"
+      "name": "runtime_denotation_model",
+      "statement": "RType.Denote uses RuntimeValue subtype witnesses for generated structs, enums, and recursive payloads instead of placeholder aggregate semantics"
     },
     {
-      "name": "expanded_user_diagnostics",
-      "statement": "Diagnostics templates cover LRC001-LRC014 with next-feature and documentation links"
+      "name": "expanded_diagnostic_templates",
+      "statement": "Diagnostics LRC001-LRC013 cover unresolved dictionaries, dependent matches, escaping closures, IO, hygiene, recursors, Std constants, proof erasure, numeric modes, closure ownership, recursive layout, FFI ABI rejection, and artifact drift"
     },
     {
       "name": "source_span_diagnostics",
-      "statement": "Diagnostics carry SourceSpan metadata with known ranges when available and a stable unknown-span fallback otherwise"
+      "statement": "Diagnostic instances carry optional SourceRange values and templates declare whether spans are required"
     },
     {
-      "name": "first20_completion_gate",
-      "statement": "scripts/check-first-20-completion.py verifies implementation, tests, docs, corpus fixtures, and generated report metadata for rows 1-20"
+      "name": "ci_end_to_end_matrix",
+      "statement": "scripts/check-ci-e2e.sh and the GitHub Actions matrix run Lean, snapshot, Rust workspace, FFI, fmt, clippy, and header gates"
+    },
+    {
+      "name": "parameterized_data_monomorphization",
+      "statement": "Rows 23/25 use deterministic concrete monomorphization and explicitly disable Rust generic emission in the default lane"
+    },
+    {
+      "name": "numeric_semantics_complete",
+      "statement": "Row 27 requires exact, wrapping, checked, saturating, and preconditioned numeric modes with edge-case tests"
+    },
+    {
+      "name": "dependent_erasure_complete",
+      "statement": "Rows 28/29 classify runtime/proof/index values and check Subtype/Fin/Vector/Sigma/equality-cast erasure"
+    },
+    {
+      "name": "recursive_discovery_complete",
+      "statement": "Rows 30-32 classify recursive type graphs and provide Box, Rc, and arena layout policies"
+    },
+    {
+      "name": "ownership_policy_complete",
+      "statement": "Row 33 records owned/borrowed/cloned/moved/boxed Rust ownership modes"
+    },
+    {
+      "name": "pattern_matrix_complete",
+      "statement": "Rows 34/35 implement a pattern-matrix model for nested constructor/List/Nat/as/inaccessible patterns"
+    },
+    {
+      "name": "recursion_analysis_complete",
+      "statement": "Rows 36/37 classify recursive SCCs and choose loop/direct/explicit-stack/reject policies"
+    },
+    {
+      "name": "std_lowering_implementation_complete",
+      "statement": "Rows 38/39 map common Std APIs to concrete Rust shapes with ownership modes"
+    },
+    {
+      "name": "typeclass_specialization_complete",
+      "statement": "Row 40 keeps specialization-first typeclass handling and rejects unresolved dictionaries"
+    },
+    {
+      "name": "rust_generic_policy_final",
+      "statement": "the default Rust-facing generic policy is monomorphization-only; Rust generic emission is rejected with LRC009 until a verified trait-bound lane exists"
     }
   ]
 }

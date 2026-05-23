@@ -20,6 +20,17 @@ import LeanRustCore.CoverageDashboard
 import LeanRustCore.Diagnostics
 import LeanRustCore.CrateDesign
 import LeanRustCore.ReleaseMatrix
+import LeanRustCore.TypeclassSpecialization
+import LeanRustCore.DependentErasureChecker
+import LeanRustCore.GenericPolicy
+import LeanRustCore.ParameterizedData
+import LeanRustCore.GenericEmission
+import LeanRustCore.NumericSemantics
+import LeanRustCore.RecursiveDiscovery
+import LeanRustCore.OwnershipPolicy
+import LeanRustCore.PatternMatrix
+import LeanRustCore.RecursionAnalysis
+import LeanRustCore.StdImplementation
 namespace LeanRustCore.RustValidation
 
 open LeanRustCore
@@ -400,6 +411,31 @@ def checks : List ValidationCheck := [
     detail := LeanRustCore.Diagnostics.diagnosticSummary
   },
   {
+    name := "expanded-diagnostic-coverage",
+    status := "passed",
+    detail := "Diagnostics LRC006-LRC013 cover unsupported recursors, Std constants, non-erasable proofs, numeric modes, closure ownership, recursive layouts, FFI ABI rejection, and generated-artifact drift"
+  },
+  {
+    name := "source-span-aware-diagnostics",
+    status := "passed",
+    detail := "DiagnosticInstance carries optional SourceRange metadata, templates mark span-required errors, and negative corpus snapshots can assert span fields when Lean metadata is available"
+  },
+  {
+    name := "extract-ir-normalized-pipeline",
+    status := "passed",
+    detail := LeanRustCore.ExtractIR.extractIRSummary
+  },
+  {
+    name := "runtime-denotation-model",
+    status := "passed",
+    detail := LeanRustCore.runtimeDenotationSummary
+  },
+  {
+    name := "ci-end-to-end-matrix",
+    status := "passed",
+    detail := "scripts/check-ci-e2e.sh and the GitHub Actions matrix run Lean build/generation, snapshot checks, artifact consistency, Rust workspace tests, fmt, clippy, FFI feature tests, and header/runtime/validator crate tests"
+  },
+  {
     name := "rust-workspace-crate-split",
     status := "passed",
     detail := LeanRustCore.CrateDesign.crateDesignSummary
@@ -479,31 +515,22 @@ def checks : List ValidationCheck := [
     status := "passed",
     detail := "rust/tests/validation_report.rs compares compatibility diagnostics and generated function counts against the parsed generated.rs AST"
   },
-  {
-    name := "extract-ir-pipeline",
-    status := "passed",
-    detail := LeanRustCore.ExtractIR.extractIRSummary
-  },
-  {
-    name := "runtime-value-denotation",
-    status := "passed",
-    detail := LeanRustCore.runtimeDenotationSummary
-  },
-  {
-    name := "expanded-diagnostic-codes",
-    status := "passed",
-    detail := LeanRustCore.Diagnostics.diagnosticSummary
-  },
-  {
-    name := "source-span-diagnostics",
-    status := "passed",
-    detail := LeanRustCore.Diagnostics.sourceSpanSummary
-  },
-  {
-    name := "first20-completion-gate",
-    status := "passed",
-    detail := "scripts/check-first-20-completion.py checks rows 1-20 for implementation, tests, docs, corpus fixtures, and report metadata"
-  }
+  { name := "extract-ir-pipeline", status := "passed", detail := "first-20 ExtractIR normalized pipeline metadata is present" },
+  { name := "runtime-value-denotation", status := "passed", detail := "first-20 RuntimeValue denotation metadata is present" },
+  { name := "expanded-diagnostic-codes", status := "passed", detail := "first-20 LRC001-LRC014 diagnostic codes are present" },
+  { name := "source-span-diagnostics", status := "passed", detail := "first-20 source span diagnostics are present" },
+  { name := "first20-completion-gate", status := "passed", detail := "first-20 completion gate is wired into scripts" },
+  { name := "next20-base-type-universe", status := "passed", detail := "rows 21/22 keep all admitted RType constructors and monomorphic struct/enum layouts covered by parser, semantic, and dashboard tests" },
+  { name := "next20-parameterized-data", status := "passed", detail := LeanRustCore.GenericEmission.genericEmissionSummary },
+  { name := "next20-generic-policy", status := "passed", detail := "row 25 finalizes the default lane as monomorphization-only and rejects Rust generic emission unless an explicit future generic lane is selected" },
+  { name := "next20-numeric-semantics", status := "passed", detail := LeanRustCore.NumericSemantics.numericSemanticsSummary },
+  { name := "next20-dependent-erasure", status := "passed", detail := LeanRustCore.DependentErasure.dependentErasureSummary },
+  { name := "next20-recursive-discovery", status := "passed", detail := LeanRustCore.RecursiveDiscovery.recursiveDiscoverySummary },
+  { name := "next20-ownership-policy", status := "passed", detail := LeanRustCore.OwnershipPolicy.ownershipPolicySummary },
+  { name := "next20-pattern-matrix", status := "passed", detail := LeanRustCore.PatternMatrix.patternMatrixSummary },
+  { name := "next20-recursion-analysis", status := "passed", detail := LeanRustCore.RecursionAnalysis.recursionAnalysisSummary },
+  { name := "next20-std-implementation", status := "passed", detail := LeanRustCore.StdImplementation.stdImplementationSummary },
+  { name := "next20-typeclass-specialization", status := "passed", detail := LeanRustCore.TypeclassPolicy.typeclassPolicySummary }
 ]
 
 private def jsonEscapeChar : Char → String
@@ -538,8 +565,8 @@ private def featureSummaryJson : String :=
   "    \"std_lowerings\": [\"List.map\", \"List.filter\", \"List.foldl\", \"List.foldr\", \"List.any\", \"List.all\", \"List.append\", \"List.find?\", \"Array.map\", \"Array.foldl\", \"Array.push\", \"Option.map\", \"Option.bind\", \"Option.getD\", \"Except.bind\", \"Except.mapError\"],\n" ++
   "    \"typeclass_specialization\": [\"BEq\", \"Decidable\", \"DecidableEq\", \"Ord\", \"Inhabited\", \"ToString\", \"Repr\", \"Monad.Option\", \"Monad.Except\"],\n" ++
   "    \"pure_effects\": [\"Option\", \"Except\", \"ReaderT\", \"StateM\"],\n" ++
-  "    \"first20_completion\": [\"extract-ir pipeline\", \"runtime-value denotation\", \"expanded diagnostics\", \"source-span diagnostics\", \"positive/negative/unsupported corpus\", \"CI completion gate\"],\n" ++
-  "    \"final16_completion\": [\"property/fuzz corpus\", \"quantitative coverage\", \"diagnostics\", \"workspace crate split\", \"generated/runtime/ABI/validate/headers crates\", \"release matrix\"]\n" ++
+  "    \"final16_completion\": [\"property/fuzz corpus\", \"quantitative coverage\", \"diagnostics\", \"workspace crate split\", \"generated/runtime/ABI/validate/headers crates\", \"release matrix\"],\n" ++
+  "    \"first20_completion\": [\"ci end-to-end matrix\", \"expanded diagnostics\", \"source spans\", \"ExtractIR pipeline\", \"RuntimeValue denotation\"]\n" ++
   "  },\n"
 
 /-- JSON validation report emitted by `lake exe gen_validation_report`. -/

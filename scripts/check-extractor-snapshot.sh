@@ -2,6 +2,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+./scripts/check-first-20-completion.py
+./scripts/check-next-20-completion.py
+
 tmp="$(mktemp)"
 lake exe gen_rust "$tmp"
 diff -u rust/src/generated.rs "$tmp"
@@ -47,4 +50,3 @@ tmp_coverage="$(mktemp)"
 lake exe gen_coverage_dashboard "$tmp_coverage"
 diff -u rust/coverage-dashboard.json "$tmp_coverage"
 rm -f "$tmp_coverage"
-./scripts/check-first-20-completion.py

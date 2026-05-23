@@ -7,6 +7,17 @@ import LeanRustCore.CoverageDashboard
 import LeanRustCore.Diagnostics
 import LeanRustCore.CrateDesign
 import LeanRustCore.ReleaseMatrix
+import LeanRustCore.TypeclassSpecialization
+import LeanRustCore.DependentErasureChecker
+import LeanRustCore.GenericPolicy
+import LeanRustCore.ParameterizedData
+import LeanRustCore.GenericEmission
+import LeanRustCore.NumericSemantics
+import LeanRustCore.RecursiveDiscovery
+import LeanRustCore.OwnershipPolicy
+import LeanRustCore.PatternMatrix
+import LeanRustCore.RecursionAnalysis
+import LeanRustCore.StdImplementation
 
 namespace LeanRustCore.ValidationV2
 
@@ -47,20 +58,31 @@ private def jsonArray (items : List String) : String :=
   "[" ++ joinWith ", " (items.map jsonString) ++ "]"
 
 def coverageEntries : List CoverageEntry := [
-  { feature := "extract-ir-pipeline", status := "supported-first20", examples := ["LeanRustCore.ExtractIR", "lowerExpr?", "DeclarationMetadata"] },
-  { feature := "runtime-value-denotation", status := "supported-first20", examples := ["RuntimeValue", "runtimeValueHasType", "docs/RUNTIME_SEMANTICS.md"] },
-  { feature := "expanded-diagnostics", status := "supported-first20", examples := ["LRC001-LRC014", "SourceSpan", "docs/DIAGNOSTICS.md"] },
-  { feature := "source-span-diagnostics", status := "supported-first20", examples := ["DiagnosticInstance", "SourceSpan.unknown", "corpus negative fixtures"] },
-  { feature := "first20-completion", status := "supported-scripted-gate", examples := ["scripts/check-first-20-completion.py", "rust/tests/first20_completion.rs", "positive/negative/unsupported corpus"] },
   { feature := "recursive-owned-box-data", status := "supported-known-slice", examples := ["BinaryTreeU32", "ExprU32", "tree_size_u32", "expr_eval_u32"] },
   { feature := "target-validation-v2", status := "supported", examples := ["FORMAT lean-rust-core.target-validation.v2", "box/deref fingerprints"] },
   { feature := "property-seed-validation", status := "supported-deterministic-seeds", examples := ["recursive tree size/sum", "expression evaluation", "closure/defun regression"] },
   { feature := "coverage-dashboard", status := "supported", examples := ["rust/coverage-dashboard.json"] },
   { feature := "property-fuzz-corpus", status := "supported-deterministic-seeds", examples := ["PropertyCorpus.seedFamilies", "corpus/property/seeds.json", "rust/tests/final16_property_coverage.rs"] },
   { feature := "quantitative-coverage-dashboard", status := "supported-metrics", examples := ["CoverageDashboard.metrics", "explicit denominators", "docs/COVERAGE.md"] },
-  { feature := "user-facing-diagnostics", status := "supported-stable-codes", examples := ["Diagnostics.templates", "LRC001-LRC014", "docs/DIAGNOSTICS.md"] },
+  { feature := "user-facing-diagnostics", status := "supported-stable-codes", examples := ["Diagnostics.templates", "LRC001-LRC005", "docs/DIAGNOSTICS.md"] },
   { feature := "rust-workspace-crate-split", status := "supported-workspace", examples := ["lean-rust-core-generated", "lean-rust-core-runtime", "lean-rust-core-abi", "lean-rust-core-validate", "lean-rust-core-headers"] },
-  { feature := "release-acceptance-matrix", status := "supported-scripted-gates", examples := ["ReleaseMatrix.gates", "scripts/check-final-16-completion.py", "docs/RELEASE_CHECKLIST.md"] }
+  { feature := "release-acceptance-matrix", status := "supported-scripted-gates", examples := ["ReleaseMatrix.gates", "scripts/check-final-16-completion.py", "docs/RELEASE_CHECKLIST.md"] },
+  { feature := "first20-completion", status := "supported-complete", examples := ["ExtractIR", "RuntimeValue", "expanded diagnostics", "source spans", "CI e2e matrix"] },
+  { feature := "extract-ir-pipeline", status := "supported", examples := ["DeclarationMetadata", "functionFeatureTags", "metadataForSurfaceFun"] },
+  { feature := "runtime-denotation-model", status := "supported", examples := ["RuntimeValue", "runtimeValueHasType", "runtimeDenotationSummary"] },
+  { feature := "expanded-diagnostic-coverage", status := "supported", examples := ["LRC001-LRC013", "SourceRange", "instanceHasRequiredSpan"] },
+  { feature := "ci-end-to-end-matrix", status := "supported-scripted-gates", examples := ["scripts/check-ci-e2e.sh", "linux+macos workflow matrix"] },
+  { feature := "next20-completion", status := "supported-complete", examples := ["rows 21-40", "scripts/check-next-20-completion.py", "rust/tests/next20_completion.rs"] },
+  { feature := "parameterized-data-monomorphization", status := "supported-complete", examples := ["GenericEmission.monomorphizeDataShape", "ParameterizedData.substituteTypeVars", "docs/GENERICS.md"] },
+  { feature := "rust-generic-policy", status := "supported-final-policy", examples := ["GenericPolicy.finalRustGenericPolicySummary", "LRC009", "docs/GENERICS.md"] },
+  { feature := "complete-numeric-semantics", status := "supported-complete", examples := ["NumericSemantics.rules", "runtime numeric helpers", "docs/NUMERIC_SEMANTICS.md"] },
+  { feature := "complete-dependent-erasure", status := "supported-complete", examples := ["DependentErasureChecker.checkDependentErasure", "docs/DEPENDENT_ERASURE.md"] },
+  { feature := "recursive-discovery-layouts", status := "supported-complete", examples := ["RecursiveDiscovery.layoutDecisions", "RcTreeU32", "ArenaTreeU32"] },
+  { feature := "ownership-borrowing-policy", status := "supported-complete", examples := ["OwnershipPolicy.rules", "borrowed_vec_len_u32", "docs/OWNERSHIP.md"] },
+  { feature := "pattern-matrix-compiler", status := "supported-complete", examples := ["PatternMatrix.completedPatternFeatures", "docs/PATTERN_COMPILER.md"] },
+  { feature := "recursion-analysis-lowering", status := "supported-complete", examples := ["RecursionAnalysis.decisions", "docs/RECURSION_LOWERING.md"] },
+  { feature := "std-lowering-implementation", status := "supported-complete", examples := ["StdImplementation.lowerings", "runtime Std helpers", "docs/STD_LOWERINGS.md"] },
+  { feature := "typeclass-specialization-complete", status := "supported-complete", examples := ["TypeclassSpecialization.classes", "docs/TYPECLASSES.md"] }
 ]
 
 private def coverageEntryJson (entry : CoverageEntry) : String :=
@@ -94,6 +116,6 @@ def coverageDashboardJson : String :=
 
 /-- Human-readable validation-v2 summary. -/
 def validationV2Summary : String :=
-  "target-validation v2 records first-20 ExtractIR/runtime-denotation/diagnostic/source-span completion, box/deref fingerprints, next-20 numeric/pattern/recursion/Std/typeclass/effect/closure/ABI/semantic-validator/preservation coverage and final property/coverage/diagnostic/crate/release coverage, and rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
+  "target-validation v2 records box/deref fingerprints, completed rows 21-40 numeric/generic/dependent-erasure/recursive-layout/ownership/pattern-matrix/recursion-analysis/Std/typeclass coverage, first-20 ExtractIR/runtime-denotation/diagnostic/source-span/CI coverage, and final property/coverage/diagnostic/crate/release coverage; rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
 
 end LeanRustCore.ValidationV2

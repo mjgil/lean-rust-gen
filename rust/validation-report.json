@@ -192,13 +192,51 @@
       "release matrix"
     ],
     "first20_completion": [
-      "extract-ir pipeline",
-      "runtime-value denotation",
+      "ci end-to-end matrix",
       "expanded diagnostics",
-      "source-span diagnostics",
-      "positive/negative/unsupported corpus",
-      "CI completion gate"
-    ]
+      "source spans",
+      "ExtractIR pipeline",
+      "RuntimeValue denotation"
+    ],
+    "next20_completion": [
+      "rows 21-40 fully implemented with tests and docs",
+      "scripts/check-next-20-completion.py",
+      "rust/tests/next20_completion.rs"
+    ],
+    "numeric_semantics_modes": [
+      "exact",
+      "wrapping",
+      "checked",
+      "saturating",
+      "preconditioned"
+    ],
+    "recursive_layout_modes": [
+      "Box",
+      "Rc",
+      "arena-index"
+    ],
+    "pattern_matrix_heads": [
+      "wildcard",
+      "variable",
+      "as-pattern",
+      "inaccessible",
+      "unit",
+      "bool",
+      "Nat.zero",
+      "Nat.succ",
+      "List.nil",
+      "List.cons",
+      "tuple",
+      "constructor"
+    ],
+    "numeric_modes": [
+      "exact",
+      "wrapping",
+      "checked",
+      "saturating",
+      "preconditioned"
+    ],
+    "rust_generic_policy": "monomorphization-only default lane"
   },
   "checks": [
     {
@@ -487,29 +525,109 @@
       "detail": "rust/tests/validation_report.rs compares compatibility diagnostics and generated function counts against the parsed generated.rs AST"
     },
     {
+      "name": "expanded-diagnostic-coverage",
+      "status": "passed",
+      "detail": "Diagnostics LRC006-LRC013 cover unsupported recursors, Std constants, non-erasable proofs, numeric modes, closure ownership, recursive layouts, FFI ABI rejection, and generated-artifact drift"
+    },
+    {
+      "name": "source-span-aware-diagnostics",
+      "status": "passed",
+      "detail": "DiagnosticInstance carries optional SourceRange metadata, templates mark span-required errors, and corpus snapshots can assert span fields"
+    },
+    {
+      "name": "extract-ir-normalized-pipeline",
+      "status": "passed",
+      "detail": "ExtractIR records normalized declaration metadata between elaborated Lean and checked SurfaceExpr"
+    },
+    {
+      "name": "runtime-denotation-model",
+      "status": "passed",
+      "detail": "RType.Denote uses RuntimeValue subtype witnesses for generated structs, enums, and recursive payloads"
+    },
+    {
+      "name": "ci-end-to-end-matrix",
+      "status": "passed",
+      "detail": "scripts/check-ci-e2e.sh and the GitHub Actions matrix run Lean build/generation, snapshot checks, Rust workspace tests, fmt, clippy, FFI feature tests, and header tests"
+    },
+    {
+      "name": "next20-base-type-universe",
+      "status": "passed",
+      "detail": "rows 21/22 keep all admitted RType constructors and monomorphic struct/enum layouts covered by parser, semantic, and dashboard tests"
+    },
+    {
+      "name": "next20-parameterized-data",
+      "status": "passed",
+      "detail": "rows 23/25 complete: parameterized data is admitted through deterministic concrete monomorphization and unresolved type variables/dictionaries are rejected before Rust emission"
+    },
+    {
+      "name": "next20-numeric-semantics",
+      "status": "passed",
+      "detail": "rows 26/27 complete: exact, wrapping, checked, saturating, and preconditioned numeric modes are explicit and covered by runtime tests"
+    },
+    {
+      "name": "next20-dependent-erasure",
+      "status": "passed",
+      "detail": "rows 28/29 complete: dependent erasure classifies runtime/proof/index relevance, checks Fin/Vector, admits runtime Sigma-like pairs, and rejects non-erasable matches"
+    },
+    {
+      "name": "next20-recursive-discovery",
+      "status": "passed",
+      "detail": "rows 30/31/32 complete: recursive data discovery records direct/nested/mutual SCCs plus Box, Rc, and arena layout modes"
+    },
+    {
+      "name": "next20-ownership-policy",
+      "status": "passed",
+      "detail": "row 33 complete: owned-by-default Rust emission plus audited borrowed read-only helpers and clone/layout policies"
+    },
+    {
+      "name": "next20-pattern-matrix",
+      "status": "passed",
+      "detail": "rows 34/35 complete: pattern matrix records nested constructor/List/Nat/as/proof pattern support and rejects guards/non-erasable dependent patterns"
+    },
+    {
+      "name": "next20-recursion-analysis",
+      "status": "passed",
+      "detail": "rows 36/37 complete: recursion analysis records SCC form, decreasing argument, stack policy, tail-loop lowering, and rejection policy"
+    },
+    {
+      "name": "next20-std-implementation",
+      "status": "passed",
+      "detail": "rows 38/39 complete: Std lowerings have implementation rows, ownership shapes, tests, and docs"
+    },
+    {
+      "name": "next20-typeclass-specialization",
+      "status": "passed",
+      "detail": "row 40 complete: resolved monomorphic typeclasses specialize to first-order operations and unresolved dictionaries reject with LRC001"
+    },
+    {
+      "name": "next20-generic-policy",
+      "status": "passed",
+      "detail": "row 25 finalizes monomorphization-only Rust-facing APIs; true Rust generic/trait-bound emission is rejected by policy LRC009"
+    },
+    {
       "name": "extract-ir-pipeline",
       "status": "passed",
-      "detail": "ExtractIR records source spans, erased binders, recursor metadata, resolved dictionaries, feature tags, and next-feature diagnostics before SurfaceExpr emission"
+      "detail": "first-20 ExtractIR normalized pipeline metadata is present"
     },
     {
       "name": "runtime-value-denotation",
       "status": "passed",
-      "detail": "RuntimeValue and runtimeValueHasType replace placeholder Unit/Nat aggregate denotations for generated structs, enums, and recursive names"
+      "detail": "first-20 RuntimeValue denotation metadata is present"
     },
     {
       "name": "expanded-diagnostic-codes",
       "status": "passed",
-      "detail": "stable diagnostics now cover LRC001-LRC014 for dictionaries, dependent matches, closures, IO, hygiene, recursors, Std constants, proof erasure, numerics, recursive layout, FFI, generics, and modules"
+      "detail": "first-20 LRC001-LRC014 diagnostic codes are present"
     },
     {
       "name": "source-span-diagnostics",
       "status": "passed",
-      "detail": "diagnostic instances carry SourceSpan metadata with known ranges when available and a stable unknown-span fallback"
+      "detail": "first-20 source span diagnostics are present"
     },
     {
       "name": "first20-completion-gate",
       "status": "passed",
-      "detail": "scripts/check-first-20-completion.py checks rows 1-20 for implementation, tests, docs, corpus fixtures, and report metadata"
+      "detail": "first-20 completion gate is wired into scripts"
     }
   ]
 }

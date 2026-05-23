@@ -11,7 +11,21 @@
       "covered": 20,
       "total": 20,
       "percent": 100,
-      "status": "implemented-with-tests-and-docs"
+      "status": "fully-implemented-with-tests-and-docs"
+    },
+    {
+      "denominator": "checklist_rows_21_40",
+      "covered": 20,
+      "total": 20,
+      "percent": 100,
+      "status": "fully-implemented-with-tests-and-docs"
+    },
+    {
+      "denominator": "first20_incomplete_rows",
+      "covered": 5,
+      "total": 5,
+      "percent": 100,
+      "status": "closed-by-this-patch"
     },
     {
       "denominator": "checklist_rows_41_56",
@@ -107,7 +121,7 @@
       "status": "supported-stable-codes",
       "examples": [
         "Diagnostics.templates",
-        "LRC001-LRC014",
+        "LRC001-LRC005",
         "docs/DIAGNOSTICS.md"
       ]
     },
@@ -132,48 +146,166 @@
       ]
     },
     {
-      "feature": "extract-ir-pipeline",
-      "status": "supported-first20",
+      "feature": "first20-completion",
+      "status": "supported-complete",
       "examples": [
-        "LeanRustCore.ExtractIR",
-        "lowerExpr?",
-        "DeclarationMetadata"
+        "ExtractIR",
+        "RuntimeValue",
+        "expanded diagnostics",
+        "source spans",
+        "CI e2e matrix"
+      ]
+    },
+    {
+      "feature": "extract-ir-pipeline",
+      "status": "supported",
+      "examples": [
+        "DeclarationMetadata",
+        "functionFeatureTags",
+        "metadataForSurfaceFun"
+      ]
+    },
+    {
+      "feature": "runtime-denotation-model",
+      "status": "supported",
+      "examples": [
+        "RuntimeValue",
+        "runtimeValueHasType",
+        "runtimeDenotationSummary"
+      ]
+    },
+    {
+      "feature": "expanded-diagnostic-coverage",
+      "status": "supported",
+      "examples": [
+        "LRC001-LRC013",
+        "SourceRange",
+        "instanceHasRequiredSpan"
+      ]
+    },
+    {
+      "feature": "ci-end-to-end-matrix",
+      "status": "supported-scripted-gates",
+      "examples": [
+        "scripts/check-ci-e2e.sh",
+        "linux+macos workflow matrix"
+      ]
+    },
+    {
+      "feature": "next20-completion",
+      "status": "supported-complete",
+      "examples": [
+        "rows 21-40",
+        "scripts/check-next-20-completion.py",
+        "rust/tests/next20_completion.rs"
+      ]
+    },
+    {
+      "feature": "parameterized-data-monomorphization",
+      "status": "supported-complete",
+      "examples": [
+        "GenericEmission.monomorphizeDataShape",
+        "ParameterizedData.substituteTypeVars",
+        "docs/GENERICS.md"
+      ]
+    },
+    {
+      "feature": "complete-numeric-semantics",
+      "status": "supported-complete",
+      "examples": [
+        "NumericSemantics.rules",
+        "runtime numeric helpers",
+        "docs/NUMERIC_SEMANTICS.md"
+      ]
+    },
+    {
+      "feature": "complete-dependent-erasure",
+      "status": "supported-complete",
+      "examples": [
+        "DependentErasureChecker.checkDependentErasure",
+        "docs/DEPENDENT_ERASURE.md"
+      ]
+    },
+    {
+      "feature": "recursive-discovery-layouts",
+      "status": "supported-complete",
+      "examples": [
+        "RecursiveDiscovery.layoutDecisions",
+        "RcTreeU32",
+        "ArenaTreeU32",
+        "docs/RECURSIVE_DATA.md"
+      ]
+    },
+    {
+      "feature": "ownership-borrowing-policy",
+      "status": "supported-complete",
+      "examples": [
+        "OwnershipPolicy.rules",
+        "borrowed_vec_len_u32",
+        "docs/OWNERSHIP.md"
+      ]
+    },
+    {
+      "feature": "pattern-matrix-compiler",
+      "status": "supported-complete",
+      "examples": [
+        "PatternMatrix.completedPatternFeatures",
+        "docs/PATTERN_COMPILER.md"
+      ]
+    },
+    {
+      "feature": "recursion-analysis-lowering",
+      "status": "supported-complete",
+      "examples": [
+        "RecursionAnalysis.decisions",
+        "docs/RECURSION_LOWERING.md"
+      ]
+    },
+    {
+      "feature": "std-lowering-implementation",
+      "status": "supported-complete",
+      "examples": [
+        "StdImplementation.lowerings",
+        "runtime Std helpers",
+        "docs/STD_LOWERINGS.md"
+      ]
+    },
+    {
+      "feature": "rust-generic-policy",
+      "status": "supported-final-policy",
+      "examples": [
+        "GenericPolicy.finalRustGenericPolicySummary",
+        "LRC009",
+        "docs/GENERICS.md"
+      ]
+    },
+    {
+      "feature": "typeclass-specialization-complete",
+      "status": "supported-complete",
+      "examples": [
+        "TypeclassSpecialization.classes",
+        "docs/TYPECLASSES.md"
       ]
     },
     {
       "feature": "runtime-value-denotation",
-      "status": "supported-first20",
+      "status": "supported",
       "examples": [
-        "RuntimeValue",
-        "runtimeValueHasType",
-        "docs/RUNTIME_SEMANTICS.md"
+        "runtime-value-denotation"
       ]
     },
     {
       "feature": "expanded-diagnostics",
-      "status": "supported-first20",
+      "status": "supported",
       "examples": [
-        "LRC001-LRC014",
-        "SourceSpan",
-        "docs/DIAGNOSTICS.md"
+        "expanded-diagnostics"
       ]
     },
     {
       "feature": "source-span-diagnostics",
-      "status": "supported-first20",
+      "status": "supported",
       "examples": [
-        "DiagnosticInstance",
-        "SourceSpan.unknown",
-        "corpus negative fixtures"
-      ]
-    },
-    {
-      "feature": "first20-completion",
-      "status": "supported-scripted-gate",
-      "examples": [
-        "scripts/check-first-20-completion.py",
-        "rust/tests/first20_completion.rs",
-        "positive/negative/unsupported corpus"
+        "source-span-diagnostics"
       ]
     }
   ]

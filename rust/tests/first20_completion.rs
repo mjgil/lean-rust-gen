@@ -134,3 +134,16 @@ fn first20_corpus_fixtures_require_tests_and_docs() {
     assert_eq!(unsupported["diagnostic_code"], "LRC004");
     assert_eq!(unsupported["source_span_required"], true);
 }
+
+#[test]
+fn first_twenty_completion_metadata_is_present() {
+    // Compatibility name for shell validation gates.
+    first20_reports_record_required_completion_metadata();
+}
+
+#[test]
+fn expanded_diagnostics_and_corpus_are_complete() {
+    // Compatibility name for shell validation gates.
+    first20_diagnostics_are_expanded_and_source_spanned();
+    first20_corpus_fixtures_require_tests_and_docs();
+}

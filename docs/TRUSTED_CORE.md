@@ -220,3 +220,28 @@ documentation are all present. The checkpoint is enforced by
 
 The unknown-span fallback is intentional: it records that Lean metadata did not
 provide a range without dropping the source declaration or diagnostic code.
+
+## Rows 21-40 completion trust surface
+
+The second checklist block adds policy modules whose outputs are consumed by the
+proof report, validation report, coverage dashboard, runtime tests, and
+`scripts/check-next-20-completion.py`. A row in this block is marked complete
+only when the implementation metadata, Rust/runtime tests, and feature-specific
+documentation are all present.
+
+New trusted metadata surfaces:
+
+- `LeanRustCore.GenericEmission.monomorphizeDataShape` and `LeanRustCore.ParameterizedData.substituteTypeVars`
+- `LeanRustCore.NumericSemantics.rules`
+- `LeanRustCore.DependentErasureChecker.checkDependentErasure`
+- `LeanRustCore.RecursiveDiscovery.layoutDecisions`
+- `LeanRustCore.OwnershipPolicy.rules`
+- `LeanRustCore.PatternMatrix.completedPatternFeatures`
+- `LeanRustCore.RecursionAnalysis.decisions`
+- `LeanRustCore.StdImplementation.lowerings`
+- `LeanRustCore.TypeclassSpecialization.classes`
+
+The semantic claim is still bounded: these modules complete the design-doc
+requirements for the 21-40 checklist rows, but full compiler correctness still
+requires the broader generated-subset semantic validator and preservation proof
+tracks.

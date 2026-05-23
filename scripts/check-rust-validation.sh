@@ -2,8 +2,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-./scripts/check-final-16-completion.py
 ./scripts/check-first-20-completion.py
+./scripts/check-next-20-completion.py
+./scripts/check-final-16-completion.py
 
 generated="rust/src/generated.rs"
 validation_report="rust/validation-report.json"
@@ -17,8 +18,9 @@ ffi_generated="rust/src/ffi_generated.rs"
 ffi_boundary_tests="rust/tests/ffi_boundary.rs"
 coverage_dashboard="rust/coverage-dashboard.json"
 property_validation_tests="rust/tests/property_validation.rs"
+first20_tests="rust/tests/first20_completion.rs"
 
-required_files=("$generated" "$validation_report" "$differential_tests" "$parser_validation_tests" "$semantic_validation_tests" "$target_interpreter_tests" "$target_validation" "$ffi_generated" "$ffi_boundary_tests" "$build_metadata" "$coverage_dashboard" "$property_validation_tests")
+required_files=("$generated" "$validation_report" "$differential_tests" "$parser_validation_tests" "$semantic_validation_tests" "$target_interpreter_tests" "$target_validation" "$ffi_generated" "$ffi_boundary_tests" "$build_metadata" "$coverage_dashboard" "$property_validation_tests" "$first20_tests")
 for path in "${required_files[@]}"; do
   test -f "$path"
 done
@@ -54,6 +56,7 @@ grep -q '"name": "safe-rust-subset-gate"' "$validation_report"
 grep -q '"name": "rust-identifier-hygiene"' "$validation_report"
 grep -q '"name": "syn-parser-backed-validation"' "$validation_report"
 grep -q '"name": "json-artifact-parse-validation"' "$validation_report"
+grep -q '"name": "expanded-diagnostic-coverage"' "$validation_report"
 grep -q '"name": "compatibility-report-output-consistency"' "$validation_report"
 grep -q '"name": "payload-enum-match-lowering"' "$validation_report"
 grep -q '"name": "general-pattern-compiler"' "$validation_report"
@@ -227,3 +230,10 @@ grep -q 'pub fn list_append_u32' "$generated"
 grep -q 'pub fn except_do_inc_u32' "$generated"
 grep -q 'pub fn reader_add_env_u32' "$generated"
 grep -q 'extern "C" fn lrc_reader_add_env_u32' "$ffi_generated"
+grep -q '"name": "source-span-aware-diagnostics"' "$validation_report"
+grep -q '"name": "extract-ir-normalized-pipeline"' "$validation_report"
+grep -q '"name": "runtime-denotation-model"' "$validation_report"
+grep -q '"name": "ci-end-to-end-matrix"' "$validation_report"
+grep -q 'first_twenty_completion_metadata_is_present' rust/tests/first20_completion.rs
+grep -q 'expanded_diagnostics_and_corpus_are_complete' rust/tests/first20_completion.rs
+grep -q 'checklist_rows_1_20' "$coverage_dashboard"

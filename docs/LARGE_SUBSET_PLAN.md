@@ -172,3 +172,34 @@ This patch adds the remaining design-document completion infrastructure:
 
 Every final-row feature is considered complete only when implementation, tests,
 documentation, and generated report metadata are all present.
+
+## Rows 21-40 completion checkpoint
+
+This patch completes the second checklist block under the design-doc completion
+rules: every item has implementation metadata, runtime or report tests, and
+feature-specific documentation.
+
+Completed in this block:
+
+- base type universe and monomorphic struct/enum layout remain checked by parser,
+  semantic, differential, and report gates;
+- parameterized data is finalized as concrete monomorphization in the default
+  lane, with Rust generic emission explicitly rejected until a future verified
+  generic lane exists;
+- numeric semantics are explicit for exact, wrapping, checked, saturating, and
+  preconditioned modes;
+- dependent erasure now records runtime/proof/index classification, `Subtype`,
+  `Fin`, `Vector`, `Sigma`-like pair, and equality-cast decisions;
+- recursive data discovery classifies nonrecursive, direct, nested, and mutual
+  SCCs, with `Box<T>` default plus explicit `Rc` and arena layout policies;
+- ownership remains owned-by-default with audited borrowed read-only helpers and
+  explicit clone/layout policies;
+- the pattern matrix records nested constructors, list/nat patterns, tuples,
+  as-patterns, proof-only inaccessible patterns, and guard rejection;
+- recursion analysis records decreasing arguments, tail-loop lowering,
+  structural/explicit-stack policy, mutual recursion policy, and rejection of
+  partial/unknown recursion;
+- Std lowerings now have implementation-level Rust shapes, ownership modes,
+  test owners, and documentation owners;
+- typeclass specialization remains specialization-first for resolved monomorphic
+  dictionaries, with unresolved dictionaries rejected by diagnostic policy.

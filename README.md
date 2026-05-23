@@ -368,3 +368,12 @@ scripts/check-first-20-completion.py
 The gate checks the explicit `ExtractIR` layer, `RuntimeValue` denotations,
 expanded `LRC001`-`LRC014` diagnostics, source-span metadata, positive/negative
 /unsupported corpus fixtures, generated report metadata, tests, and docs.
+
+## Rows 21-40 completion patch
+
+The second checklist block is gated by `scripts/check-next-20-completion.py`.
+It completes the design-doc rows for the runtime type universe, monomorphic data,
+generic policy, numeric semantics, dependent erasure, recursive layouts,
+ownership, pattern matrix, recursion analysis, Std lowering implementation, and
+resolved typeclass specialization. Each feature has a concrete Lean metadata
+module, Rust/runtime tests, and feature-specific documentation.
