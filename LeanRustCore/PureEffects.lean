@@ -35,6 +35,6 @@ private def joinWithLocal (sep : String) : List String → String
 
 /-- Human-readable summary included in validation/proof reports. -/
 def pureEffectsSummary : String :=
-  "the direct lane lowers pure do-notation for Option, Except, and ReaderT into explicit safe control flow, while StateM and IO remain outside the safe direct lane and ExceptT(StateM) is still pending generalized extraction"
+  "the direct lane lowers pure do-notation for Option, Except, ReaderT, and StateM into explicit safe control flow, while IO remains outside the safe direct lane and ExceptT(StateM) is still pending generalized extraction"
 
 end LeanRustCore.PureEffects

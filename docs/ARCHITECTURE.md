@@ -624,7 +624,7 @@ shapes.
 
 ## Remaining pure-do extraction progress
 
-Task 52 is no longer metadata-only for the direct `Option` / `Except` cases.
+Task 52 is no longer metadata-only for the direct `Option` / `Except` / `StateM` cases.
 `LeanRustCore.Extract` now recognizes the real elaborated `Bind.bind`,
 `Pure.pure`, `SeqRight.seqRight`, and `SeqLeft.seqLeft` AST shapes emitted by
 Lean for ordinary `do`, `*>`, and `<*` code and lowers them straight into the
@@ -641,16 +641,18 @@ That means ordinary exported declarations like
 `LeanRustCore.Examples.except_seq_left_u32`,
 `LeanRustCore.Examples.reader_do_add_u32`,
 `LeanRustCore.Examples.reader_seq_right_u32`,
-and `LeanRustCore.Examples.reader_seq_left_u32` now flow through the real
+`LeanRustCore.Examples.reader_seq_left_u32`,
+`LeanRustCore.Examples.state_do_tick_u32`,
+`LeanRustCore.Examples.state_seq_right_u32`, and
+`LeanRustCore.Examples.state_seq_left_u32` now flow through the real
 Lean→ExtractIR→SurfaceExpr→Rust pipeline, show up in `rust/src/generated.rs`,
 `rust/extract-ir.txt`, and `rust/target-validation.txt`, and are enforced by
 generated, differential, parser-validation, interpreter, corpus, and shell
 release tests.
 
-`StateM` and `ExceptT(StateM)` still have runtime models and docs. The direct
-extractor lane now handles fully applied `ReaderT` programs by lowering the
-applied environment argument into ordinary `let`-based surface nodes, but the
-state-threaded and stacked error-plus-state families are still incomplete and
-should not be marked design-doc complete until they have exported examples,
-corpus evidence, and generated-artifact coverage comparable to the completed
-lanes.
+The direct extractor lane now also handles fully applied `StateM` programs by
+lowering the applied state argument into explicit `(value, state)` tuple
+construction and destructuring. `ExceptT(StateM)` still only has runtime models
+and docs, so Task 52 stays incomplete until the stacked error-plus-state family
+has exported examples, corpus evidence, and generated-artifact coverage
+comparable to the completed lanes.

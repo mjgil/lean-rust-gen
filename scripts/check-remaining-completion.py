@@ -75,6 +75,9 @@ def check_required_files() -> None:
         "corpus/positive/reader_do_add.expected.json",
         "corpus/positive/reader_seq_right.expected.json",
         "corpus/positive/reader_seq_left.expected.json",
+        "corpus/positive/state_do_tick.expected.json",
+        "corpus/positive/state_seq_right.expected.json",
+        "corpus/positive/state_seq_left.expected.json",
     ]
     for path in required:
         require((ROOT / path).exists(), f"missing remaining-completion artifact {path}")
@@ -446,6 +449,9 @@ def check_pure_do_docs_and_corpus() -> None:
         "reader_do_add_u32",
         "reader_seq_right_u32",
         "reader_seq_left_u32",
+        "state_do_tick_u32",
+        "state_seq_right_u32",
+        "state_seq_left_u32",
         "ReaderT",
         "StateM",
         "SeqRight.seqRight",
@@ -461,6 +467,9 @@ def check_pure_do_docs_and_corpus() -> None:
         "reader_do_add.expected.json",
         "reader_seq_right.expected.json",
         "reader_seq_left.expected.json",
+        "state_do_tick.expected.json",
+        "state_seq_right.expected.json",
+        "state_seq_left.expected.json",
     ]:
         fixture = json_file(f"corpus/positive/{fixture_name}")
         require(fixture.get("expected_status") == "supported", f"{fixture_name} must be supported")

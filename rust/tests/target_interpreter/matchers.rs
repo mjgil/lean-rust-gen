@@ -60,14 +60,34 @@ pub fn match_pattern_bindings(pattern: &str, value: &Value) -> Option<Vec<(Strin
                 return Some(vec![(name.to_string(), Value::String(value.clone()))]);
             }
             if pattern.starts_with('(') && pattern.ends_with(')') {
-                if let Value::ProdU32((left, right)) = value {
-                    let parts = split_top_args(&pattern[1..pattern.len() - 1]);
-                    let left_name = call_payload(parts[0], "varpat")?;
-                    let right_name = call_payload(parts[1], "varpat")?;
-                    return Some(vec![
-                        (left_name.to_string(), Value::U32(*left)),
-                        (right_name.to_string(), Value::U32(*right)),
-                    ]);
+                let parts = split_top_args(&pattern[1..pattern.len() - 1]);
+                match value {
+                    Value::ProdU32((left, right)) => {
+                        let mut bindings = Vec::new();
+                        if let Some(left_name) = call_payload(parts[0], "varpat") {
+                            bindings.push((left_name.to_string(), Value::U32(*left)));
+                        } else if parts[0] != "_" {
+                            return None;
+                        }
+                        if let Some(right_name) = call_payload(parts[1], "varpat") {
+                            bindings.push((right_name.to_string(), Value::U32(*right)));
+                        } else if parts[1] != "_" {
+                            return None;
+                        }
+                        return Some(bindings);
+                    }
+                    Value::ProdUnitU32(right) => {
+                        let mut bindings = Vec::new();
+                        if let Some(left_name) = call_payload(parts[0], "varpat") {
+                            bindings.push((left_name.to_string(), Value::Unit));
+                        } else if parts[0] != "_" {
+                            return None;
+                        }
+                        let right_name = call_payload(parts[1], "varpat")?;
+                        bindings.push((right_name.to_string(), Value::U32(*right)));
+                        return Some(bindings);
+                    }
+                    _ => {}
                 }
             }
             None

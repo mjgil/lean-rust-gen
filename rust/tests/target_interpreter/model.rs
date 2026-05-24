@@ -34,6 +34,7 @@ pub enum Value {
     ResultU32OptionU32(Result<u32, Option<u32>>),
     ResultOptionU32U32(Result<Option<u32>, u32>),
     ProdU32((u32, u32)),
+    ProdUnitU32(u32),
     Point(Point),
     Ordering(Ordering),
     Step(Step),

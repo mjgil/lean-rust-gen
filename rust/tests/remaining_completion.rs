@@ -114,6 +114,9 @@ fn remaining_pure_do_generated_examples_cover_bind_and_seq_shapes() {
     assert_eq!(reader_do_add_u32(5, 37), 42);
     assert_eq!(reader_seq_right_u32(5, 41), 42);
     assert_eq!(reader_seq_left_u32(5), 5);
+    assert_eq!(state_do_tick_u32(41), (41, 42));
+    assert_eq!(state_seq_right_u32(5), (6, 5));
+    assert_eq!(state_seq_left_u32(5), (5, 6));
 }
 
 #[test]

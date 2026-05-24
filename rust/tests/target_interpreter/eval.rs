@@ -57,6 +57,9 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
     if expr == "none" {
         return Ok(Value::OptionU32(None));
     }
+    if expr == "unit" {
+        return Ok(Value::Unit);
+    }
     if let Some(inner) = call_payload(expr, "some") {
         let value = eval_expr(functions, inner, env)?;
         return match value {
@@ -353,10 +356,13 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
     }
     if let Some(inner) = call_payload(expr, "tuple") {
         let args = split_top_args(inner);
-        return Ok(Value::ProdU32((
-            as_u32(&eval_expr(functions, args[0], env)?)?,
-            as_u32(&eval_expr(functions, args[1], env)?)?,
-        )));
+        let left = eval_expr(functions, args[0], env)?;
+        let right = eval_expr(functions, args[1], env)?;
+        return match (left, right) {
+            (Value::Unit, Value::U32(value)) => Ok(Value::ProdUnitU32(value)),
+            (Value::U32(left), Value::U32(right)) => Ok(Value::ProdU32((left, right))),
+            other => Err(format!("unsupported tuple values {other:?}")),
+        };
     }
     if let Some(inner) = call_payload(expr, "list_length") {
         return Ok(Value::U32(match eval_expr(functions, inner, env)? {

@@ -1,0 +1,9 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "positive",
+  "source": "LeanRustCore.Examples.state_seq_left_u32",
+  "expected_status": "supported",
+  "required_features": ["pure-do-notation"],
+  "tests": ["rust/tests/generated.rs", "rust/tests/differential_generated.rs", "scripts/check-rust-validation.sh", "scripts/check-remaining-completion.py"],
+  "documentation": ["docs/PURE_DO_NOTATION.md", "docs/ARCHITECTURE.md"]
+}

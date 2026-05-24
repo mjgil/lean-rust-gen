@@ -259,6 +259,9 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[1])?,
         ))),
         "reader_seq_left_u32" => Ok(v_u32(reader_seq_left_u32(as_u32(&args[0])?))),
+        "state_do_tick_u32" => Ok(v_prod_u32(state_do_tick_u32(as_u32(&args[0])?))),
+        "state_seq_right_u32" => Ok(v_prod_u32(state_seq_right_u32(as_u32(&args[0])?))),
+        "state_seq_left_u32" => Ok(v_prod_u32(state_seq_left_u32(as_u32(&args[0])?))),
         "reader_add_env_u32" => Ok(v_u32(reader_add_env_u32(
             as_u32(&args[0])?,
             as_u32(&args[1])?,

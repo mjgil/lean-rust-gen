@@ -458,6 +458,21 @@ def reader_seq_left_u32 (env : UInt32) : UInt32 :=
   ((read : ReaderT UInt32 Id UInt32) <* pure (41 : UInt32) : ReaderT UInt32 Id UInt32) env
 
 @[rust_export]
+def state_do_tick_u32 (s : UInt32) : UInt32 × UInt32 :=
+  (do
+    let current ← get
+    set (current + 1)
+    pure current : StateM UInt32 UInt32) s
+
+@[rust_export]
+def state_seq_right_u32 (s : UInt32) : UInt32 × UInt32 :=
+  ((get : StateM UInt32 UInt32) *> pure (s + 1) : StateM UInt32 UInt32) s
+
+@[rust_export]
+def state_seq_left_u32 (s : UInt32) : UInt32 × UInt32 :=
+  ((get : StateM UInt32 UInt32) <* set (s + 1) : StateM UInt32 UInt32) s
+
+@[rust_export]
 def reader_add_env_u32 (env x : UInt32) : UInt32 :=
   (fun cfg => x + cfg) env
 

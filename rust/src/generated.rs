@@ -327,6 +327,18 @@ pub fn tree_leaf_u32(_x: ()) -> BinaryTreeU32 {
     BinaryTreeU32::Leaf
 }
 
+pub fn state_seq_left_u32(s: u32) -> (u32, u32) {
+    match (s, s) {
+        (__state_seq_left_value_1, __state_seq_left_mid_2) => {
+            match ((), (__state_seq_left_value_1).wrapping_add(1)) {
+                (_, __state_seq_left_final_3) => {
+                    (__state_seq_left_value_1, __state_seq_left_final_3)
+                }
+            }
+        }
+    }
+}
+
 pub fn equality_cast_subtype_value_u32(x: u32) -> u32 {
     x
 }
@@ -379,6 +391,14 @@ pub fn nested_proof_wrapper_value_u32(x: u32) -> u32 {
 
 pub fn subtype_val_u32(x: u32) -> u32 {
     x
+}
+
+pub fn state_do_tick_u32(s: u32) -> (u32, u32) {
+    match (s, s) {
+        (current, __state_bind_1) => match ((), (current).wrapping_add(1)) {
+            (_hyg2187, __state_bind_3) => (current, __state_bind_3),
+        },
+    }
 }
 
 pub fn defun_apply_u32(f: U32FnCase, x: u32) -> u32 {
@@ -550,7 +570,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg3002) => fallback,
+        PairchoiceU32String::Right(_hyg3138) => fallback,
     }
 }
 
@@ -1059,6 +1079,12 @@ pub fn nested_payload_ok_u32_string(x: u32) -> NestedpayloadU32String {
     NestedpayloadU32String {
         primary: Some(x),
         secondary: Ok(x),
+    }
+}
+
+pub fn state_seq_right_u32(s: u32) -> (u32, u32) {
+    match (s, s) {
+        (_, __state_seq_right_1) => ((s).wrapping_add(1), __state_seq_right_1),
     }
 }
 

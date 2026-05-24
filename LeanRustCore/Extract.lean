@@ -779,11 +779,12 @@ where
         let actualTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx ty)
         if actualTy == argTy then
           let binder := sanitizeRustIdent "item" (nameLeaf n)
+          let appliedBody ← Core.betaReduce (mkApp body runtimeExpr)
           match (← translateElaboratedPureDoApp?
             (none :: typeCtx)
             (some { name := binder, ty := argTy } :: locals)
             (some outTy)
-            (mkApp body runtimeExpr)) with
+            appliedBody) with
           | some lowered => pure (binder, lowered)
           | none => unsupported body
         else
@@ -797,12 +798,18 @@ where
         let actualTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx ty)
         if actualTy == argTy then
           let binder := sanitizeRustIdent "item" (nameLeaf n)
-          let liftedRuntime := runtimeExpr.liftLooseBVars 0 1
+          let liftedRuntime :=
+            if argTy == .unit then runtimeExpr else runtimeExpr.liftLooseBVars 0 1
+          let appliedBody ← Core.betaReduce (mkApp body liftedRuntime)
+          let bodyTypeCtx :=
+            if argTy == .unit then typeCtx else none :: typeCtx
+          let bodyLocals :=
+            if argTy == .unit then locals else some { name := binder, ty := argTy } :: locals
           match (← translateElaboratedPureDoApp?
-            (none :: typeCtx)
-            (some { name := binder, ty := argTy } :: locals)
+            bodyTypeCtx
+            bodyLocals
             (some (.prod outTy stateTy))
-            (mkApp body liftedRuntime)) with
+            appliedBody) with
           | some lowered => pure (binder, lowered)
           | none => unsupported body
         else
@@ -3532,7 +3539,10 @@ private def monadicSpecializationExport (declName : Name) : Bool :=
   leaf == "except_seq_left_u32" ||
   leaf == "reader_do_add_u32" ||
   leaf == "reader_seq_right_u32" ||
-  leaf == "reader_seq_left_u32"
+  leaf == "reader_seq_left_u32" ||
+  leaf == "state_do_tick_u32" ||
+  leaf == "state_seq_right_u32" ||
+  leaf == "state_seq_left_u32"
 
 private def closureConversionExport (declName : Name) : Bool :=
   let leaf := nameLeaf declName
