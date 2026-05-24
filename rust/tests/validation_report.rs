@@ -488,6 +488,9 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn array_push_u32",
         "pub fn option_getd_u32",
         "pub fn result_map_err_inc_u32",
+        "pub fn reader_do_add_u32",
+        "pub fn reader_seq_right_u32",
+        "pub fn reader_seq_left_u32",
         "pub fn reader_add_env_u32",
         "pub fn state_tick_u32",
         "pub fn echo_prod_u32",
@@ -672,6 +675,9 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("FN\tstring_append_lean"));
     assert!(snapshot.contains("FN\tstring_length_chars_u32"));
     assert!(snapshot.contains("FN\tstring_contains_char_lean"));
+    assert!(snapshot.contains("FN\treader_do_add_u32"));
+    assert!(snapshot.contains("FN\treader_seq_right_u32"));
+    assert!(snapshot.contains("FN\treader_seq_left_u32"));
     assert!(snapshot.contains("FN\treader_add_env_u32"));
     assert!(snapshot.contains("FN\tstate_tick_u32"));
 }
@@ -784,6 +790,9 @@ fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
     assert!(!ffi.contains("lrc_option_seq_left_u32"));
     assert!(!ffi.contains("lrc_except_seq_right_u32"));
     assert!(!ffi.contains("lrc_except_seq_left_u32"));
+    assert!(ffi.contains("extern \"C\" fn lrc_reader_do_add_u32"));
+    assert!(ffi.contains("extern \"C\" fn lrc_reader_seq_right_u32"));
+    assert!(ffi.contains("extern \"C\" fn lrc_reader_seq_left_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_inc_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_roundtrip_u32"));
 }

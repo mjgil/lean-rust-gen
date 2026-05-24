@@ -1,7 +1,7 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
 TYPE_COUNT	18
-FN_COUNT	179
+FN_COUNT	182
 TYPE	struct	RoseTreeU32	value:u32,children:Vec<RoseTreeU32>
 TYPE	struct	PairboxStringU32	left:String,right:u32
 TYPE	struct	BoundedProof	value:u32
@@ -91,13 +91,15 @@ FN	ord_compare_u32	a:u32,b:u32	Ordering	compare(var(a),var(b))
 FN	nat_two_step_or_zero_u32	n:u32	u32	if(lt(var(n),lit(2)),lit(0),var(n))
 FN	gcd_u32	a:u32,b:u32	u32	if(eq(var(a),lit(0)),var(b),if(eq(var(b),lit(0)),var(a),if(eq(var(a),var(b)),var(a),if(lt(var(a),var(b)),call(gcd_u32,var(a),sub(var(b),var(a))),call(gcd_u32,sub(var(a),var(b)),var(b))))))
 FN	defun_compose_inc_double_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Double),call(defun_apply_u32,enum(U32FnCase::Inc),var(x)))
-FN	pair_choice_default_u32_string	choice:PairchoiceU32String,fallback:u32	u32	match_pattern(var(choice),PairchoiceU32String::Left(varpat(value))=>var(value)|PairchoiceU32String::Right(varpat(_hyg2890))=>var(fallback))
+FN	pair_choice_default_u32_string	choice:PairchoiceU32String,fallback:u32	u32	match_pattern(var(choice),PairchoiceU32String::Left(varpat(value))=>var(value)|PairchoiceU32String::Right(varpat(_hyg3002))=>var(fallback))
 FN	add_u32	a:u32,b:u32	u32	add(var(a),var(b))
+FN	reader_seq_left_u32	env:u32	u32	let(__reader_seq_left_1,var(env),let(__reader_seq_left_ignore_2,lit(41),var(__reader_seq_left_1)))
 FN	repr_u32	x:u32	String	repr(u32,var(x))
 FN	list_filter_nonzero_u32	xs:Vec<u32>	Vec<u32>	list_filter(x,var(xs),gt(var(x),lit(0)))
 FN	point_x	p:Point	u32	field(var(p),x)
 FN	nested_payload_value_or_u32_string	payload:NestedpayloadU32String,fallback:u32	u32	match_pattern(field(var(payload),primary),None=>var(fallback)|Some(varpat(value))=>var(value))
 FN	add_u64	a:u64,b:u64	u64	add(var(a),var(b))
+FN	reader_seq_right_u32	env:u32,x:u32	u32	let(__reader_seq_right_2,var(env),add(var(x),lit(1)))
 FN	boxed_u32	x:u32	BoxedU32	struct(BoxedU32,value=var(x))
 FN	defun_apply_add5_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Add,lit(5)),var(x))
 FN	echo_prod_u32	x:(u32, u32)	(u32, u32)	var(x)
@@ -174,6 +176,7 @@ FN	exact_int_add	a:num_bigint::BigInt,b:num_bigint::BigInt	num_bigint::BigInt	ad
 FN	generated_dict_compare_u32	a:u32,b:u32	Ordering	call(__runtime_dictionary_compare_u32_const,var(a),var(b))
 FN	list_length_u32	xs:Vec<u32>	u32	list_length(var(xs))
 FN	nested_payload_ok_u32_string	x:u32	NestedpayloadU32String	struct(NestedpayloadU32String,primary=some(var(x)),secondary=ok(var(x)))
+FN	reader_do_add_u32	env:u32,x:u32	u32	let(cfg,var(env),add(var(x),var(cfg)))
 FN	even_terminal_u32	value:u32	EvenNode	enum(EvenNode::Terminal,var(value))
 FN	option_seq_left_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(__seq_left)=>match_option(some(lit(41)),none=>none|some(__seq_right)=>some(var(__seq_left))))
 FN	generated_dict_default_u32	_x:()	u32	call(__runtime_dictionary_default_u32_const,)

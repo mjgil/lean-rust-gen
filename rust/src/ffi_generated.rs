@@ -138,8 +138,18 @@ pub extern "C" fn lrc_add_u32(a: u32, b: u32) -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_reader_seq_left_u32(env: u32) -> u32 {
+    crate::reader_seq_left_u32(env)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_add_u64(a: u64, b: u64) -> u64 {
     crate::add_u64(a, b)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_reader_seq_right_u32(env: u32, x: u32) -> u32 {
+    crate::reader_seq_right_u32(env, x)
 }
 
 #[no_mangle]
@@ -296,6 +306,11 @@ pub extern "C" fn lrc_echo_u64(x: u64) -> u64 {
 #[no_mangle]
 pub extern "C" fn lrc_saturating_sub_u32(a: u32, b: u32) -> u32 {
     crate::saturating_sub_u32(a, b)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_reader_do_add_u32(env: u32, x: u32) -> u32 {
+    crate::reader_do_add_u32(env, x)
 }
 
 #[no_mangle]

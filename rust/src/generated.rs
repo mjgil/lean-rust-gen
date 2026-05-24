@@ -550,12 +550,22 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg2890) => fallback,
+        PairchoiceU32String::Right(_hyg3002) => fallback,
     }
 }
 
 pub fn add_u32(a: u32, b: u32) -> u32 {
     (a).wrapping_add(b)
+}
+
+pub fn reader_seq_left_u32(env: u32) -> u32 {
+    {
+        let __reader_seq_left_1 = env;
+        {
+            let __reader_seq_left_ignore_2 = 41;
+            __reader_seq_left_1
+        }
+    }
 }
 
 pub fn repr_u32(x: u32) -> String {
@@ -587,6 +597,13 @@ pub fn nested_payload_value_or_u32_string(payload: NestedpayloadU32String, fallb
 
 pub fn add_u64(a: u64, b: u64) -> u64 {
     (a).wrapping_add(b)
+}
+
+pub fn reader_seq_right_u32(env: u32, x: u32) -> u32 {
+    {
+        let __reader_seq_right_2 = env;
+        (x).wrapping_add(1)
+    }
 }
 
 pub fn boxed_u32(x: u32) -> BoxedU32 {
@@ -1042,6 +1059,13 @@ pub fn nested_payload_ok_u32_string(x: u32) -> NestedpayloadU32String {
     NestedpayloadU32String {
         primary: Some(x),
         secondary: Ok(x),
+    }
+}
+
+pub fn reader_do_add_u32(env: u32, x: u32) -> u32 {
+    {
+        let cfg = env;
+        (x).wrapping_add(cfg)
     }
 }
 

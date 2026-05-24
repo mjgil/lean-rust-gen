@@ -638,14 +638,19 @@ That means ordinary exported declarations like
 `LeanRustCore.Examples.option_seq_right_u32`,
 `LeanRustCore.Examples.option_seq_left_u32`,
 `LeanRustCore.Examples.except_seq_right_u32`, and
-`LeanRustCore.Examples.except_seq_left_u32` now flow through the real
+`LeanRustCore.Examples.except_seq_left_u32`,
+`LeanRustCore.Examples.reader_do_add_u32`,
+`LeanRustCore.Examples.reader_seq_right_u32`,
+and `LeanRustCore.Examples.reader_seq_left_u32` now flow through the real
 Lean→ExtractIR→SurfaceExpr→Rust pipeline, show up in `rust/src/generated.rs`,
 `rust/extract-ir.txt`, and `rust/target-validation.txt`, and are enforced by
 generated, differential, parser-validation, interpreter, corpus, and shell
 release tests.
 
-`StateM`, `ReaderT`, and `ExceptT(StateM)` still have runtime models and docs,
-but their generalized function-monad `do` lowering remains incomplete in the
-direct extractor lane. Those families should not be marked design-doc complete
-until they have exported examples, corpus evidence, and generated-artifact
-coverage comparable to the new `Option` / `Except` path.
+`StateM` and `ExceptT(StateM)` still have runtime models and docs. The direct
+extractor lane now handles fully applied `ReaderT` programs by lowering the
+applied environment argument into ordinary `let`-based surface nodes, but the
+state-threaded and stacked error-plus-state families are still incomplete and
+should not be marked design-doc complete until they have exported examples,
+corpus evidence, and generated-artifact coverage comparable to the completed
+lanes.

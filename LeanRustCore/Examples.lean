@@ -444,6 +444,20 @@ def except_seq_left_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
   x <* pure (41 : UInt32)
 
 @[rust_export]
+def reader_do_add_u32 (env x : UInt32) : UInt32 :=
+  (do
+    let cfg <- read
+    pure (x + cfg) : ReaderT UInt32 Id UInt32) env
+
+@[rust_export]
+def reader_seq_right_u32 (env x : UInt32) : UInt32 :=
+  ((read : ReaderT UInt32 Id UInt32) *> pure (x + 1) : ReaderT UInt32 Id UInt32) env
+
+@[rust_export]
+def reader_seq_left_u32 (env : UInt32) : UInt32 :=
+  ((read : ReaderT UInt32 Id UInt32) <* pure (41 : UInt32) : ReaderT UInt32 Id UInt32) env
+
+@[rust_export]
 def reader_add_env_u32 (env x : UInt32) : UInt32 :=
   (fun cfg => x + cfg) env
 

@@ -129,6 +129,9 @@ fn typeclass_and_closure_specializations_lower() {
     assert_eq!(except_seq_right_u32(Ok(5)), Ok(41));
     assert_eq!(except_seq_left_u32(Err(7)), Err(7));
     assert_eq!(except_seq_left_u32(Ok(5)), Ok(5));
+    assert_eq!(reader_do_add_u32(5, 37), 42);
+    assert_eq!(reader_seq_right_u32(5, 41), 42);
+    assert_eq!(reader_seq_left_u32(5), 5);
     assert_eq!(result_map_err_inc_u32(Ok(5)), Ok(5));
     assert_eq!(result_map_err_inc_u32(Err(41)), Err(42));
     assert_eq!(reader_add_env_u32(5, 37), 42);
