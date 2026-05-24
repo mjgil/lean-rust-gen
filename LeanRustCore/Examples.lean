@@ -572,7 +572,7 @@ def auto_option_default_step (x : Option Step) (fallback : Step) : Step :=
 def unsupported_higher_order_u32 (f : UInt32 → UInt32) (x : UInt32) : UInt32 :=
   f x
 
-rust_emit_exports_with_report_and_surface generatedRust generatedCompatibilityReport extractedSurfaceFunctions
+rust_emit_exports_with_report_and_surface generatedRust generatedCompatibilityReport extractedSurfaceFunctions extractedIRSnapshot
 
 /-!
 ## Proof-carrying IR examples

@@ -1,4 +1,5 @@
 import LeanRustCore.Surface
+import LeanRustCore.EmitRust
 import LeanRustCore.StdLowering
 import LeanRustCore.TypeclassPolicy
 import LeanRustCore.DependentErasure
@@ -160,6 +161,83 @@ partial def lowerExpr? : ExtractExpr → Except String SurfaceExpr
   | .recognizedStdLowering family _ => .error ("Std lowering `" ++ family ++ "` was not discharged to SurfaceExpr")
   | .dictionaryArgument cls inst => .error ("typeclass dictionary `" ++ cls ++ "`/`" ++ inst ++ "` was not specialized or generated")
   | .rejected code detail => .error (code ++ ": " ++ detail)
+
+/-- ExtractIR declaration records used by the mandatory pre-surface lowering stage. -/
+structure ExtractDecl where
+  source : String
+  rustName : String
+  args : List RArg
+  ret : RType
+  body : ExtractExpr
+  deriving Repr, BEq
+
+/-- Lower a complete ExtractIR declaration into a SurfaceFun. -/
+def lowerDecl? (decl : ExtractDecl) : Except String SurfaceFun := do
+  let body ← lowerExpr? decl.body
+  pure { name := decl.rustName, args := decl.args, ret := decl.ret, body := body }
+
+def extractIRFormat : String := "lean-rust-core.extract-ir.v1"
+
+private def snapshotEscapeChar : Char → String
+  | '\\' => "\\\\"
+  | '\n' => "\\n"
+  | '\r' => "\\r"
+  | '\t' => "\\t"
+  | ',' => "\\,"
+  | '|' => "\\|"
+  | '(' => "\\("
+  | ')' => "\\)"
+  | '=' => "\\="
+  | c => String.singleton c
+
+private def snapshotEscape (s : String) : String :=
+  joinWith "" (s.toList.map snapshotEscapeChar)
+
+private def fingerprintType (ty : RType) : String :=
+  rustType ty
+
+private def fingerprintArg (arg : RArg) : String :=
+  rustValueIdent "arg" arg.1 ++ ":" ++ fingerprintType arg.2
+
+partial def fingerprintExtractExpr : ExtractExpr → String
+  | .surface expr => "surface(" ++ snapshotEscape (reprStr expr) ++ ")"
+  | .erasedBinder name ty body =>
+      "erased_binder(" ++ rustValueIdent "proof" name ++ ":" ++ fingerprintType ty ++ "," ++ fingerprintExtractExpr body ++ ")"
+  | .recognizedRecursor family args =>
+      "recognized_recursor(" ++ snapshotEscape family ++ "," ++ joinWith "," (args.map fingerprintExtractExpr) ++ ")"
+  | .recognizedStdLowering family args =>
+      "recognized_std(" ++ snapshotEscape family ++ "," ++ joinWith "," (args.map fingerprintExtractExpr) ++ ")"
+  | .dictionaryArgument cls inst =>
+      "dictionary(" ++ snapshotEscape cls ++ "," ++ snapshotEscape inst ++ ")"
+  | .rejected code detail =>
+      "rejected(" ++ snapshotEscape code ++ "," ++ snapshotEscape detail ++ ")"
+
+private def declLine (decl : ExtractDecl) : String :=
+  "IR-FN\t" ++ rustValueIdent "generated" decl.rustName ++ "\t" ++
+  joinWith "," (decl.args.map fingerprintArg) ++ "\t" ++
+  fingerprintType decl.ret ++ "\t" ++
+  fingerprintExtractExpr decl.body
+
+private def findDeclByName (decls : List ExtractDecl) (rustName : String) : Option ExtractDecl :=
+  decls.find? (fun decl => decl.rustName == rustName)
+
+private def orderedDecls (decls : List ExtractDecl) : List ExtractDecl :=
+  let lowered := decls.filterMap (fun decl =>
+    match lowerDecl? decl with
+    | .ok funDecl => some funDecl
+    | .error _ => none)
+  let orderedNames := orderFunctionsByDeps lowered |>.map (fun f => f.name)
+  orderedNames.filterMap (findDeclByName decls)
+
+/-- Text snapshot of the extractor-owned mandatory ExtractIR stage. -/
+def extractIRSnapshot (decls : List ExtractDecl) : String :=
+  let ordered := orderedDecls decls
+  joinWith "\n" (
+    [ "FORMAT\t" ++ extractIRFormat,
+      "ARCH\tdirect-lean-emits-rust",
+      "FN_COUNT\t" ++ toString ordered.length ] ++
+    ordered.map declLine
+  ) ++ "\n"
 
 /-- Recursor recognition metadata captured before surface lowering. -/
 structure RecursorMetadata where

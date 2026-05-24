@@ -61,6 +61,7 @@ def check_json_artifacts(functions: list[str], types: list[str]) -> None:
     require("LeanRustCore.ExtractIR.functionFeatures" in proof["trusted_core"], "proof report missing ExtractIR trusted-core entry")
     require(proof["policy"].get("corpus_harness") is True, "proof report missing corpus_harness policy")
     require("rust/target-validation.txt" in metadata["generated_artifacts"], "build metadata missing target validation artifact")
+    require("rust/extract-ir.txt" in metadata["generated_artifacts"], "build metadata missing ExtractIR artifact")
     require("rust/coverage-dashboard.json" in metadata["generated_artifacts"], "build metadata missing coverage dashboard artifact")
 
 
@@ -79,6 +80,17 @@ def check_target_validation(functions: list[str], types: list[str]) -> None:
     require([line.split("\t")[1] for line in fn_lines] == functions, "target-validation function order differs from generated.rs")
 
 
+def check_extract_ir(functions: list[str]) -> None:
+    lines = read("rust/extract-ir.txt").splitlines()
+    require(lines[:2] == ["FORMAT\tlean-rust-core.extract-ir.v1", "ARCH\tdirect-lean-emits-rust"], "extract-ir header is stale")
+    require(sum(1 for line in lines if line.startswith("FN_COUNT\t")) == 1, "extract-ir should contain one FN_COUNT")
+    fn_count = int(next(line.split("\t", 1)[1] for line in lines if line.startswith("FN_COUNT\t")))
+    fn_lines = [line for line in lines if line.startswith("IR-FN\t")]
+    require(fn_count == len(functions) == len(fn_lines), "extract-ir function count is stale")
+    require([line.split("\t")[1] for line in fn_lines] == functions, "extract-ir function order differs from generated.rs")
+    require(all("\tsurface(" in line for line in fn_lines), "extract-ir snapshot must show discharged SurfaceExpr bodies")
+
+
 def check_ffi() -> None:
     ffi = read("rust/src/ffi_generated.rs")
     wrappers = re.findall(r"^pub (?:unsafe )?extern \"C\" fn (lrc_[A-Za-z_][A-Za-z0-9_]*)", ffi, re.MULTILINE)
@@ -92,6 +104,7 @@ def main() -> None:
     functions, types = generated_symbols()
     check_json_artifacts(functions, types)
     check_target_validation(functions, types)
+    check_extract_ir(functions)
     check_ffi()
 
 

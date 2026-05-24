@@ -3,6 +3,8 @@ use std::collections::BTreeSet;
 const PROOF_REPORT: &str = include_str!("../proof-report.json");
 const VALIDATION_REPORT: &str = include_str!("../validation-report.json");
 const COVERAGE_DASHBOARD: &str = include_str!("../coverage-dashboard.json");
+const GENERATED_SOURCE: &str = include_str!("../src/generated.rs");
+const EXTRACT_IR_SNAPSHOT: &str = include_str!("../extract-ir.txt");
 const EXTRACT_IR: &str = include_str!("../../LeanRustCore/ExtractIR.lean");
 const IR: &str = include_str!("../../LeanRustCore/IR.lean");
 const DIAGNOSTICS: &str = include_str!("../../LeanRustCore/Diagnostics.lean");
@@ -14,6 +16,14 @@ const NEGATIVE_FIXTURE: &str =
     include_str!("../../corpus/negative/unresolved_typeclass.expected.json");
 const UNSUPPORTED_FIXTURE: &str = include_str!("../../corpus/unsupported/io_effect.expected.json");
 
+fn generated_function_names() -> Vec<&'static str> {
+    GENERATED_SOURCE
+        .lines()
+        .filter_map(|line| line.strip_prefix("pub fn "))
+        .filter_map(|line| line.split('(').next())
+        .collect()
+}
+
 #[test]
 fn first20_reports_record_required_completion_metadata() {
     let proof: serde_json::Value = serde_json::from_str(PROOF_REPORT).unwrap();
@@ -24,6 +34,8 @@ fn first20_reports_record_required_completion_metadata() {
     for required in [
         "LeanRustCore.ExtractIR.functionFeatures",
         "LeanRustCore.ExtractIR.lowerExpr?",
+        "LeanRustCore.ExtractIR.lowerDecl?",
+        "LeanRustCore.ExtractIR.extractIRSnapshot",
         "LeanRustCore.IR.runtimeValueHasType",
         "LeanRustCore.Diagnostics.SourceSpan",
     ] {
@@ -47,6 +59,7 @@ fn first20_reports_record_required_completion_metadata() {
         .collect::<BTreeSet<_>>();
     for required in [
         "extract-ir-pipeline",
+        "extract-ir-mandatory-stage",
         "runtime-value-denotation",
         "expanded-diagnostic-codes",
         "source-span-diagnostics",
@@ -116,6 +129,49 @@ fn first20_extract_ir_and_runtime_semantics_are_documented() {
     assert!(!IR.contains("| .enum _ _ => Nat"));
     assert!(!IR.contains("| .recursive _ => Unit"));
     assert!(RUNTIME_DOC.contains("RuntimeValue subtype witnesses"));
+}
+
+#[test]
+fn extract_ir_snapshot_tracks_generated_function_order() {
+    let lines = EXTRACT_IR_SNAPSHOT.lines().collect::<Vec<_>>();
+    assert_eq!(
+        lines.first().copied(),
+        Some("FORMAT\tlean-rust-core.extract-ir.v1")
+    );
+    assert_eq!(lines.get(1).copied(), Some("ARCH\tdirect-lean-emits-rust"));
+
+    let count_line = lines
+        .iter()
+        .find(|line| line.starts_with("FN_COUNT\t"))
+        .copied()
+        .expect("extract-ir snapshot should record FN_COUNT");
+    let count = count_line
+        .split('\t')
+        .nth(1)
+        .unwrap()
+        .parse::<usize>()
+        .unwrap();
+
+    let ir_functions = lines
+        .iter()
+        .filter(|line| line.starts_with("IR-FN\t"))
+        .map(|line| {
+            let parts = line.split('\t').collect::<Vec<_>>();
+            assert!(
+                parts
+                    .get(4)
+                    .is_some_and(|body| body.starts_with("surface(")),
+                "extract-ir body should be discharged before Rust emission"
+            );
+            parts[1]
+        })
+        .collect::<Vec<_>>();
+
+    let generated_functions = generated_function_names();
+    assert_eq!(count, generated_functions.len());
+    assert_eq!(ir_functions, generated_functions);
+    assert!(EXTRACT_IR_SNAPSHOT.contains("IR-FN\tclamp_u32"));
+    assert!(EXTRACT_IR_SNAPSHOT.contains("IR-FN\tgeneral_bool_match_u32"));
 }
 
 #[test]

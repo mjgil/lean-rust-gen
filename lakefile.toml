@@ -34,6 +34,10 @@ name = "gen_target_validation"
 root = "TargetValidationMain"
 
 [[lean_exe]]
+name = "gen_extract_ir"
+root = "ExtractIRMain"
+
+[[lean_exe]]
 name = "gen_boundary_exports"
 root = "BoundaryMain"
 

@@ -131,6 +131,11 @@ def checks : List ValidationCheck := [
     detail := "LeanRustCore.Examples.extractedSurfaceFunctions is emitted by the same extractor command as generated Rust and drives the SurfaceExpr differential expectations"
   },
   {
+    name := "extract-ir-mandatory-stage",
+    status := "passed",
+    detail := "supported declarations first build LeanRustCore.ExtractIR.ExtractDecl records, lower through LeanRustCore.ExtractIR.lowerDecl?, and write rust/extract-ir.txt before Rust emission"
+  },
+  {
     name := "rust-identifier-hygiene",
     status := "passed",
     detail := rustHygieneSummary

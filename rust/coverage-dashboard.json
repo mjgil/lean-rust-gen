@@ -33,7 +33,7 @@
     { "feature": "rust-workspace-crate-split", "status": "supported-workspace", "examples": ["lean-rust-core-generated", "lean-rust-core-runtime", "lean-rust-core-abi", "lean-rust-core-validate", "lean-rust-core-headers"] },
     { "feature": "release-acceptance-matrix", "status": "supported-scripted-gates", "examples": ["ReleaseMatrix.gates", "scripts/check-final-16-completion.py", "docs/RELEASE_CHECKLIST.md"] },
     { "feature": "first20-completion", "status": "supported-complete", "examples": ["ExtractIR", "RuntimeValue", "expanded diagnostics", "source spans", "CI e2e matrix"] },
-    { "feature": "extract-ir-pipeline", "status": "supported", "examples": ["DeclarationMetadata", "functionFeatureTags", "metadataForSurfaceFun"] },
+    { "feature": "extract-ir-pipeline", "status": "supported", "examples": ["DeclarationMetadata", "functionFeatureTags", "extractIRSnapshot"] },
     { "feature": "runtime-value-denotation", "status": "supported", "examples": ["RuntimeValue", "runtimeValueHasType", "runtimeDenotationSummary"] },
     { "feature": "expanded-diagnostics", "status": "supported", "examples": ["LRC001-LRC014", "SourceRange", "instanceHasRequiredSpan"] },
     { "feature": "source-span-diagnostics", "status": "supported", "examples": ["SourceSpan", "sourceSpanSummary", "instanceHasRequiredSpan"] },

@@ -2,6 +2,7 @@ import Lean
 import LeanRustCore.EmitRust
 import LeanRustCore.Export
 import LeanRustCore.DependentErasure
+import LeanRustCore.ExtractIR
 
 import LeanRustCore.ClosureConversion
 namespace LeanRustCore.Extract
@@ -39,6 +40,7 @@ structure ExportDiagnostic where
 /-- Supported functions plus structured diagnostics for skipped/unsupported exports. -/
 structure ExtractionResult where
   functions : List SurfaceFun
+  extractDecls : List LeanRustCore.ExtractIR.ExtractDecl
   diagnostics : List ExportDiagnostic
   deriving Repr, BEq
 
@@ -1970,20 +1972,34 @@ private def specialMonoSurfaceFun? (declName : Name) (rustFunName : String) (typ
       }
   | _, _ => none
 
-/-- Extract one ordinary Lean definition into the first-pass Rust surface IR. -/
-def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RType) : CoreM SurfaceFun := do
+/-- Extract one ordinary Lean definition into the mandatory ExtractIR stage. -/
+def extractDeclAs (declName : Name) (rustFunName : String) (typeArgs : List RType) : CoreM LeanRustCore.ExtractIR.ExtractDecl := do
   if typeArgs.isEmpty then
     match sprint13ManualSurfaceFun? declName rustFunName with
     | some f =>
         match checkSurfaceFun f with
-        | .ok checked => return checked
+        | .ok checked =>
+            return {
+              source := toString declName,
+              rustName := checked.name,
+              args := checked.args,
+              ret := checked.ret,
+              body := .surface checked.body
+            }
         | .error report => throwError "manual Sprint 13-14 fixture failed surface type check: {report.detail}"
     | none => pure ()
   else
     match specialMonoSurfaceFun? declName rustFunName typeArgs with
     | some f =>
         match checkSurfaceFun f with
-        | .ok checked => return checked
+        | .ok checked =>
+            return {
+              source := toString declName,
+              rustName := checked.name,
+              args := checked.args,
+              ret := checked.ret,
+              body := .surface checked.body
+            }
         | .error report => throwError "manual monomorphized surface fixture failed surface type check: {report.detail}"
     | none => pure ()
   let info ← getConstInfo declName
@@ -1997,14 +2013,33 @@ def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RTy
     throwError "rust_export extraction currently requires eta-expanded definitions; `{declName}` has {typeBinders.length} type binders but {valueBinders.length} value binders"
   let (args, typeCtx, locals) ← buildExtractionContexts typeBinders typeArgs
   let ret ← typeOfLeanWithCtx typeCtx retTyExpr
-  let surfaceFun ← match specialTailRecSurface? declName rustFunName args ret with
-    | some f => pure f
+  let extractBody ← match specialTailRecSurface? declName rustFunName args ret with
+    | some f => pure (.surface f.body)
     | none => do
         let bodyExpr ← translateExpr typeCtx locals (some ret) body
-        pure { name := rustFunName, args := args, ret := ret, body := bodyExpr }
+        pure (.surface bodyExpr)
+  pure {
+    source := toString declName,
+    rustName := rustFunName,
+    args := args,
+    ret := ret,
+    body := extractBody
+  }
+
+private def extractConstWithDeclAs (declName : Name) (rustFunName : String) (typeArgs : List RType) :
+    CoreM (SurfaceFun × LeanRustCore.ExtractIR.ExtractDecl) := do
+  let extractDecl ← extractDeclAs declName rustFunName typeArgs
+  let surfaceFun ← match LeanRustCore.ExtractIR.lowerDecl? extractDecl with
+    | .ok lowered => pure lowered
+    | .error detail =>
+        throwError "ExtractIR lowering failed for `{declName}` before Rust emission: {detail}"
   match checkSurfaceFun surfaceFun with
-  | .ok checked => pure checked
+  | .ok checked => pure (checked, extractDecl)
   | .error report => throwError "extracted declaration failed surface type check: {report.detail}"
+
+/-- Extract one ordinary Lean definition into the first-pass Rust surface IR. -/
+def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RType) : CoreM SurfaceFun := do
+  pure (← extractConstWithDeclAs declName rustFunName typeArgs).1
 
 /-- Extract one non-generic Lean definition. -/
 def extractConst (declName : Name) : CoreM SurfaceFun :=
@@ -2680,19 +2715,21 @@ private def regularSupportedDetail (declName : Name) : CoreM String := do
   else
     pure "exported"
 
-private def extractRegularWithDiagnostic (declName : Name) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
+private def extractRegularWithDiagnostic (declName : Name) :
+    CoreM (Option (SurfaceFun × LeanRustCore.ExtractIR.ExtractDecl) × ExportDiagnostic) := do
   let rustName := sanitizeRustIdent "generated" (nameLeaf declName)
   try
-    let f ← extractConst declName
+    let extracted ← extractConstWithDeclAs declName rustName []
     let detail ← regularSupportedDetail declName
-    pure (some f, supportedDiagnostic (toString declName) f.name detail)
+    pure (some extracted, supportedDiagnostic (toString declName) extracted.1.name detail)
   catch _ =>
     pure (none, unsupportedDiagnostic (toString declName) rustName "unsupported export skipped by the direct Lean-to-Rust extractor")
 
-private def extractMonoWithDiagnostic (spec : MonoExportSpec) (detail : String) : CoreM (Option SurfaceFun × ExportDiagnostic) := do
+private def extractMonoWithDiagnostic (spec : MonoExportSpec) (detail : String) :
+    CoreM (Option (SurfaceFun × LeanRustCore.ExtractIR.ExtractDecl) × ExportDiagnostic) := do
   try
-    let f ← extractMonoConst spec
-    pure (some f, supportedDiagnostic (monoSpecLabel spec) f.name detail)
+    let extracted ← extractConstWithDeclAs spec.source spec.rustName spec.typeArgs
+    pure (some extracted, supportedDiagnostic (monoSpecLabel spec) extracted.1.name detail)
   catch _ =>
     pure (none, unsupportedDiagnostic (monoSpecLabel spec) spec.rustName "monomorphized export could not be lowered by the current extractor subset")
 
@@ -2703,74 +2740,101 @@ private def monoSpecIn (spec : MonoExportSpec) : List MonoExportSpec → Bool
 private def pendingAutoSpecs (seen : List MonoExportSpec) (all : List MonoExportSpec) : List MonoExportSpec :=
   all.filter (fun spec => !monoSpecIn spec seen)
 
-partial def extractPendingAutoHelpers (seen : List MonoExportSpec) (functions : List SurfaceFun) (diagnostics : List ExportDiagnostic) (fuel : Nat) : CoreM ExtractionResult := do
+partial def extractPendingAutoHelpers (seen : List MonoExportSpec) (functions : List SurfaceFun)
+    (extractDecls : List LeanRustCore.ExtractIR.ExtractDecl) (diagnostics : List ExportDiagnostic)
+    (fuel : Nat) : CoreM ExtractionResult := do
   match fuel with
-  | 0 => pure { functions := functions, diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-helper-extraction>" "<fuel>" "automatic helper extraction stopped after the fixpoint fuel was exhausted"] }
+  | 0 => pure {
+      functions := functions,
+      extractDecls := extractDecls,
+      diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-helper-extraction>" "<fuel>" "automatic helper extraction stopped after the fixpoint fuel was exhausted"]
+    }
   | fuel' + 1 => do
       let autoSpecs ← autoHelperExportSpecsRef.get
       let pending := pendingAutoSpecs seen autoSpecs
       if pending.isEmpty then
-        pure { functions := functions, diagnostics := diagnostics }
+        pure { functions := functions, extractDecls := extractDecls, diagnostics := diagnostics }
       else
         let mut functions' := functions
+        let mut extractDecls' := extractDecls
         let mut diagnostics' := diagnostics
         for spec in pending do
-          let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec "auto-helper-export"
+          let (maybeExtracted, diagnostic) ← extractMonoWithDiagnostic spec "auto-helper-export"
           diagnostics' := diagnostics' ++ [diagnostic]
-          match maybeFun with
-          | some f => functions' := functions' ++ [f]
+          match maybeExtracted with
+          | some (f, extractDecl) =>
+              functions' := functions' ++ [f]
+              extractDecls' := extractDecls' ++ [extractDecl]
           | none => pure ()
-        extractPendingAutoHelpers (seen ++ pending) functions' diagnostics' fuel'
+        extractPendingAutoHelpers (seen ++ pending) functions' extractDecls' diagnostics' fuel'
 
-private partial def extractPendingGeneratedSpecs (seenMonos seenHelpers : List MonoExportSpec) (functions : List SurfaceFun) (diagnostics : List ExportDiagnostic) (fuel : Nat) : CoreM ExtractionResult := do
+private partial def extractPendingGeneratedSpecs (seenMonos seenHelpers : List MonoExportSpec)
+    (functions : List SurfaceFun) (extractDecls : List LeanRustCore.ExtractIR.ExtractDecl)
+    (diagnostics : List ExportDiagnostic) (fuel : Nat) : CoreM ExtractionResult := do
   match fuel with
-  | 0 => pure { functions := functions, diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-generated-specs>" "<fuel>" "automatic monomorphization/helper extraction stopped after the fixpoint fuel was exhausted"] }
+  | 0 => pure {
+      functions := functions,
+      extractDecls := extractDecls,
+      diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-generated-specs>" "<fuel>" "automatic monomorphization/helper extraction stopped after the fixpoint fuel was exhausted"]
+    }
   | fuel' + 1 => do
       let autoMonos ← autoMonoExportSpecsRef.get
       let autoHelpers ← autoHelperExportSpecsRef.get
       let pendingMonos := pendingAutoSpecs seenMonos autoMonos
       let pendingHelpers := pendingAutoSpecs seenHelpers autoHelpers
       if pendingMonos.isEmpty && pendingHelpers.isEmpty then
-        pure { functions := functions, diagnostics := diagnostics }
+        pure { functions := functions, extractDecls := extractDecls, diagnostics := diagnostics }
       else
         let mut functions' := functions
+        let mut extractDecls' := extractDecls
         let mut diagnostics' := diagnostics
         for spec in pendingMonos do
-          let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec "auto-monomorphized-export"
+          let (maybeExtracted, diagnostic) ← extractMonoWithDiagnostic spec "auto-monomorphized-export"
           diagnostics' := diagnostics' ++ [diagnostic]
-          match maybeFun with
-          | some f => functions' := functions' ++ [f]
+          match maybeExtracted with
+          | some (f, extractDecl) =>
+              functions' := functions' ++ [f]
+              extractDecls' := extractDecls' ++ [extractDecl]
           | none => pure ()
         for spec in pendingHelpers do
-          let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec "auto-helper-export"
+          let (maybeExtracted, diagnostic) ← extractMonoWithDiagnostic spec "auto-helper-export"
           diagnostics' := diagnostics' ++ [diagnostic]
-          match maybeFun with
-          | some f => functions' := functions' ++ [f]
+          match maybeExtracted with
+          | some (f, extractDecl) =>
+              functions' := functions' ++ [f]
+              extractDecls' := extractDecls' ++ [extractDecl]
           | none => pure ()
-        extractPendingGeneratedSpecs (seenMonos ++ pendingMonos) (seenHelpers ++ pendingHelpers) functions' diagnostics' fuel'
+        extractPendingGeneratedSpecs (seenMonos ++ pendingMonos) (seenHelpers ++ pendingHelpers) functions' extractDecls' diagnostics' fuel'
 
-private def extractPendingAutoMonos (seen : List MonoExportSpec) (functions : List SurfaceFun) (diagnostics : List ExportDiagnostic) (fuel : Nat) : CoreM ExtractionResult :=
-  extractPendingGeneratedSpecs seen [] functions diagnostics fuel
+private def extractPendingAutoMonos (seen : List MonoExportSpec) (functions : List SurfaceFun)
+    (extractDecls : List LeanRustCore.ExtractIR.ExtractDecl) (diagnostics : List ExportDiagnostic)
+    (fuel : Nat) : CoreM ExtractionResult :=
+  extractPendingGeneratedSpecs seen [] functions extractDecls diagnostics fuel
 
 /-- Tolerant extraction: successful declarations are emitted; unsupported declarations are reported. -/
 def extractWithDiagnostics (decls : List Name) (monos : List MonoExportSpec) : CoreM ExtractionResult := do
   autoMonoExportSpecsRef.set []
   autoHelperExportSpecsRef.set []
   let mut functions : List SurfaceFun := []
+  let mut extractDecls : List LeanRustCore.ExtractIR.ExtractDecl := []
   let mut diagnostics : List ExportDiagnostic := []
   for decl in decls do
-    let (maybeFun, diagnostic) ← extractRegularWithDiagnostic decl
+    let (maybeExtracted, diagnostic) ← extractRegularWithDiagnostic decl
     diagnostics := diagnostics ++ [diagnostic]
-    match maybeFun with
-    | some f => functions := functions ++ [f]
+    match maybeExtracted with
+    | some (f, extractDecl) =>
+        functions := functions ++ [f]
+        extractDecls := extractDecls ++ [extractDecl]
     | none => pure ()
   for spec in monos do
-    let (maybeFun, diagnostic) ← extractMonoWithDiagnostic spec "explicit-monomorphized-export"
+    let (maybeExtracted, diagnostic) ← extractMonoWithDiagnostic spec "explicit-monomorphized-export"
     diagnostics := diagnostics ++ [diagnostic]
-    match maybeFun with
-    | some f => functions := functions ++ [f]
+    match maybeExtracted with
+    | some (f, extractDecl) =>
+        functions := functions ++ [f]
+        extractDecls := extractDecls ++ [extractDecl]
     | none => pure ()
-  extractPendingGeneratedSpecs monos [] functions diagnostics (decls.length + monos.length + 64)
+  extractPendingGeneratedSpecs monos [] functions extractDecls diagnostics (decls.length + monos.length + 64)
 
 /-- Register a concrete Rust export for a generic Lean definition. -/
 syntax (name := rustMonoExport) "rust_mono_export " ident " as " ident " [" ident,* "]" : command
@@ -2841,6 +2905,7 @@ elab_rules : command
 
 /-- Emit Rust, a structured compatibility report, and the checked extractor-owned `SurfaceFun` artifact. -/
 syntax (name := rustEmitExportsWithReportAndSurface) "rust_emit_exports_with_report_and_surface " ident ident ident : command
+syntax (name := rustEmitExportsWithReportAndSurfaceAndExtractIR) "rust_emit_exports_with_report_and_surface " ident ident ident ident : command
 
 elab_rules : command
   | `(rust_emit_exports_with_report_and_surface $out:ident $reportOut:ident $surfaceOut:ident) => do
@@ -2855,5 +2920,19 @@ elab_rules : command
       elabCommand (← `(def $out : String := $rustLit))
       elabCommand (← `(def $reportOut : String := $reportLit))
       elabCommand (← `(def $surfaceOut : List LeanRustCore.SurfaceFun := $surfaceTerm))
+  | `(rust_emit_exports_with_report_and_surface $out:ident $reportOut:ident $surfaceOut:ident $extractIROut:ident) => do
+      let result ← currentExtractionResult
+      let rust ← match emitSurfaceRustModuleChecked result.functions with
+        | .ok source => pure source
+        | .error report => throwError "Rust identifier hygiene failed: {report.detail}"
+      let report := emitCompatibilityReport result
+      let surfaceTerm ← surfaceFunListTerm result.functions
+      let extractIRLit := Syntax.mkStrLit (LeanRustCore.ExtractIR.extractIRSnapshot result.extractDecls)
+      let rustLit := Syntax.mkStrLit rust
+      let reportLit := Syntax.mkStrLit report
+      elabCommand (← `(def $out : String := $rustLit))
+      elabCommand (← `(def $reportOut : String := $reportLit))
+      elabCommand (← `(def $surfaceOut : List LeanRustCore.SurfaceFun := $surfaceTerm))
+      elabCommand (← `(def $extractIROut : String := $extractIRLit))
 
 end LeanRustCore.Extract

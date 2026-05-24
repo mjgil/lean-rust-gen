@@ -36,8 +36,9 @@ scripts/check-first-20-completion.py
 ```
 
 It verifies ExtractIR, runtime denotation coverage, expanded diagnostics,
-source-span metadata, corpus fixtures, generated report metadata, and the docs
-required for every feature in rows 1 through 20.
+source-span metadata, corpus fixtures, generated report metadata, the mandatory
+`rust/extract-ir.txt` snapshot, and the docs required for every feature in rows
+1 through 20.
 
 ## Remaining rows 41-63 gate
 
@@ -86,6 +87,7 @@ truth. `scripts/gen.sh` must regenerate:
 - `rust/proof-report.json`
 - `rust/validation-report.json`
 - `rust/target-validation.txt`
+- `rust/extract-ir.txt`
 - `rust/build-metadata.json`
 - `rust/coverage-dashboard.json`
 

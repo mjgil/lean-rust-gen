@@ -211,11 +211,15 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
     assert!(proof.policy.remaining_completion_rows_41_63);
     assert_eq!(proof.policy.expanded_diagnostic_codes, "LRC001-LRC014");
 
-    assert_eq!(build.generated_artifacts.len(), 9);
+    assert_eq!(build.generated_artifacts.len(), 10);
     assert!(build
         .workspace_crates
         .iter()
         .any(|crate_name| crate_name == "lean-rust-core-validate"));
+    assert!(build
+        .generated_artifacts
+        .iter()
+        .any(|path| path == "rust/extract-ir.txt"));
     assert!(build
         .generated_artifacts
         .iter()
@@ -477,6 +481,7 @@ fn build_metadata_records_pins_and_fallback_policy() {
     assert!(metadata.contains("1.85.0"));
     assert!(metadata.contains("LEAN_RUST_CORE_ALLOW_FALLBACK"));
     assert!(metadata.contains("rust/target-validation.txt"));
+    assert!(metadata.contains("rust/extract-ir.txt"));
     assert!(metadata.contains("rust/src/ffi_generated.rs"));
     assert!(metadata.contains("rust/coverage-dashboard.json"));
 }

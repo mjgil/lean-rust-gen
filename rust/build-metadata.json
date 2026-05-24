@@ -12,6 +12,7 @@
     "rust/tests/differential_generated.rs",
     "rust/validation-report.json",
     "rust/target-validation.txt",
+    "rust/extract-ir.txt",
     "rust/src/ffi_generated.rs",
     "rust/build-metadata.json",
     "rust/coverage-dashboard.json"

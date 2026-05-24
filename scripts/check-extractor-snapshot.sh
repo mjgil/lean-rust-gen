@@ -48,6 +48,11 @@ lake exe gen_target_validation "$tmp_target_validation"
 diff -u rust/target-validation.txt "$tmp_target_validation"
 rm -f "$tmp_target_validation"
 
+tmp_extract_ir="$(mktemp)"
+lake exe gen_extract_ir "$tmp_extract_ir"
+diff -u rust/extract-ir.txt "$tmp_extract_ir"
+rm -f "$tmp_extract_ir"
+
 tmp_boundary="$(mktemp)"
 lake exe gen_boundary_exports "$tmp_boundary"
 format_generated_rust "$tmp_boundary"

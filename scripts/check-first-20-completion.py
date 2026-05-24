@@ -42,6 +42,7 @@ def check_required_files() -> None:
         "corpus/positive/simple_u32.expected.json",
         "corpus/negative/unresolved_typeclass.expected.json",
         "corpus/unsupported/io_effect.expected.json",
+        "rust/extract-ir.txt",
         "rust/tests/first20_completion.rs",
     ]:
         require((ROOT / path).exists(), f"missing first-20 artifact {path}")
@@ -124,6 +125,7 @@ def check_reports() -> None:
     checks = {item["name"] for item in validation.get("checks", [])}
     for check in [
         "extract-ir-pipeline",
+        "extract-ir-mandatory-stage",
         "runtime-value-denotation",
         "expanded-diagnostic-codes",
         "source-span-diagnostics",
@@ -135,6 +137,8 @@ def check_reports() -> None:
     for needle in [
         "LeanRustCore.ExtractIR.functionFeatures",
         "LeanRustCore.ExtractIR.lowerExpr?",
+        "LeanRustCore.ExtractIR.lowerDecl?",
+        "LeanRustCore.ExtractIR.extractIRSnapshot",
         "LeanRustCore.IR.runtimeValueHasType",
         "LeanRustCore.Diagnostics.SourceSpan",
     ]:
@@ -170,10 +174,16 @@ def check_tests_and_docs() -> None:
         "first20_reports_record_required_completion_metadata",
         "first20_diagnostics_are_expanded_and_source_spanned",
         "first20_extract_ir_and_runtime_semantics_are_documented",
+        "extract_ir_snapshot_tracks_generated_function_order",
         "LRC014",
         "runtimeValueHasType",
     ]:
         require(needle in test, f"first20 Rust test missing {needle}")
+
+    extract_ir_snapshot = read("rust/extract-ir.txt")
+    require("FORMAT\tlean-rust-core.extract-ir.v1" in extract_ir_snapshot, "extract-ir snapshot missing format header")
+    require("IR-FN\tclamp_u32" in extract_ir_snapshot, "extract-ir snapshot missing clamp_u32")
+    require("IR-FN\tgeneral_bool_match_u32" in extract_ir_snapshot, "extract-ir snapshot missing general_bool_match_u32")
 
     validation_test = read("rust/tests/validation_report.rs")
     for needle in [

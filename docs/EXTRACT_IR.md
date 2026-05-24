@@ -23,10 +23,41 @@ Each declaration metadata record contains:
 
 ## Lowering rule
 
-Only `ExtractExpr.surface` may enter the Rust emitter. The `lowerExpr?` check is
-intentionally conservative: recognized recursors, unresolved dictionary
-arguments, policy-only Std-lowering placeholders, and explicit rejected nodes must
-be discharged to a checked `SurfaceExpr` or turned into a diagnostic first.
+Every supported declaration is first normalized into an `ExtractDecl` record:
+
+| Field | Requirement |
+|---|---|
+| `source` | Lean declaration name used for reports and diagnostics. |
+| `rustName` | Final Rust-facing symbol that will be emitted if lowering succeeds. |
+| `args` | Rust-facing checked argument list. |
+| `ret` | Rust-facing checked return type. |
+| `body` | Mandatory pre-surface `ExtractExpr` tree. |
+
+`lowerDecl?` is the only supported path from `ExtractDecl` to `SurfaceFun`.
+Only `ExtractExpr.surface` may enter the Rust emitter. The
+`lowerExpr?` check is intentionally conservative: recognized recursors,
+unresolved dictionary arguments, policy-only Std-lowering placeholders, and
+explicit rejected nodes must be discharged to a checked `SurfaceExpr` or turned
+into a diagnostic first.
+
+## Lowering obligations per node
+
+| `ExtractExpr` node | Obligation before Rust emission |
+|---|---|
+| `surface expr` | May lower directly through `lowerExpr?`. |
+| `erasedBinder name ty body` | Must lower by discarding the erased binder wrapper and continuing with `body`. |
+| `recognizedRecursor family args` | Must be discharged to executable `SurfaceExpr`; reaching `lowerExpr?` is a failure. |
+| `recognizedStdLowering family args` | Must be discharged to executable `SurfaceExpr`; reaching `lowerExpr?` is a failure. |
+| `dictionaryArgument cls inst` | Must be specialized or rejected before Rust emission. |
+| `rejected code detail` | Must stay a diagnostic and may not emit Rust. |
+
+## Golden snapshot
+
+`scripts/gen.sh` generates `rust/extract-ir.txt` from the same
+extractor-owned declaration list that later feeds Rust emission. The snapshot is
+checked by `scripts/check-extractor-snapshot.sh`, validated by
+`scripts/check-artifact-consistency.py`, and compared against the generated Rust
+function order in `rust/tests/first20_completion.rs`.
 
 ## Completion rule
 

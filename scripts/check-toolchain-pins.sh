@@ -30,5 +30,6 @@ grep -q "\"lean_toolchain\": \"$expected_lean\"" rust/build-metadata.json
 grep -q "\"rust_toolchain\": \"$expected_rust\"" rust/build-metadata.json
 grep -q 'LEAN_RUST_CORE_ALLOW_FALLBACK' rust/build-metadata.json
 grep -q 'rust/target-validation.txt' rust/build-metadata.json
+grep -q 'rust/extract-ir.txt' rust/build-metadata.json
 grep -q 'rust/src/ffi_generated.rs' rust/build-metadata.json
 grep -q 'rust/coverage-dashboard.json' rust/build-metadata.json
