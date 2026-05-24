@@ -83,6 +83,9 @@ def check_files() -> None:
         "corpus/positive/flag_carrier_invariant.expected.json",
         "corpus/positive/flag_carrier_invariant_match.expected.json",
         "corpus/positive/nested_proof_wrapper.expected.json",
+        "corpus/positive/recursive_binary_tree.expected.json",
+        "corpus/positive/recursive_rose_tree.expected.json",
+        "corpus/positive/recursive_even_odd.expected.json",
         "corpus/unsupported/dependent_generic_index.expected.json",
     ]
     for path in required:
@@ -131,6 +134,7 @@ def check_runtime_and_tests() -> None:
         "next20_reports_mark_rows_21_40_complete",
         "next20_diagnostic_corpus_covers_all_rejection_paths",
         "next20_parameterized_data_examples_cover_multi_parameter_and_nested_shapes",
+        "next20_recursive_discovery_examples_cover_direct_nested_and_mutual_sccs",
         "next20_runtime_helpers_cover_numeric_std_and_layouts",
         "u32_checked_div", "checked_add_u32", "preconditioned_div_u32", "RcTreeU32",
         "ArenaTreeU32", "list_append_u32", "list_partition_nonzero_u32",
@@ -151,6 +155,14 @@ def check_runtime_and_tests() -> None:
         "pub fn flag_carrier_false_value_u32",
         "pub fn flag_carrier_match_invariant_u32",
         "pub fn nested_proof_wrapper_value_u32",
+        "pub struct RoseTreeU32",
+        "pub enum EvenNode",
+        "pub enum OddNode",
+        "pub fn rose_branch_u32",
+        "pub fn even_terminal_u32",
+        "pub fn odd_terminal_u32",
+        "pub fn even_step_u32",
+        "pub fn odd_step_u32",
         "pub struct PairboxU32String",
         "pub struct PairboxStringU32",
         "pub enum PairchoiceU32String",
@@ -175,6 +187,14 @@ def check_runtime_and_tests() -> None:
         "FN\tflag_carrier_false_value_u32",
         "FN\tflag_carrier_match_invariant_u32",
         "FN\tnested_proof_wrapper_value_u32",
+        "TYPE\tstruct\tRoseTreeU32",
+        "TYPE\tenum\tEvenNode",
+        "TYPE\tenum\tOddNode",
+        "FN\trose_branch_u32",
+        "FN\teven_terminal_u32",
+        "FN\todd_terminal_u32",
+        "FN\teven_step_u32",
+        "FN\todd_step_u32",
         "TYPE\tstruct\tPairboxU32String",
         "TYPE\tenum\tPairchoiceU32String",
         "TYPE\tstruct\tNestedpayloadU32String",
@@ -295,6 +315,36 @@ def check_dependent_erasure_positive_corpus() -> None:
         )
 
 
+def check_recursive_positive_corpus() -> None:
+    expected = {
+        "corpus/positive/recursive_binary_tree.expected.json": (
+            "LeanRustCore.Examples.tree_node_u32",
+            {"recursive-owned-box-data", "recursive-direct-scc"},
+        ),
+        "corpus/positive/recursive_rose_tree.expected.json": (
+            "LeanRustCore.Examples.rose_branch_u32",
+            {"container-shape", "recursive-nested-scc", "recursive-owned-box-data"},
+        ),
+        "corpus/positive/recursive_even_odd.expected.json": (
+            "LeanRustCore.Examples.even_step_u32",
+            {"general-pattern-match", "recursive-mutual-scc", "recursive-owned-box-data"},
+        ),
+    }
+    for path, (source, features) in expected.items():
+        fixture = load_json(path)
+        require(fixture["kind"] == "positive", f"{path} must be positive")
+        require(fixture["source"] == source, f"{path} must reference {source}")
+        require(fixture["expected_status"] == "supported", f"{path} must be supported")
+        require(
+            set(fixture["required_features"]) == features,
+            f"{path} must record required features {sorted(features)}",
+        )
+        require(
+            "docs/RECURSIVE_DATA.md" in fixture["documentation"],
+            f"{path} must reference docs/RECURSIVE_DATA.md",
+        )
+
+
 def check_docs() -> None:
     for path in [
         "docs/GENERICS.md", "docs/NUMERIC_SEMANTICS.md", "docs/DEPENDENT_ERASURE.md", "docs/RECURSIVE_DATA.md",
@@ -324,6 +374,9 @@ def check_docs() -> None:
     dependent = read("docs/DEPENDENT_ERASURE.md").lower()
     for phrase in ["equality cast", "sigma", "indexed family", "invariant runtime shape", "nested proof", "proof/index/runtime"]:
         require(phrase in dependent, f"docs/DEPENDENT_ERASURE.md missing phrase {phrase}")
+    recursive = read("docs/RECURSIVE_DATA.md").lower()
+    for phrase in ["direct recursion", "nested recursion", "mutual recursion", "cycle-breaking", "list/array/vec", "layout selection"]:
+        require(phrase in recursive, f"docs/RECURSIVE_DATA.md missing phrase {phrase}")
 
 
 def check_reports() -> None:
@@ -379,6 +432,7 @@ def main() -> None:
     check_diagnostic_corpus()
     check_parameterized_data_corpus()
     check_dependent_erasure_positive_corpus()
+    check_recursive_positive_corpus()
     check_docs()
     check_reports()
     check_scripts()

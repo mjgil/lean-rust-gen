@@ -27,14 +27,17 @@ structure RecursiveTypePolicy where
   constructors : List String
   deriving Repr, BEq
 
-/-- Current sprint-15 recursive user-data fixtures. -/
+/-- Current recursive user-data fixtures accepted by the safe direct lane. -/
 def supportedRecursiveTypes : List RecursiveTypePolicy := [
   { lean_name := "LeanRustCore.Examples.BinaryTreeU32", rust_name := "BinaryTreeU32", layout := .boxOwned, constructors := ["leaf", "node"] },
-  { lean_name := "LeanRustCore.Examples.ExprU32", rust_name := "ExprU32", layout := .boxOwned, constructors := ["lit", "add"] }
+  { lean_name := "LeanRustCore.Examples.ExprU32", rust_name := "ExprU32", layout := .boxOwned, constructors := ["lit", "add"] },
+  { lean_name := "LeanRustCore.Examples.RoseTreeU32", rust_name := "RoseTreeU32", layout := .boxOwned, constructors := ["node"] },
+  { lean_name := "LeanRustCore.Examples.EvenNode", rust_name := "EvenNode", layout := .boxOwned, constructors := ["terminal", "step"] },
+  { lean_name := "LeanRustCore.Examples.OddNode", rust_name := "OddNode", layout := .boxOwned, constructors := ["terminal", "step"] }
 ]
 
 /-- Human-readable summary used by reports and docs. -/
 def recursiveDataSummary : String :=
-  "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work"
+  "direct, nested, and mutual index-free recursive inductive SCCs lower from Lean declarations in the safe Rust lane; cycle-breaking payload edges use owned Box<T>, while List/Array/Vec fields satisfy the recursive indirection requirement without unsafe layouts"
 
 end LeanRustCore.RecursiveData

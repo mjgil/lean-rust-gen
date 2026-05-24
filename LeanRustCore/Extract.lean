@@ -167,6 +167,21 @@ private partial def exprContainsConst (needle : Name) (e0 : Expr) : Bool :=
   | .mdata _ inner => exprContainsConst needle inner
   | _ => false
 
+private def exprContainsAnyConst (needles : List Name) (e : Expr) : Bool :=
+  needles.any (fun needle => exprContainsConst needle e)
+
+private def inductiveInfoIsRecursive (env : Environment) (info : InductiveVal) : Bool :=
+  if info.all.length > 1 then
+    true
+  else
+    info.ctors.any (fun ctorName =>
+      match env.find? ctorName with
+      | some (.ctorInfo ctorInfo) =>
+          let (binders, _) := peelForalls ctorInfo.type
+          let fieldBinders := (binders.drop ctorInfo.numParams).take ctorInfo.numFields
+          fieldBinders.any (fun field => exprContainsAnyConst info.all field.2)
+      | _ => false)
+
 private def runtimeSignatureUsesNat (binders : List (Name × Expr)) (retTy : Expr) : Bool :=
   let binderUsesNat := binders.any (fun binder =>
     !isTypeParamBinder binder.2 && !isProofTypeShape binder.2 && exprContainsConst ``Nat binder.2)
@@ -250,29 +265,6 @@ private def exprU32Type : RType :=
     ("add", [.boxed (.recursive "ExprU32"), .boxed (.recursive "ExprU32")])
   ]
 
-private def knownRecursiveInductive? (inductName : Name) : Option RType :=
-  match nameLeaf inductName with
-  | "BinaryTreeU32" => some binaryTreeU32Type
-  | "ExprU32" => some exprU32Type
-  | _ => none
-
-private def knownRecursiveCtorFields? (ctorName : Name) : Option (RType × List RArg) :=
-  match nameLeaf (nameParent ctorName), nameLeaf ctorName with
-  | "BinaryTreeU32", "leaf" => some (binaryTreeU32Type, [])
-  | "BinaryTreeU32", "node" =>
-      some (binaryTreeU32Type, [
-        ("left", .boxed (.recursive "BinaryTreeU32")),
-        ("value", .u32),
-        ("right", .boxed (.recursive "BinaryTreeU32"))
-      ])
-  | "ExprU32", "lit" => some (exprU32Type, [("value", .u32)])
-  | "ExprU32", "add" =>
-      some (exprU32Type, [
-        ("left", .boxed (.recursive "ExprU32")),
-        ("right", .boxed (.recursive "ExprU32"))
-      ])
-  | _, _ => none
-
 private def recursiveRuntimeName? : RType → Option String
   | .recursive name => some name
   | .enum name _ => some name
@@ -298,13 +290,14 @@ private def indexedRuntimePayloadFields (payload : List RType) : List (RArg × N
   indexedRuntimePayloadFieldsAux 0 payload
 
 mutual
-  partial def typeOfLeanWithCtx (typeCtx : TypeCtx) (ty0 : Expr) : CoreM RType := do
+  partial def typeOfLeanWithMode (typeCtx : TypeCtx) (recursiveGroup? : Option (List Name))
+      (indirect : Bool) (ty0 : Expr) : CoreM RType := do
     let ty := stripMData ty0
     match ty with
     | .bvar idx => typeParamAt typeCtx idx
     | .forallE _ domain body _ => do
-        let argTy ← typeOfLeanWithCtx typeCtx domain
-        let retTy ← typeOfLeanWithCtx (none :: typeCtx) body
+        let argTy ← typeOfLeanWithMode typeCtx recursiveGroup? indirect domain
+        let retTy ← typeOfLeanWithMode (none :: typeCtx) recursiveGroup? indirect body
         pure (.func argTy retTy)
     | _ =>
         if ty.isConstOf ``Nat then
@@ -336,42 +329,51 @@ mutual
           | .const n _ =>
               if n == ``Option then
                 match args with
-                | [inner] => return .option (← typeOfLeanWithCtx typeCtx inner)
+                | [inner] => return .option (← typeOfLeanWithMode typeCtx recursiveGroup? indirect inner)
                 | _ => throwError "unsupported Option type shape in rust_export extraction"
               else if n == ``Except then
                 match args with
-                | [errTy, okTy] => return .result (← typeOfLeanWithCtx typeCtx okTy) (← typeOfLeanWithCtx typeCtx errTy)
+                | [errTy, okTy] =>
+                    return .result
+                      (← typeOfLeanWithMode typeCtx recursiveGroup? indirect okTy)
+                      (← typeOfLeanWithMode typeCtx recursiveGroup? indirect errTy)
                 | _ => throwError "unsupported Except type shape in rust_export extraction"
               else if n == ``List then
                 match args with
-                | [inner] => return .list (← typeOfLeanWithCtx typeCtx inner)
+                | [inner] => return .list (← typeOfLeanWithMode typeCtx recursiveGroup? true inner)
                 | _ => throwError "unsupported List type shape in rust_export extraction"
               else if n == ``Array then
                 match args with
-                | [inner] => return .array (← typeOfLeanWithCtx typeCtx inner)
+                | [inner] => return .array (← typeOfLeanWithMode typeCtx recursiveGroup? true inner)
                 | _ => throwError "unsupported Array type shape in rust_export extraction"
               else if n == ``Prod then
                 match args with
-                | [a, b] => return .prod (← typeOfLeanWithCtx typeCtx a) (← typeOfLeanWithCtx typeCtx b)
+                | [a, b] =>
+                    return .prod
+                      (← typeOfLeanWithMode typeCtx recursiveGroup? indirect a)
+                      (← typeOfLeanWithMode typeCtx recursiveGroup? indirect b)
                 | _ => throwError "unsupported Prod type shape in rust_export extraction"
               else if n == ``Sigma then
                 match args with
                 | [domain, codomain] =>
                     let codomainTy ←
                       match stripMData codomain with
-                      | .lam _ _ body _ => typeOfLeanWithCtx (none :: typeCtx) body
-                      | other => typeOfLeanWithCtx (none :: typeCtx) other
+                      | .lam _ _ body _ => typeOfLeanWithMode (none :: typeCtx) recursiveGroup? indirect body
+                      | other => typeOfLeanWithMode (none :: typeCtx) recursiveGroup? indirect other
                     return .prod
-                      (← typeOfLeanWithCtx typeCtx domain)
+                      (← typeOfLeanWithMode typeCtx recursiveGroup? indirect domain)
                       codomainTy
                 | _ => throwError "unsupported Sigma type shape in rust_export extraction"
               else if n == ``Sum then
                 match args with
-                | [a, b] => return .sum (← typeOfLeanWithCtx typeCtx a) (← typeOfLeanWithCtx typeCtx b)
+                | [a, b] =>
+                    return .sum
+                      (← typeOfLeanWithMode typeCtx recursiveGroup? indirect a)
+                      (← typeOfLeanWithMode typeCtx recursiveGroup? indirect b)
                 | _ => throwError "unsupported Sum type shape in rust_export extraction"
               else if n == ``Subtype then
                 match args with
-                | [inner, _pred] => return .subtype (← typeOfLeanWithCtx typeCtx inner)
+                | [inner, _pred] => return .subtype (← typeOfLeanWithMode typeCtx recursiveGroup? indirect inner)
                 | _ => throwError "unsupported Subtype shape in rust_export extraction"
               else if n == ``Fin then
                 match args with
@@ -384,27 +386,43 @@ mutual
                 match args with
                 | [inner, boundExpr] =>
                     match natLiteral? boundExpr with
-                    | some bound => return .vector (← typeOfLeanWithCtx typeCtx inner) bound
+                    | some bound => return .vector (← typeOfLeanWithMode typeCtx recursiveGroup? true inner) bound
                     | none => throwError "Vector length indices must be numeral literals in the current rust_export subset"
                 | _ => throwError "unsupported Vector type shape in rust_export extraction"
               else if nameLeaf n == "FlagCarrier" then
                 match args with
-                | [_index] => return .u32
-                | _ => throwError "unsupported FlagCarrier shape in rust_export extraction"
+                  | [_index] => return .u32
+                  | _ => throwError "unsupported FlagCarrier shape in rust_export extraction"
               else
-                match knownRecursiveInductive? n with
-                | some ty => return ty
-                | none =>
-                    match (← getEnv).find? n with
-                    | some (.inductInfo info) => do
-                        let paramExprs := args.take info.numParams
-                        if paramExprs.length == info.numParams then
-                          let concreteParams ← paramExprs.mapM (typeOfLeanWithCtx typeCtx)
-                          typeOfInductiveWithArgs n concreteParams
-                        else
-                          throwError "inductive type `{n}` expected {info.numParams} parameters but got {paramExprs.length}"
-                    | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
+                let env ← getEnv
+                match env.find? n with
+                | some (.inductInfo info) => do
+                    let paramExprs := args.take info.numParams
+                    if paramExprs.length == info.numParams then
+                      let concreteParams ← paramExprs.mapM (typeOfLeanWithMode typeCtx recursiveGroup? indirect)
+                      match recursiveGroup? with
+                      | some recursiveGroup =>
+                          if containsName recursiveGroup n then
+                            let recursiveTy := .recursive (monomorphizedInductiveName n concreteParams)
+                            return if indirect then recursiveTy else .boxed recursiveTy
+                          else
+                            typeOfInductiveWithArgs n concreteParams
+                      | none =>
+                          if indirect && inductiveInfoIsRecursive env info then
+                            pure (.recursive (monomorphizedInductiveName n concreteParams))
+                          else
+                            typeOfInductiveWithArgs n concreteParams
+                    else
+                      throwError "inductive type `{n}` expected {info.numParams} parameters but got {paramExprs.length}"
+                | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
           | _ => throwError "unsupported Lean type in rust_export extraction: {ty}"
+
+  partial def typeOfLeanWithCtx (typeCtx : TypeCtx) (ty0 : Expr) : CoreM RType :=
+    typeOfLeanWithMode typeCtx none false ty0
+
+  partial def typeOfLeanRecursiveField (typeCtx : TypeCtx) (recursiveGroup : List Name)
+      (indirect : Bool) (ty0 : Expr) : CoreM RType :=
+    typeOfLeanWithMode typeCtx (some recursiveGroup) indirect ty0
 
   partial def typeOfLeanM (ty0 : Expr) : CoreM RType :=
     typeOfLeanWithCtx [] ty0
@@ -413,10 +431,6 @@ mutual
     typeOfInductiveWithArgs inductName []
 
   partial def typeOfInductiveWithArgs (inductName : Name) (typeArgs : List RType) : CoreM RType := do
-    if typeArgs.isEmpty then
-      match knownRecursiveInductive? inductName with
-      | some ty => return ty
-      | none => pure ()
     let env ← getEnv
     match env.find? inductName with
     | some (.inductInfo info) =>
@@ -442,24 +456,20 @@ mutual
     ctorPayloadFieldsWithParams ctorName []
 
   partial def ctorPayloadFieldsWithParams (ctorName : Name) (typeArgs : List RType) : CoreM (List RArg) := do
-    if typeArgs.isEmpty then
-      match knownRecursiveCtorFields? ctorName with
-      | some (_, fields) => return fields
-      | none => pure ()
     pure ((← ctorRuntimePayloadFieldsWithParams ctorName typeArgs).map (fun field => field.1))
 
   /-- Runtime constructor fields paired with their original constructor-field index. Proof-only fields are erased. -/
   partial def ctorRuntimePayloadFieldsWithParams (ctorName : Name) (typeArgs : List RType) : CoreM (List (RArg × Nat)) := do
-    if typeArgs.isEmpty then
-      match knownRecursiveCtorFields? ctorName with
-      | some (_, fields) => return indexedRuntimePayloadFields (fields.map (fun field => field.2))
-      | none => pure ()
     let env ← getEnv
     match env.find? ctorName with
     | some (.ctorInfo info) =>
         if info.numParams == typeArgs.length then
           let (binders, _) := peelForalls info.type
           let fieldBinders := (binders.drop info.numParams).take info.numFields
+          let recursiveGroup :=
+            match env.find? (nameParent ctorName) with
+            | some (.inductInfo inductInfo) => inductInfo.all
+            | _ => [nameParent ctorName]
           let mut out : List (RArg × Nat) := []
           let mut fieldCtx := typeCtxFromParams typeArgs
           let mut idx : Nat := 0
@@ -470,7 +480,7 @@ mutual
             else
               let fallback := "field" ++ toString idx
               let fieldName := sanitizeRustIdent fallback (nameLeaf field.1)
-              let fieldTy ← typeOfLeanWithCtx fieldCtx field.2
+              let fieldTy ← typeOfLeanRecursiveField fieldCtx recursiveGroup false field.2
               out := out ++ [((fieldName, fieldTy), idx)]
               fieldCtx := none :: fieldCtx
               idx := idx + 1
@@ -2745,6 +2755,11 @@ private def recursiveDataExport (declName : Name) : Bool :=
   leaf == "tree_node_u32" ||
   leaf == "tree_size_u32" ||
   leaf == "tree_sum_u32" ||
+  leaf == "rose_branch_u32" ||
+  leaf == "even_terminal_u32" ||
+  leaf == "odd_terminal_u32" ||
+  leaf == "even_step_u32" ||
+  leaf == "odd_step_u32" ||
   leaf == "expr_lit_u32" ||
   leaf == "expr_add_u32" ||
   leaf == "expr_eval_u32"

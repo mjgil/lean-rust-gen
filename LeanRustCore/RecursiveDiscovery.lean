@@ -75,21 +75,23 @@ def edgeIsRecursive (edge : RecursiveEdge) : Bool :=
 def completedEdges : List RecursiveEdge := [
   { fromType := "BinaryTreeU32", toType := "BinaryTreeU32", fieldName := "left", kind := .direct },
   { fromType := "BinaryTreeU32", toType := "BinaryTreeU32", fieldName := "right", kind := .direct },
-  { fromType := "ExprU32", toType := "ExprU32", fieldName := "lhs", kind := .direct },
-  { fromType := "ExprU32", toType := "ExprU32", fieldName := "rhs", kind := .direct },
+  { fromType := "ExprU32", toType := "ExprU32", fieldName := "left", kind := .direct },
+  { fromType := "ExprU32", toType := "ExprU32", fieldName := "right", kind := .direct },
+  { fromType := "RoseTreeU32", toType := "RoseTreeU32", fieldName := "children", kind := .nested },
   { fromType := "EvenNode", toType := "OddNode", fieldName := "next", kind := .mutual },
-  { fromType := "RoseTreeU32", toType := "RoseTreeU32", fieldName := "children", kind := .nested }
+  { fromType := "OddNode", toType := "EvenNode", fieldName := "next", kind := .mutual }
 ]
 
 def layoutDecisions : List RecursiveLayoutDecision := [
-  { scc := ["BinaryTreeU32"], layout := .boxOwned, reason := "finite owned tree fixtures use Box<T> recursive payloads", requiredTests := ["tree_size_u32", "tree_sum_u32", "property_validation"], requiredDocs := ["docs/RECURSIVE_DATA.md"] },
-  { scc := ["ExprU32"], layout := .boxOwned, reason := "owned expression AST fixtures use Box<T> recursive payloads", requiredTests := ["expr_eval_u32", "property_validation"], requiredDocs := ["docs/RECURSIVE_DATA.md"] },
+  { scc := ["BinaryTreeU32"], layout := .boxOwned, reason := "direct self-recursive fields require explicit Box<T> payload indirection in the safe Rust lane", requiredTests := ["tree_size_u32", "tree_sum_u32", "rust/tests/generated.rs"], requiredDocs := ["docs/RECURSIVE_DATA.md"] },
+  { scc := ["ExprU32"], layout := .boxOwned, reason := "direct recursive expression AST payloads use Box<T> on cycle-breaking edges", requiredTests := ["expr_eval_u32", "rust/tests/generated.rs"], requiredDocs := ["docs/RECURSIVE_DATA.md"] },
+  { scc := ["RoseTreeU32"], layout := .boxOwned, reason := "nested recursion through List/Vec fields is accepted because the collection already provides heap indirection for the SCC edge", requiredTests := ["rose_branch_u32", "rust/tests/generated.rs", "rust/tests/next20_completion.rs"], requiredDocs := ["docs/RECURSIVE_DATA.md"] },
+  { scc := ["EvenNode", "OddNode"], layout := .boxOwned, reason := "mutual SCCs are discovered from Lean constructor payloads and use Box<T> between members when no existing container indirection is present", requiredTests := ["even_step_u32", "odd_step_u32", "rust/tests/generated.rs", "rust/tests/next20_completion.rs"], requiredDocs := ["docs/RECURSIVE_DATA.md"] },
   { scc := ["SharedTreeU32"], layout := .rcShared, reason := "explicit shared layout uses Rc<T> without unsafe self references", requiredTests := ["runtime rc_tree_shared_layout_is_safe"], requiredDocs := ["docs/RECURSIVE_DATA.md"] },
-  { scc := ["ArenaTreeU32"], layout := .arenaIndexed, reason := "arena layout stores nodes by stable indices and rejects dangling references", requiredTests := ["runtime arena_tree_indices_are_checked"], requiredDocs := ["docs/RECURSIVE_DATA.md"] },
-  { scc := ["EvenNode", "OddNode"], layout := .boxOwned, reason := "mutual SCCs use Box indirection between members by default", requiredTests := ["recursive discovery policy test"], requiredDocs := ["docs/RECURSIVE_DATA.md"] }
+  { scc := ["ArenaTreeU32"], layout := .arenaIndexed, reason := "arena layout stores nodes by stable indices and rejects dangling references", requiredTests := ["runtime arena_tree_indices_are_checked"], requiredDocs := ["docs/RECURSIVE_DATA.md"] }
 ]
 
 def recursiveDiscoverySummary : String :=
-  "recursive data completion models direct/nested/mutual SCC edges, keeps Box<T> as default, and adds explicit safe Rc<T> and arena-index layout modes with tests/docs before either mode may be selected"
+  "recursive graph discovery now reads direct, nested, and mutual index-free inductive SCC edges from Lean constructor payloads, keeps Box<T> as the default cycle-breaking layout, treats List/Array/Vec as accepted nested indirection, and reserves Rc/arena layouts for explicit runtime policies with dedicated tests/docs"
 
 end LeanRustCore.RecursiveDiscovery

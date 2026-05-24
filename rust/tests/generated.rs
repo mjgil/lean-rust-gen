@@ -163,6 +163,45 @@ fn recursive_user_data_uses_owned_box_layout() {
         expr_add_u32(expr_lit_u32(1), expr_lit_u32(1)),
     );
     assert_eq!(expr_eval_u32(expr), 42);
+
+    let rose = rose_branch_u32(
+        40,
+        vec![
+            RoseTreeU32 {
+                value: 1,
+                children: vec![],
+            },
+            RoseTreeU32 {
+                value: 2,
+                children: vec![],
+            },
+        ],
+    );
+    assert_eq!(
+        rose,
+        RoseTreeU32 {
+            value: 40,
+            children: vec![
+                RoseTreeU32 {
+                    value: 1,
+                    children: vec![],
+                },
+                RoseTreeU32 {
+                    value: 2,
+                    children: vec![],
+                },
+            ],
+        }
+    );
+
+    let mutual = even_step_u32(10, odd_step_u32(41, even_terminal_u32(2)));
+    assert_eq!(
+        mutual,
+        EvenNode::Step(
+            10,
+            Box::new(OddNode::Step(41, Box::new(EvenNode::Terminal(2))))
+        )
+    );
 }
 
 #[test]

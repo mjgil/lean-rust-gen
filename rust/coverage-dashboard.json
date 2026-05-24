@@ -4,7 +4,7 @@
   "lean_toolchain": "leanprover/lean4:v4.22.0",
   "rust_toolchain": "1.85.0",
   "target_validation_format": "lean-rust-core.target-validation.v2",
-  "recursive_data_policy": "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work",
+  "recursive_data_policy": "direct, nested, and mutual index-free recursive inductive SCCs lower from Lean declarations in the safe Rust lane; cycle-breaking payload edges use owned Box<T>, while List/Array/Vec fields satisfy the recursive indirection requirement without unsafe layouts",
   "metrics": [
     { "denominator": "checklist_rows_1_20", "covered": 20, "total": 20, "percent": 100, "status": "fully-implemented-with-tests-and-docs" },
     { "denominator": "checklist_rows_21_40", "covered": 20, "total": 20, "percent": 100, "status": "fully-implemented-with-tests-and-docs" },
@@ -23,12 +23,12 @@
     { "denominator": "release_acceptance_gates", "covered": 12, "total": 12, "percent": 100, "status": "scripted-release-matrix" }
   ],
   "entries": [
-    { "feature": "recursive-owned-box-data", "status": "supported-known-slice", "examples": ["BinaryTreeU32", "ExprU32", "tree_size_u32", "expr_eval_u32"],
+    { "feature": "recursive-owned-box-data", "status": "supported-known-slice", "examples": ["BinaryTreeU32", "ExprU32", "RoseTreeU32", "EvenNode", "OddNode", "tree_size_u32", "expr_eval_u32", "rose_branch_u32", "even_step_u32", "odd_step_u32"],
       "evidence": {
-      "implementation": ["LeanRustCore/RecursiveData.lean"],
-      "tests": ["rust/tests/generated.rs", "rust/tests/validation_report.rs"],
+      "implementation": ["LeanRustCore/RecursiveData.lean", "LeanRustCore/Extract.lean"],
+      "tests": ["rust/tests/generated.rs", "rust/tests/next20_completion.rs", "rust/tests/validation_report.rs"],
       "docs": ["docs/RECURSIVE_DATA.md", "docs/ARCHITECTURE.md"],
-      "generated_examples": ["rust/src/generated.rs", "rust/target-validation.txt"],
+      "generated_examples": ["rust/src/generated.rs", "rust/target-validation.txt", "corpus/positive/recursive_rose_tree.expected.json", "corpus/positive/recursive_even_odd.expected.json"],
       "diagnostics": ["recursive-user-data-box-layout"]
       } },
     { "feature": "target-validation-v2", "status": "supported", "examples": ["FORMAT lean-rust-core.target-validation.v2", "box/deref fingerprints"],
@@ -215,12 +215,12 @@
       "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
       "diagnostics": ["next20-dependent-erasure"]
       } },
-    { "feature": "recursive-discovery-layouts", "status": "supported-complete", "examples": ["RecursiveDiscovery.layoutDecisions", "RcTreeU32", "ArenaTreeU32"],
+    { "feature": "recursive-discovery-layouts", "status": "supported-complete", "examples": ["RecursiveDiscovery.layoutDecisions", "RoseTreeU32", "EvenNode", "OddNode", "RcTreeU32", "ArenaTreeU32"],
       "evidence": {
-      "implementation": ["LeanRustCore/RecursiveDiscovery.lean", "crates/runtime/src/lib.rs"],
-      "tests": ["rust/tests/next20_completion.rs", "scripts/check-next-20-completion.py"],
+      "implementation": ["LeanRustCore/RecursiveDiscovery.lean", "LeanRustCore/Extract.lean", "crates/runtime/src/lib.rs"],
+      "tests": ["rust/tests/next20_completion.rs", "scripts/check-next-20-completion.py", "rust/tests/target_interpreter.rs"],
       "docs": ["docs/RECURSIVE_DATA.md", "docs/ARCHITECTURE.md"],
-      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
+      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/recursive_binary_tree.expected.json", "corpus/positive/recursive_rose_tree.expected.json", "corpus/positive/recursive_even_odd.expected.json"],
       "diagnostics": ["next20-recursive-discovery"]
       } },
     { "feature": "ownership-borrowing-policy", "status": "supported-complete", "examples": ["OwnershipPolicy.rules", "borrowed_vec_len_u32", "docs/OWNERSHIP.md"],

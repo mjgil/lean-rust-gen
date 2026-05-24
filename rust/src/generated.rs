@@ -2,6 +2,12 @@
 // The checked-in rust/src/generated.rs is a fallback snapshot; scripts/gen.sh regenerates it.
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RoseTreeU32 {
+    pub value: u32,
+    pub children: Vec<RoseTreeU32>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PairboxStringU32 {
     pub left: String,
     pub right: u32,
@@ -73,6 +79,12 @@ pub enum U32FnCase {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum OddNode {
+    Terminal(u32),
+    Step(u32, Box<EvenNode>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TaggedU32 {
     Missing,
     Present(u32),
@@ -82,6 +94,12 @@ pub enum TaggedU32 {
 pub enum BinaryTreeU32 {
     Leaf,
     Node(Box<BinaryTreeU32>, u32, Box<BinaryTreeU32>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum EvenNode {
+    Terminal(u32),
+    Step(u32, Box<OddNode>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -241,6 +259,13 @@ pub fn tree_node_u32(left: BinaryTreeU32, value: u32, right: BinaryTreeU32) -> B
 
 pub fn decidable_eq_u32(a: u32, b: u32) -> bool {
     a == b
+}
+
+pub fn rose_branch_u32(value: u32, children: Vec<RoseTreeU32>) -> RoseTreeU32 {
+    RoseTreeU32 {
+        value: value,
+        children: children,
+    }
 }
 
 pub fn echo_list_u32(xs: Vec<u32>) -> Vec<u32> {
@@ -423,7 +448,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg2236) => fallback,
+        PairchoiceU32String::Right(_hyg2447) => fallback,
     }
 }
 
@@ -472,6 +497,10 @@ pub fn defun_apply_add5_u32(x: u32) -> u32 {
 
 pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32) {
     x
+}
+
+pub fn odd_step_u32(value: u32, next: EvenNode) -> OddNode {
+    OddNode::Step(value, Box::new(next))
 }
 
 pub fn option_getd_u32(x: Option<u32>, fallback: u32) -> u32 {
@@ -623,6 +652,10 @@ pub fn step_stay(_x: ()) -> Step {
     Step::Stay
 }
 
+pub fn odd_terminal_u32(value: u32) -> OddNode {
+    OddNode::Terminal(value)
+}
+
 pub fn point_y(p: Point) -> u32 {
     (p).y
 }
@@ -709,6 +742,10 @@ pub fn option_default_u32(x: Option<u32>, fallback: u32) -> u32 {
         None => fallback,
         Some(value) => value,
     }
+}
+
+pub fn even_step_u32(value: u32, next: OddNode) -> EvenNode {
+    EvenNode::Step(value, Box::new(next))
 }
 
 pub fn nested_none_u32(_x: ()) -> Option<Option<u32>> {
@@ -842,6 +879,10 @@ pub fn nested_payload_ok_u32_string(x: u32) -> NestedpayloadU32String {
         primary: Some(x),
         secondary: Ok(x),
     }
+}
+
+pub fn even_terminal_u32(value: u32) -> EvenNode {
+    EvenNode::Terminal(value)
 }
 
 pub fn checked_div_u32(a: u32, b: u32) -> Option<u32> {

@@ -24,6 +24,7 @@ pub enum Value {
     Nat(BigUint),
     Int(BigInt),
     VecU32(Vec<u32>),
+    VecRoseTreeU32(Vec<RoseTreeU32>),
     OptionU32(Option<u32>),
     OptionU64(Option<u64>),
     OptionStep(Option<Step>),
@@ -47,6 +48,9 @@ pub enum Value {
     TaggedU32(TaggedU32),
     BinaryTreeU32(BinaryTreeU32),
     ExprU32(ExprU32),
+    RoseTreeU32(RoseTreeU32),
+    EvenNode(EvenNode),
+    OddNode(OddNode),
     U32FnCase(U32FnCase),
     UnaryFnU32(UnaryFnU32),
     Boxed(Box<Value>),
@@ -107,6 +111,16 @@ fn sample_value_for(name: &str, ty: &str) -> Result<Value, String> {
                 Value::VecU32(vec![0, 1, 2])
             }
         }
+        "Vec<RoseTreeU32>" => Value::VecRoseTreeU32(vec![
+            RoseTreeU32 {
+                value: 1,
+                children: vec![],
+            },
+            RoseTreeU32 {
+                value: 2,
+                children: vec![],
+            },
+        ]),
         "Option<u32>" => Value::OptionU32(Some(41)),
         "Option<u64>" => Value::OptionU64(Some(41)),
         "Option<Step>" => Value::OptionStep(Some(step_jump(41))),
@@ -135,6 +149,21 @@ fn sample_value_for(name: &str, ty: &str) -> Result<Value, String> {
             Value::BinaryTreeU32(tree_node_u32(tree_leaf_u32(()), 41, tree_leaf_u32(())))
         }
         "ExprU32" => Value::ExprU32(expr_add_u32(expr_lit_u32(40), expr_lit_u32(2))),
+        "RoseTreeU32" => Value::RoseTreeU32(rose_branch_u32(
+            40,
+            vec![
+                RoseTreeU32 {
+                    value: 1,
+                    children: vec![],
+                },
+                RoseTreeU32 {
+                    value: 2,
+                    children: vec![],
+                },
+            ],
+        )),
+        "EvenNode" => Value::EvenNode(even_step_u32(40, odd_terminal_u32(2))),
+        "OddNode" => Value::OddNode(odd_step_u32(41, even_terminal_u32(2))),
         "U32FnCase" => Value::U32FnCase(U32FnCase::Add(5)),
         "fn(u32) -> u32" => Value::UnaryFnU32(UnaryFnU32::Inc),
         other => {
@@ -265,6 +294,18 @@ pub fn v_expr_u32(value: ExprU32) -> Value {
     Value::ExprU32(value)
 }
 
+pub fn v_rosetree_u32(value: RoseTreeU32) -> Value {
+    Value::RoseTreeU32(value)
+}
+
+pub fn v_even_node(value: EvenNode) -> Value {
+    Value::EvenNode(value)
+}
+
+pub fn v_odd_node(value: OddNode) -> Value {
+    Value::OddNode(value)
+}
+
 pub fn as_unit(value: &Value) -> Result<(), String> {
     match value {
         Value::Unit => Ok(()),
@@ -339,6 +380,13 @@ pub fn as_vec_u32(value: &Value) -> Result<Vec<u32>, String> {
     match value {
         Value::VecU32(value) => Ok(value.clone()),
         other => Err(format!("expected Vec<u32>, found {other:?}")),
+    }
+}
+
+pub fn as_vec_rosetree_u32(value: &Value) -> Result<Vec<RoseTreeU32>, String> {
+    match value {
+        Value::VecRoseTreeU32(value) => Ok(value.clone()),
+        other => Err(format!("expected Vec<RoseTreeU32>, found {other:?}")),
     }
 }
 
@@ -451,6 +499,20 @@ pub fn as_expr_u32(value: &Value) -> Result<ExprU32, String> {
     match value {
         Value::ExprU32(value) => Ok(value.clone()),
         other => Err(format!("expected ExprU32, found {other:?}")),
+    }
+}
+
+pub fn as_even_node(value: &Value) -> Result<EvenNode, String> {
+    match value {
+        Value::EvenNode(value) => Ok(value.clone()),
+        other => Err(format!("expected EvenNode, found {other:?}")),
+    }
+}
+
+pub fn as_odd_node(value: &Value) -> Result<OddNode, String> {
+    match value {
+        Value::OddNode(value) => Ok(value.clone()),
+        other => Err(format!("expected OddNode, found {other:?}")),
     }
 }
 

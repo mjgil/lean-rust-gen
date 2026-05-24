@@ -53,6 +53,21 @@ inductive ExprU32 where
   | lit (value : UInt32)
   | add (left : ExprU32) (right : ExprU32)
 
+inductive RoseTreeU32 where
+  | node (value : UInt32) (children : List RoseTreeU32)
+
+mutual
+
+inductive EvenNode where
+  | terminal (value : UInt32)
+  | step (value : UInt32) (next : OddNode)
+
+inductive OddNode where
+  | terminal (value : UInt32)
+  | step (value : UInt32) (next : EvenNode)
+
+end
+
 structure Bounded_Proof where
   value : UInt32
   proof : value = value
@@ -470,6 +485,41 @@ def expr_eval_u32 (e : ExprU32) : UInt32 :=
   match e with
   | ExprU32.lit value => value
   | ExprU32.add left right => expr_eval_u32 left + expr_eval_u32 right
+
+def rose_leaf_u32 (value : UInt32) : RoseTreeU32 :=
+  RoseTreeU32.node value []
+
+@[rust_export]
+def rose_branch_u32 (value : UInt32) (children : List RoseTreeU32) : RoseTreeU32 :=
+  RoseTreeU32.node value children
+
+def rose_child_count_u32 (tree : RoseTreeU32) : Nat :=
+  match tree with
+  | RoseTreeU32.node _ children => children.length
+
+@[rust_export]
+def even_terminal_u32 (value : UInt32) : EvenNode :=
+  EvenNode.terminal value
+
+@[rust_export]
+def odd_terminal_u32 (value : UInt32) : OddNode :=
+  OddNode.terminal value
+
+@[rust_export]
+def even_step_u32 (value : UInt32) (next : OddNode) : EvenNode :=
+  EvenNode.step value next
+
+@[rust_export]
+def odd_step_u32 (value : UInt32) (next : EvenNode) : OddNode :=
+  OddNode.step value next
+
+def even_next_value_or_u32 (node : EvenNode) (fallback : UInt32) : UInt32 :=
+  match node with
+  | EvenNode.terminal value => value
+  | EvenNode.step _ next =>
+      match next with
+      | OddNode.terminal value => value
+      | OddNode.step value _ => value
 
 @[rust_export]
 def echo_prod_u32 (x : UInt32 × UInt32) : UInt32 × UInt32 :=

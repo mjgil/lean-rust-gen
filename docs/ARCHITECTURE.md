@@ -456,7 +456,14 @@ Surface evaluator remains fuel-bounded.
 
 ## Sprint 15-16: recursive data and validation v2
 
-Known recursive, index-free user inductives now lower recursive payload fields through owned `Box<T>` in the safe Rust lane. The initial fixtures are `BinaryTreeU32` and `ExprU32`, including recursive construction, recursive pattern matching, and recursive function calls.
+Recursive, index-free user inductives now lower through extractor-driven SCC
+discovery over Lean constructor payloads. Direct and mutual recursion use owned
+`Box<T>` on cycle-breaking edges, while nested recursion through `List/Array/Vec`
+is accepted without extra boxing because the container already provides
+indirection. The current generated fixtures cover direct recursion
+(`BinaryTreeU32`, `ExprU32`), nested recursion (`RoseTreeU32`), and a mutual SCC
+(`EvenNode`, `OddNode`), with corpus and target-validation gates proving those
+shapes are extracted from declarations rather than a fixed recursive whitelist.
 
 The target-validation artifact now uses `lean-rust-core.target-validation.v2`, which records `box(...)` and `deref(...)` fingerprints. `LeanRustCore.ValidationV2` also emits `rust/coverage-dashboard.json`, a machine-readable feature-family dashboard consumed by validation gates.
 

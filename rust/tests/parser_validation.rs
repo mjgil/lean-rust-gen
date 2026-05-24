@@ -63,6 +63,9 @@ fn parser_validates_generated_top_level_subset() {
         "U32FnCase",
         "BinaryTreeU32",
         "ExprU32",
+        "RoseTreeU32",
+        "EvenNode",
+        "OddNode",
         "Ordering",
     ] {
         assert!(
@@ -142,6 +145,11 @@ fn parser_validates_generated_top_level_subset() {
         "expr_lit_u32",
         "expr_add_u32",
         "expr_eval_u32",
+        "rose_branch_u32",
+        "even_terminal_u32",
+        "odd_terminal_u32",
+        "even_step_u32",
+        "odd_step_u32",
         "auto_identity_u32",
         "auto_choose_point",
         "auto_option_default_step",

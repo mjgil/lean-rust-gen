@@ -5,11 +5,12 @@ use std::path::PathBuf;
 use lean_rust_core_generated::runtime::*;
 use lean_rust_core_generated::{
     checked_add_u32, checked_cast_u64_to_u32, checked_div_u32, checked_mod_u32, checked_sub_u32,
-    equality_cast_subtype_value_u32, flag_carrier_false_value_u32,
-    flag_carrier_match_invariant_u32, flag_carrier_true_roundtrip_u32,
-    nested_proof_wrapper_value_u32, preconditioned_div_u32, preconditioned_mod_u32,
-    saturating_add_u32, saturating_sub_u32, sigma_runtime_pair_echo_u32,
-    sigma_runtime_pair_sum_u32,
+    equality_cast_subtype_value_u32, even_step_u32, even_terminal_u32,
+    flag_carrier_false_value_u32, flag_carrier_match_invariant_u32,
+    flag_carrier_true_roundtrip_u32, nested_proof_wrapper_value_u32, odd_step_u32,
+    preconditioned_div_u32, preconditioned_mod_u32, rose_branch_u32, saturating_add_u32,
+    saturating_sub_u32, sigma_runtime_pair_echo_u32, sigma_runtime_pair_sum_u32, tree_leaf_u32,
+    tree_node_u32, tree_sum_u32, EvenNode, OddNode, RoseTreeU32,
 };
 use num_bigint::{BigInt, BigUint};
 
@@ -471,6 +472,156 @@ fn next20_dependent_erasure_examples_cover_invariant_sigma_and_indexed_shapes() 
         assert!(
             dependent_doc.contains(phrase),
             "docs/DEPENDENT_ERASURE.md missing {phrase}"
+        );
+    }
+}
+
+#[test]
+fn next20_recursive_discovery_examples_cover_direct_nested_and_mutual_sccs() {
+    let generated =
+        fs::read_to_string(repo_root().join("rust/src/generated.rs")).expect("generated Rust");
+    for needle in [
+        "pub enum BinaryTreeU32",
+        "pub enum ExprU32",
+        "pub struct RoseTreeU32",
+        "pub enum EvenNode",
+        "pub enum OddNode",
+        "pub fn rose_branch_u32",
+        "pub fn even_terminal_u32",
+        "pub fn odd_terminal_u32",
+        "pub fn even_step_u32",
+        "pub fn odd_step_u32",
+    ] {
+        assert!(
+            generated.contains(needle),
+            "missing generated item {needle}"
+        );
+    }
+
+    let target_validation = fs::read_to_string(repo_root().join("rust/target-validation.txt"))
+        .expect("target validation");
+    for needle in [
+        "TYPE\tenum\tBinaryTreeU32",
+        "TYPE\tenum\tExprU32",
+        "TYPE\tstruct\tRoseTreeU32",
+        "TYPE\tenum\tEvenNode",
+        "TYPE\tenum\tOddNode",
+        "FN\trose_branch_u32",
+        "FN\teven_terminal_u32",
+        "FN\todd_terminal_u32",
+        "FN\teven_step_u32",
+        "FN\todd_step_u32",
+    ] {
+        assert!(
+            target_validation.contains(needle),
+            "missing target-validation item {needle}"
+        );
+    }
+
+    let tree = tree_node_u32(tree_leaf_u32(()), 42, tree_leaf_u32(()));
+    assert_eq!(tree_sum_u32(tree), 42);
+
+    let rose = rose_branch_u32(
+        40,
+        vec![
+            RoseTreeU32 {
+                value: 1,
+                children: vec![],
+            },
+            RoseTreeU32 {
+                value: 2,
+                children: vec![],
+            },
+        ],
+    );
+    assert_eq!(
+        rose,
+        RoseTreeU32 {
+            value: 40,
+            children: vec![
+                RoseTreeU32 {
+                    value: 1,
+                    children: vec![],
+                },
+                RoseTreeU32 {
+                    value: 2,
+                    children: vec![],
+                },
+            ],
+        }
+    );
+
+    let mutual = even_step_u32(10, odd_step_u32(41, even_terminal_u32(2)));
+    assert_eq!(
+        mutual,
+        EvenNode::Step(
+            10,
+            Box::new(OddNode::Step(41, Box::new(EvenNode::Terminal(2))))
+        )
+    );
+
+    for (path, source, features) in [
+        (
+            "corpus/positive/recursive_binary_tree.expected.json",
+            "LeanRustCore.Examples.tree_node_u32",
+            BTreeSet::from(["recursive-direct-scc", "recursive-owned-box-data"]),
+        ),
+        (
+            "corpus/positive/recursive_rose_tree.expected.json",
+            "LeanRustCore.Examples.rose_branch_u32",
+            BTreeSet::from([
+                "container-shape",
+                "recursive-nested-scc",
+                "recursive-owned-box-data",
+            ]),
+        ),
+        (
+            "corpus/positive/recursive_even_odd.expected.json",
+            "LeanRustCore.Examples.even_step_u32",
+            BTreeSet::from([
+                "general-pattern-match",
+                "recursive-mutual-scc",
+                "recursive-owned-box-data",
+            ]),
+        ),
+    ] {
+        let fixture = serde_json::from_str::<serde_json::Value>(
+            &fs::read_to_string(repo_root().join(path)).expect("fixture"),
+        )
+        .unwrap();
+        assert_eq!(fixture["kind"].as_str(), Some("positive"));
+        assert_eq!(fixture["source"].as_str(), Some(source));
+        assert_eq!(fixture["expected_status"].as_str(), Some("supported"));
+        assert_eq!(
+            fixture["required_features"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|item| item.as_str())
+                .collect::<BTreeSet<_>>(),
+            features
+        );
+        assert!(fixture["documentation"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|item| item.as_str())
+            .any(|item| item == "docs/RECURSIVE_DATA.md"));
+    }
+
+    let recursive_doc =
+        fs::read_to_string(repo_root().join("docs/RECURSIVE_DATA.md")).expect("recursive doc");
+    for phrase in [
+        "direct recursion",
+        "nested recursion",
+        "mutual recursion",
+        "cycle-breaking",
+        "List/Array/Vec",
+        "layout selection",
+    ] {
+        assert!(
+            recursive_doc.contains(phrase),
+            "docs/RECURSIVE_DATA.md missing {phrase}"
         );
     }
 }

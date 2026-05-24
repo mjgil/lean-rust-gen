@@ -1,15 +1,17 @@
 use lean_rust_core_generated::*;
 
 use super::model::{
-    as_binary_tree_u32, as_bool, as_bounded_proof, as_boxed_u32, as_char, as_choice, as_expr_u32,
-    as_fn_u32, as_i32, as_i64, as_int, as_nat, as_nestedpayload_u32_string, as_option_step,
-    as_option_u32, as_option_u64, as_pairbox_u32_string, as_pairchoice_u32_string, as_point,
-    as_prod_u32, as_result_u32_u32, as_step, as_string, as_tagged_u32, as_u32, as_u32_fn_case,
-    as_u64, as_unit, as_vec_u32, v_binary_tree_u32, v_bool, v_bounded_proof, v_boxed_u32, v_char,
-    v_expr_u32, v_i32, v_i64, v_int, v_nat, v_nested_option_u32, v_nestedpayload_u32_string,
+    as_binary_tree_u32, as_bool, as_bounded_proof, as_boxed_u32, as_char, as_choice, as_even_node,
+    as_expr_u32, as_fn_u32, as_i32, as_i64, as_int, as_nat, as_nestedpayload_u32_string,
+    as_odd_node, as_option_step, as_option_u32, as_option_u64, as_pairbox_u32_string,
+    as_pairchoice_u32_string, as_point, as_prod_u32, as_result_u32_u32, as_step, as_string,
+    as_tagged_u32, as_u32, as_u32_fn_case, as_u64, as_unit, as_vec_rosetree_u32, as_vec_u32,
+    v_binary_tree_u32, v_bool, v_bounded_proof, v_boxed_u32, v_char, v_even_node, v_expr_u32,
+    v_i32, v_i64, v_int, v_nat, v_nested_option_u32, v_nestedpayload_u32_string, v_odd_node,
     v_option_u32, v_ordering, v_pairbox_string_u32, v_pairbox_u32_string, v_pairchoice_u32_string,
     v_point, v_prod_u32, v_result_option_u32_u32, v_result_u32_option_u32, v_result_u32_string,
-    v_result_u32_u32, v_step, v_string, v_tagged_u32, v_u32, v_u64, v_unit, v_vec_u32, Value,
+    v_result_u32_u32, v_rosetree_u32, v_step, v_string, v_tagged_u32, v_u32, v_u64, v_unit,
+    v_vec_u32, Value,
 };
 
 pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, String> {
@@ -118,6 +120,20 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_expr_u32(&args[1])?,
         ))),
         "expr_eval_u32" => Ok(v_u32(expr_eval_u32(as_expr_u32(&args[0])?))),
+        "rose_branch_u32" => Ok(v_rosetree_u32(rose_branch_u32(
+            as_u32(&args[0])?,
+            as_vec_rosetree_u32(&args[1])?,
+        ))),
+        "even_terminal_u32" => Ok(v_even_node(even_terminal_u32(as_u32(&args[0])?))),
+        "odd_terminal_u32" => Ok(v_odd_node(odd_terminal_u32(as_u32(&args[0])?))),
+        "even_step_u32" => Ok(v_even_node(even_step_u32(
+            as_u32(&args[0])?,
+            as_odd_node(&args[1])?,
+        ))),
+        "odd_step_u32" => Ok(v_odd_node(odd_step_u32(
+            as_u32(&args[0])?,
+            as_even_node(&args[1])?,
+        ))),
         "list_find_nonzero_u32" => Ok(v_option_u32(list_find_nonzero_u32(as_vec_u32(&args[0])?))),
         "list_any_nonzero_u32" => Ok(v_bool(list_any_nonzero_u32(as_vec_u32(&args[0])?))),
         "exact_nat_mul" => Ok(v_nat(exact_nat_mul(as_nat(&args[0])?, as_nat(&args[1])?))),

@@ -2,8 +2,8 @@ use lean_rust_core_generated::*;
 use lean_rust_core_validate::TargetValidationFunction;
 
 use super::model::{
-    as_binary_tree_u32, as_bool, as_expr_u32, as_option_u32, as_string, as_u32, as_u64, as_vec_u32,
-    Env, FunctionMap, UnaryFnU32, Value,
+    as_binary_tree_u32, as_bool, as_even_node, as_expr_u32, as_odd_node, as_option_u32, as_string,
+    as_u32, as_u64, as_vec_rosetree_u32, as_vec_u32, Env, FunctionMap, UnaryFnU32, Value,
 };
 use lean_rust_core_generated::runtime::{
     u32_checked_add, u32_checked_div, u32_checked_mod, u32_checked_sub, u32_preconditioned_div,
@@ -404,9 +404,11 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
         )));
     }
     if let Some(inner) = call_payload(expr, "list_length") {
-        return Ok(Value::U32(
-            as_vec_u32(&eval_expr(functions, inner, env)?)?.len() as u32,
-        ));
+        return Ok(Value::U32(match eval_expr(functions, inner, env)? {
+            Value::VecU32(values) => values.len() as u32,
+            Value::VecRoseTreeU32(values) => values.len() as u32,
+            other => return Err(format!("unsupported list_length target {other:?}")),
+        }));
     }
     if let Some(inner) = call_payload(expr, "match_pattern") {
         let args = split_top_args(inner);
@@ -476,6 +478,8 @@ fn eval_field(target: Value, field: &str) -> Result<Value, String> {
         (Value::PairboxU32String(pair), "right") => Ok(Value::String(pair.right)),
         (Value::PairboxStringU32(pair), "left") => Ok(Value::String(pair.left)),
         (Value::PairboxStringU32(pair), "right") => Ok(Value::U32(pair.right)),
+        (Value::RoseTreeU32(tree), "value") => Ok(Value::U32(tree.value)),
+        (Value::RoseTreeU32(tree), "children") => Ok(Value::VecRoseTreeU32(tree.children)),
         (other, _) => Err(format!("unsupported field access {other:?}.{field}")),
     }
 }
@@ -521,6 +525,10 @@ fn eval_struct(functions: &FunctionMap, inner: &str, env: &Env) -> Result<Value,
                 Value::ResultU32String(result) => result.clone(),
                 other => return Err(format!("unsupported nested payload secondary {other:?}")),
             },
+        })),
+        "RoseTreeU32" => Ok(Value::RoseTreeU32(RoseTreeU32 {
+            value: as_u32(&fields[0].1)?,
+            children: as_vec_rosetree_u32(&fields[1].1)?,
         })),
         other => Err(format!("unsupported struct constructor {other}")),
     }
@@ -570,6 +578,22 @@ fn eval_enum(functions: &FunctionMap, inner: &str, env: &Env) -> Result<Value, S
             Box::new(as_expr_u32(match &payload[1] {
                 Value::Boxed(inner) => inner.as_ref(),
                 other => return Err(format!("expected boxed expr payload, found {other:?}")),
+            })?),
+        ))),
+        "EvenNode::Terminal" => Ok(Value::EvenNode(EvenNode::Terminal(as_u32(&payload[0])?))),
+        "EvenNode::Step" => Ok(Value::EvenNode(EvenNode::Step(
+            as_u32(&payload[0])?,
+            Box::new(as_odd_node(match &payload[1] {
+                Value::Boxed(inner) => inner.as_ref(),
+                other => return Err(format!("expected boxed odd-node payload, found {other:?}")),
+            })?),
+        ))),
+        "OddNode::Terminal" => Ok(Value::OddNode(OddNode::Terminal(as_u32(&payload[0])?))),
+        "OddNode::Step" => Ok(Value::OddNode(OddNode::Step(
+            as_u32(&payload[0])?,
+            Box::new(as_even_node(match &payload[1] {
+                Value::Boxed(inner) => inner.as_ref(),
+                other => return Err(format!("expected boxed even-node payload, found {other:?}")),
             })?),
         ))),
         other => Err(format!("unsupported enum constructor {other}")),
@@ -779,6 +803,30 @@ fn match_enum_bindings(pattern: &str, value: &Value) -> Option<Vec<(String, Valu
                     Value::Boxed(Box::new(Value::BinaryTreeU32((**right).clone()))),
                 ),
             ]),
+            ("EvenNode::Terminal(value)", Value::EvenNode(EvenNode::Terminal(value))) => {
+                Some(vec![(String::from("value"), Value::U32(*value))])
+            }
+            ("EvenNode::Step(value,next)", Value::EvenNode(EvenNode::Step(value, next))) => {
+                Some(vec![
+                    (String::from("value"), Value::U32(*value)),
+                    (
+                        String::from("next"),
+                        Value::Boxed(Box::new(Value::OddNode((**next).clone()))),
+                    ),
+                ])
+            }
+            ("OddNode::Terminal(value)", Value::OddNode(OddNode::Terminal(value))) => {
+                Some(vec![(String::from("value"), Value::U32(*value))])
+            }
+            ("OddNode::Step(value,next)", Value::OddNode(OddNode::Step(value, next))) => {
+                Some(vec![
+                    (String::from("value"), Value::U32(*value)),
+                    (
+                        String::from("next"),
+                        Value::Boxed(Box::new(Value::EvenNode((**next).clone()))),
+                    ),
+                ])
+            }
             ("U32FnCase::Add(delta)", Value::U32FnCase(U32FnCase::Add(delta))) => {
                 Some(vec![(String::from("delta"), Value::U32(*delta))])
             }

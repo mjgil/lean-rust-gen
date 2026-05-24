@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn parses_current_target_validation_snapshot() {
         let functions = parse_target_validation_functions(TARGET_VALIDATION_SNAPSHOT).unwrap();
-        assert_eq!(functions.len(), 142);
+        assert_eq!(functions.len(), 147);
         assert!(functions.iter().any(|function| {
             function.name == "unsupported_higher_order_u32"
                 && function.args

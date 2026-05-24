@@ -551,6 +551,11 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn expr_lit_u32",
         "pub fn expr_add_u32",
         "pub fn expr_eval_u32",
+        "pub fn rose_branch_u32",
+        "pub fn even_terminal_u32",
+        "pub fn odd_terminal_u32",
+        "pub fn even_step_u32",
+        "pub fn odd_step_u32",
         "pub fn auto_identity_u32",
         "pub fn auto_choose_point",
         "pub fn auto_option_default_step",
@@ -619,12 +624,20 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("TYPE\tenum\tU32FnCase"));
     assert!(snapshot.contains("TYPE\tenum\tBinaryTreeU32"));
     assert!(snapshot.contains("TYPE\tenum\tExprU32"));
+    assert!(snapshot.contains("TYPE\tstruct\tRoseTreeU32"));
+    assert!(snapshot.contains("TYPE\tenum\tEvenNode"));
+    assert!(snapshot.contains("TYPE\tenum\tOddNode"));
     assert!(snapshot.contains("FN\tclosure_env_apply_add_delta_u32"));
     assert!(snapshot.contains("FN\tclosure_env_map_add_delta_u32"));
     assert!(snapshot.contains("FN\tdefun_apply_u32"));
     assert!(snapshot.contains("FN\tdefun_compose_inc_double_u32"));
     assert!(snapshot.contains("FN\ttree_size_u32"));
     assert!(snapshot.contains("FN\texpr_eval_u32"));
+    assert!(snapshot.contains("FN\trose_branch_u32"));
+    assert!(snapshot.contains("FN\teven_terminal_u32"));
+    assert!(snapshot.contains("FN\todd_terminal_u32"));
+    assert!(snapshot.contains("FN\teven_step_u32"));
+    assert!(snapshot.contains("FN\todd_step_u32"));
     assert!(snapshot.contains("box(var(left))"));
     assert!(snapshot.contains("deref(var(left))"));
     assert!(snapshot.contains("FN\tbounded_proof_make_u32"));
@@ -661,6 +674,9 @@ fn coverage_dashboard_records_feature_families() {
     assert!(text.contains("property-seed-validation"));
     assert!(text.contains("BinaryTreeU32"));
     assert!(text.contains("ExprU32"));
+    assert!(text.contains("RoseTreeU32"));
+    assert!(text.contains("EvenNode"));
+    assert!(text.contains("OddNode"));
 }
 
 #[test]

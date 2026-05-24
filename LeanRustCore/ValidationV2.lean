@@ -81,11 +81,11 @@ def coverageEntryHasRequiredEvidence (entry : CoverageEntry) : Bool :=
 
 def coverageEntries : List CoverageEntry := [
   mkEntry "recursive-owned-box-data" "supported-known-slice"
-    ["BinaryTreeU32", "ExprU32", "tree_size_u32", "expr_eval_u32"]
-    ["LeanRustCore/RecursiveData.lean"]
-    ["rust/tests/generated.rs", "rust/tests/validation_report.rs"]
+    ["BinaryTreeU32", "ExprU32", "RoseTreeU32", "EvenNode", "OddNode", "tree_size_u32", "expr_eval_u32", "rose_branch_u32", "even_step_u32", "odd_step_u32"]
+    ["LeanRustCore/RecursiveData.lean", "LeanRustCore/Extract.lean"]
+    ["rust/tests/generated.rs", "rust/tests/next20_completion.rs", "rust/tests/validation_report.rs"]
     ["docs/RECURSIVE_DATA.md", "docs/ARCHITECTURE.md"]
-    ["rust/src/generated.rs", "rust/target-validation.txt"]
+    ["rust/src/generated.rs", "rust/target-validation.txt", "corpus/positive/recursive_rose_tree.expected.json", "corpus/positive/recursive_even_odd.expected.json"]
     ["recursive-user-data-box-layout"],
   mkEntry "target-validation-v2" "supported"
     ["FORMAT lean-rust-core.target-validation.v2", "box/deref fingerprints"]
@@ -249,11 +249,11 @@ def coverageEntries : List CoverageEntry := [
     ["rust/proof-report.json", "rust/coverage-dashboard.json"]
     ["next20-dependent-erasure"],
   mkEntry "recursive-discovery-layouts" "supported-complete"
-    ["RecursiveDiscovery.layoutDecisions", "RcTreeU32", "ArenaTreeU32"]
-    ["LeanRustCore/RecursiveDiscovery.lean", "crates/runtime/src/lib.rs"]
-    ["rust/tests/next20_completion.rs", "scripts/check-next-20-completion.py"]
+    ["RecursiveDiscovery.layoutDecisions", "RoseTreeU32", "EvenNode", "OddNode", "RcTreeU32", "ArenaTreeU32"]
+    ["LeanRustCore/RecursiveDiscovery.lean", "LeanRustCore/Extract.lean", "crates/runtime/src/lib.rs"]
+    ["rust/tests/next20_completion.rs", "scripts/check-next-20-completion.py", "rust/tests/target_interpreter.rs"]
     ["docs/RECURSIVE_DATA.md", "docs/ARCHITECTURE.md"]
-    ["rust/proof-report.json", "rust/coverage-dashboard.json"]
+    ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/recursive_binary_tree.expected.json", "corpus/positive/recursive_rose_tree.expected.json", "corpus/positive/recursive_even_odd.expected.json"]
     ["next20-recursive-discovery"],
   mkEntry "ownership-borrowing-policy" "supported-complete"
     ["OwnershipPolicy.rules", "borrowed_vec_len_u32", "docs/OWNERSHIP.md"]

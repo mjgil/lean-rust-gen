@@ -1,0 +1,9 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "positive",
+  "source": "LeanRustCore.Examples.tree_node_u32",
+  "expected_status": "supported",
+  "required_features": ["recursive-owned-box-data", "recursive-direct-scc"],
+  "tests": ["differential_generated", "parser_validation", "semantic_validation", "rust/tests/generated.rs", "rust/tests/next20_completion.rs"],
+  "documentation": ["docs/RECURSIVE_DATA.md", "docs/ARCHITECTURE.md"]
+}

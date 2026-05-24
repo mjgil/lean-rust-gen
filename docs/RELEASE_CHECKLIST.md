@@ -63,8 +63,9 @@ diagnostic corpus coverage for `LRC001` through `LRC014`, per-template
 branches, the parameterized-data corpus for multi-parameter, nested, and
 rejected dependent generic shapes, the positive dependent-erasure corpus for
 equality casts, invariant `Sigma`, invariant indexed-family carriers, invariant
-dependent matches, and nested proof wrappers, and the Rust completion test that
-scans the checked corpus fixtures.
+dependent matches, and nested proof wrappers, the positive recursive corpus for
+direct trees, nested `RoseTreeU32`, and mutual `EvenNode`/`OddNode` SCCs, and
+the Rust completion test that scans the checked corpus fixtures.
 
 ## Remaining rows 41-63 gate
 
