@@ -6,8 +6,12 @@ rust-version = "1.85"
 build = "build.rs"
 license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/lean-rust-core-generated"
+repository = "https://github.com/mjgil/lean-rust-gen"
+homepage = "https://github.com/mjgil/lean-rust-gen"
 readme = "README.md"
 description = "Generated safe Rust API for LeanRustCore"
+keywords = ["lean", "rust", "codegen", "ffi"]
+categories = ["compilers", "api-bindings", "development-tools"]
 
 [lib]
 name = "lean_rust_core_generated"
@@ -19,10 +23,13 @@ ffi = ["dep:lean-rust-core-abi"]
 
 [dependencies]
 num-bigint = "0.4"
-lean-rust-core-runtime = { path = "../crates/runtime" }
-lean-rust-core-abi = { path = "../crates/abi", optional = true }
+lean-rust-core-runtime = { path = "../crates/runtime", version = "0.2.0" }
+lean-rust-core-abi = { path = "../crates/abi", version = "0.2.0", optional = true }
 
 [dev-dependencies]
-lean-rust-core-validate = { path = "../crates/validate" }
+lean-rust-core-validate = { path = "../crates/validate", version = "0.2.0" }
 serde_json = "1"
 syn = { version = "2", features = ["full", "visit", "extra-traits"] }
+
+[package.metadata.docs.rs]
+all-features = true

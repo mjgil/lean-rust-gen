@@ -16,6 +16,7 @@ documentation, reproducible generated artifacts, and safe-lane/FFI separation.
 | ffi-feature-test | `cargo test -p lean-rust-core-generated --features ffi` |
 | cargo-fmt | `cargo fmt --check --all` |
 | cargo-clippy | `cargo clippy --workspace --all-targets -- -D warnings` |
+| publishing-release | `scripts/check-publishing.sh` |
 | negative-corpus | `scripts/check-corpus-harness.sh` |
 | unsafe-default-lane | `scripts/check-rust-validation.sh` |
 | toolchain-pins | `scripts/check-toolchain-pins.sh` |
@@ -73,6 +74,8 @@ and publishing/versioning metadata.
 Publishing dry-runs are required before external crate release:
 
 ```text
+python3 scripts/check-publishing.py
+./scripts/check-publishing.sh
 cargo publish --dry-run -p lean-rust-core-generated
 cargo publish --dry-run -p lean-rust-core-runtime
 cargo publish --dry-run -p lean-rust-core-abi
@@ -95,6 +98,7 @@ cargo test --workspace
 cargo test -p lean-rust-core-generated --features ffi
 cargo fmt --check --all
 cargo clippy --workspace --all-targets -- -D warnings
+./scripts/check-publishing.sh
 ```
 
 ## Generated artifact policy

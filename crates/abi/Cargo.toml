@@ -5,9 +5,16 @@ edition = "2021"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/lean-rust-core-abi"
+repository = "https://github.com/mjgil/lean-rust-gen"
+homepage = "https://github.com/mjgil/lean-rust-gen"
 readme = "README.md"
 description = "Feature-gated raw ABI helpers for LeanRustCore generated Rust"
+keywords = ["lean", "rust", "ffi", "abi"]
+categories = ["api-bindings", "development-tools", "compilers"]
 
 [lib]
 name = "lean_rust_core_abi"
 path = "src/lib.rs"
+
+[package.metadata.docs.rs]
+all-features = true

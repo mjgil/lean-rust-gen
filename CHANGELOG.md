@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Productionized workspace publishing/versioning checks with manifest metadata,
+  dependency/license audit, changelog validation, docs build verification, and
+  per-crate `cargo publish --dry-run` release gating.
+
 ## 0.2.0
 
 - Completed checklist rows 1-63 for the large-subset design track.

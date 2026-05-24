@@ -21,6 +21,15 @@ fn main() {
     let repo_root = manifest_dir
         .parent()
         .expect("rust crate lives under repo root");
+    let lean_workspace_present = repo_root.join("lakefile.toml").exists();
+
+    if !lean_workspace_present {
+        println!(
+            "cargo:warning=Lean workspace not packaged with crate; using checked-in src/generated.rs for publish/package verification"
+        );
+        copy_fallback(&manifest_dir, &generated_out);
+        return;
+    }
 
     let lean_status = Command::new("lake")
         .args([

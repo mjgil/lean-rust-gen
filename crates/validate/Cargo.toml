@@ -5,8 +5,12 @@ edition = "2021"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/lean-rust-core-validate"
+repository = "https://github.com/mjgil/lean-rust-gen"
+homepage = "https://github.com/mjgil/lean-rust-gen"
 readme = "README.md"
 description = "Validation helpers for LeanRustCore generated artifacts"
+keywords = ["lean", "rust", "validation", "codegen"]
+categories = ["compilers", "development-tools", "parser-implementations"]
 
 [lib]
 name = "lean_rust_core_validate"
@@ -16,3 +20,6 @@ path = "src/lib.rs"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 syn = { version = "2", features = ["full"] }
+
+[package.metadata.docs.rs]
+all-features = true

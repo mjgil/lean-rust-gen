@@ -5,8 +5,12 @@ edition = "2021"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/lean-rust-core-runtime"
+repository = "https://github.com/mjgil/lean-rust-gen"
+homepage = "https://github.com/mjgil/lean-rust-gen"
 readme = "README.md"
 description = "Safe runtime helpers for generated LeanRustCore Rust code"
+keywords = ["lean", "rust", "runtime", "codegen"]
+categories = ["compilers", "api-bindings", "development-tools"]
 
 [lib]
 name = "lean_rust_core_runtime"
@@ -14,3 +18,6 @@ path = "src/lib.rs"
 
 [dependencies]
 num-bigint = "0.4"
+
+[package.metadata.docs.rs]
+all-features = true

@@ -1,4 +1,4 @@
-.PHONY: gen check rust-test rust-test-ffi workspace-test no-placeholders rust-validation toolchain-pins first20 remaining-completion publish-dry-run
+.PHONY: gen check rust-test rust-test-ffi workspace-test no-placeholders rust-validation toolchain-pins first20 remaining-completion publish-dry-run publishing-check
 
 gen:
 	./scripts/gen.sh
@@ -36,3 +36,6 @@ publish-dry-run:
 	cargo publish --dry-run -p lean-rust-core-abi
 	cargo publish --dry-run -p lean-rust-core-validate
 	cargo publish --dry-run -p lean-rust-core-headers
+
+publishing-check:
+	./scripts/check-publishing.sh

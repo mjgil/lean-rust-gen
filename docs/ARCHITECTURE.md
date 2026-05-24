@@ -370,6 +370,30 @@ The Rust side is now an explicit workspace rooted at [Cargo.toml](/home/m/git/le
 
 `lean-rust-core-validate` now owns strict typed schemas for `rust/validation-report.json`, `rust/compatibility-report.json`, `rust/proof-report.json`, `rust/build-metadata.json`, and `rust/coverage-dashboard.json`. Those structs use `serde` with `deny_unknown_fields`, and `rust/tests/validation_report.rs` parses the checked-in reports through that crate before checking counts, status enums, and feature flags against generated artifacts.
 
+## Publishing gate hardening
+
+Task 73 is now enforced outside the metadata-only Lean summary path. The Rust
+workspace manifests carry publishable crates.io metadata, versioned
+intra-workspace path dependencies, and docs.rs configuration. The dedicated
+publishing gate lives in `scripts/check-publishing.py` and
+`scripts/check-publishing.sh`:
+
+- `scripts/check-publishing.py` validates crate metadata, semver text, README
+  coverage, changelog structure, and dependency license declarations from Cargo
+  metadata.
+- `scripts/check-publishing.sh` copies the repo into a clean temporary release
+  tree, runs `cargo doc --workspace --no-deps`, captures `cargo tree --workspace`,
+  and executes `cargo publish --dry-run -p <crate>` for all five workspace
+  crates.
+- `rust/build.rs` now detects packaged-crate verification and falls back to the
+  checked-in `src/generated.rs` when the Lean workspace root is absent from the
+  tarball, while keeping repo-local CI/release builds on the stricter `lake`
+  regeneration path.
+
+That release gate is wired into `scripts/check.sh`, `Makefile`, the release
+checklist, and Rust tests that assert the publish metadata remains visible from
+checked artifacts.
+
 The boundary policy is intentionally narrow:
 
 - primitive integers cross directly,

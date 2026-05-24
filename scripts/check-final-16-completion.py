@@ -39,9 +39,12 @@ def check_required_files() -> None:
         "docs/DIAGNOSTICS.md",
         "docs/CRATE_DESIGN.md",
         "docs/RELEASE_CHECKLIST.md",
+        "docs/PUBLISHING.md",
         "rust/README.md",
         "rust/tests/final16_property_coverage.rs",
         "rust/tests/final16_diagnostics_and_crates.rs",
+        "scripts/check-publishing.py",
+        "scripts/check-publishing.sh",
         "crates/runtime/Cargo.toml",
         "crates/runtime/src/lib.rs",
         "crates/runtime/README.md",
@@ -57,6 +60,10 @@ def check_required_files() -> None:
     ]
     for path in required:
         require((ROOT / path).exists(), f"missing final-16 artifact {path}")
+    require(
+        (ROOT / "scripts/check-publishing.sh").stat().st_mode & 0o111,
+        "scripts/check-publishing.sh must be executable",
+    )
 
 
 def check_lean_modules() -> None:
@@ -81,8 +88,8 @@ def check_workspace_crates() -> None:
     for member in ["rust", "crates/runtime", "crates/abi", "crates/validate", "crates/headers"]:
         require(member in root_cargo, f"workspace missing {member}")
     generated_cargo = read("rust/Cargo.toml")
-    require('lean-rust-core-runtime = { path = "../crates/runtime" }' in generated_cargo, "generated crate missing runtime dependency")
-    require('lean-rust-core-abi = { path = "../crates/abi", optional = true }' in generated_cargo, "generated crate missing optional ABI dependency")
+    require('lean-rust-core-runtime = { path = "../crates/runtime", version = "0.2.0" }' in generated_cargo, "generated crate missing runtime dependency")
+    require('lean-rust-core-abi = { path = "../crates/abi", version = "0.2.0", optional = true }' in generated_cargo, "generated crate missing optional ABI dependency")
     require('ffi = ["dep:lean-rust-core-abi"]' in generated_cargo, "generated crate ffi feature does not include ABI crate")
     generated_lib = read("rust/src/lib.rs")
     require("pub use lean_rust_core_runtime as runtime_crate;" in generated_lib, "generated crate does not reexport runtime crate")
@@ -112,16 +119,31 @@ def check_tests_and_docs() -> None:
         "quantitative_coverage_dashboard_has_required_denominators",
         "diagnostics_and_docs_are_declared_for_unsupported_constructs",
         "rust_workspace_crate_split_is_visible_to_tests",
+        "publishing_metadata_and_semver_policy_are_visible_to_tests",
         "numeric_edge_cases_are_documented_by_tests",
         "vec_handle_lifecycle_rejects_double_drop",
         "parses_valid_json_and_rejects_malformed_json",
         "header_contains_ownership_and_destructors",
     ]:
         require(needle in test_text, f"final-16 tests missing {needle}")
-    for path in ["docs/TESTING.md", "docs/COVERAGE.md", "docs/DIAGNOSTICS.md", "docs/CRATE_DESIGN.md", "docs/RELEASE_CHECKLIST.md"]:
+    for path in ["docs/TESTING.md", "docs/COVERAGE.md", "docs/DIAGNOSTICS.md", "docs/CRATE_DESIGN.md", "docs/RELEASE_CHECKLIST.md", "docs/PUBLISHING.md"]:
         text = read(path).lower()
         require("test" in text or "tests" in text, f"{path} must describe tests")
         require("doc" in text or "documentation" in text, f"{path} must describe documentation")
+
+    publishing = read("docs/PUBLISHING.md")
+    for needle in [
+        "python3 scripts/check-publishing.py",
+        "./scripts/check-publishing.sh",
+        "cargo doc --workspace --no-deps",
+        "cargo tree --workspace",
+        "cargo publish --dry-run -p lean-rust-core-generated",
+        "repository",
+        "homepage",
+        "keywords",
+        "categories",
+    ]:
+        require(needle in publishing, f"docs/PUBLISHING.md missing {needle}")
 
 
 def check_reports() -> None:
@@ -172,12 +194,14 @@ def check_reports() -> None:
 def check_release_scripts() -> None:
     check_sh = read("scripts/check.sh")
     require("scripts/check-final-16-completion.py" in check_sh, "check.sh missing final-16 completion gate")
+    require("./scripts/check-publishing.sh" in check_sh, "check.sh missing publishing gate")
     require("cargo test --workspace" in check_sh, "check.sh missing workspace cargo test")
     require("cargo clippy --workspace" in check_sh, "check.sh missing workspace clippy")
     rust_validation = read("scripts/check-rust-validation.sh")
     require("scripts/check-final-16-completion.py" in rust_validation, "check-rust-validation missing final-16 completion gate")
     makefile = read("Makefile")
     require("workspace-test" in makefile, "Makefile missing workspace-test target")
+    require("publishing-check" in makefile, "Makefile missing publishing-check target")
 
 
 def main() -> None:

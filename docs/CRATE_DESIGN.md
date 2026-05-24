@@ -22,5 +22,5 @@ which drives `cargo test --workspace` across the same set.
 Every crate participates in the publishing/versioning policy in
 `docs/PUBLISHING.md`. A crate is release-ready only when its README, changelog
 entry, semver policy, docs build, dependency audit, and cargo publish dry-run are
-recorded in `LeanRustCore.Publishing` and checked by the remaining-completion
-gate.
+recorded in `LeanRustCore.Publishing`, validated by `scripts/check-publishing.py`,
+and executed end to end by `scripts/check-publishing.sh`.

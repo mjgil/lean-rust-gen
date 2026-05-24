@@ -13,3 +13,12 @@ The validator crate includes `TargetTerm`, `TargetValue`, and `eval_target_term`
 for the completed generated-subset semantics lane. Every target grammar head
 must be represented in `target_grammar_heads()` before the coverage dashboard can
 mark semantics complete.
+
+## Publishing/versioning
+
+Validator APIs are semver-minor for additive report helpers and semver-major
+for changed schema or public type contracts. `scripts/check-publishing.sh` is
+the release gate for docs builds, dependency/license audit, changelog checks,
+and `cargo publish --dry-run -p lean-rust-core-validate`.
+
+Reference docs: <https://docs.rs/lean-rust-core-validate>
