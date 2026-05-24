@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 
 mod property_generators;
 mod target_semantics;
+mod target_validation;
 
 pub use property_generators::{
     generate_target_term_cases, generated_terms_are_well_typed, minimize_target_term,
@@ -14,6 +15,10 @@ pub use property_generators::{
 };
 pub use target_semantics::{
     eval_target_term, target_grammar_heads, RecursiveTree, TargetTerm, TargetValue,
+};
+pub use target_validation::{
+    parse_target_validation_functions, TargetValidationArg, TargetValidationFunction,
+    TargetValidationParseError,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -338,6 +343,7 @@ mod tests {
     const PROOF_REPORT_JSON: &str = include_str!("../../../rust/proof-report.json");
     const BUILD_METADATA_JSON: &str = include_str!("../../../rust/build-metadata.json");
     const COVERAGE_DASHBOARD_JSON: &str = include_str!("../../../rust/coverage-dashboard.json");
+    const TARGET_VALIDATION_TXT: &str = include_str!("../../../rust/target-validation.txt");
 
     #[test]
     fn parses_valid_json_and_rejects_malformed_json() {
@@ -421,6 +427,19 @@ mod tests {
             target_validation_counts("TYPE_COUNT\t2\nFN_COUNT\t3\n"),
             Some((2, 3))
         );
+    }
+
+    #[test]
+    fn parses_current_target_validation_functions() {
+        let functions = parse_target_validation_functions(TARGET_VALIDATION_TXT).unwrap();
+        assert_eq!(functions.len(), 126);
+        assert!(functions
+            .iter()
+            .any(|function| function.name == "tree_sum_u32"));
+        assert!(functions.iter().any(|function| {
+            function.name == "unsupported_higher_order_u32"
+                && function.args.iter().any(|arg| arg.ty == "fn(u32) -> u32")
+        }));
     }
 
     #[test]

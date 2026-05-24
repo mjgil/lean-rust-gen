@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 use lean_rust_core_validate::{
     parse_build_metadata_report, parse_compatibility_report, parse_coverage_dashboard,
-    parse_proof_report, parse_validation_report, summarize_generated_rust, BuildMetadataReport,
-    CompatibilityDiagnosticCode, CompatibilityReport, CoverageDashboard, ProofReport,
-    ValidationCheckStatus, ValidationReport,
+    parse_proof_report, parse_target_validation_functions, parse_validation_report,
+    summarize_generated_rust, BuildMetadataReport, CompatibilityDiagnosticCode,
+    CompatibilityReport, CoverageDashboard, ProofReport, ValidationCheckStatus, ValidationReport,
 };
 use serde_json::Value;
 
@@ -212,6 +212,10 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
             && check.status == ValidationCheckStatus::Passed
     }));
     assert!(validation.checks.iter().any(|check| {
+        check.name == "target-fingerprint-interpreter"
+            && check.detail.contains("every emitted function")
+    }));
+    assert!(validation.checks.iter().any(|check| {
         check.name == "next20-std-implementation" && check.status == ValidationCheckStatus::Passed
     }));
     assert!(validation
@@ -250,6 +254,12 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
     assert!(proof.facts.iter().any(|fact| {
         fact.name == "coverage_dashboard_evidence_derived"
             && fact.statement.contains("implementation")
+    }));
+    assert!(proof.facts.iter().any(|fact| {
+        fact.name == "target_interpreter_all_emitted_functions"
+            && fact
+                .statement
+                .contains("every emitted target-validation function")
     }));
 
     assert_eq!(build.generated_artifacts.len(), 10);
@@ -291,6 +301,14 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
         .entries
         .iter()
         .any(|entry| entry.feature == "remaining-completion-rows-41-63"));
+
+    let snapshot = include_str!("../target-validation.txt");
+    let target_functions = parse_target_validation_functions(snapshot)
+        .expect("target-validation snapshot should parse");
+    assert_eq!(
+        target_functions.len() as u64,
+        validation.generated_function_count
+    );
 }
 
 #[test]

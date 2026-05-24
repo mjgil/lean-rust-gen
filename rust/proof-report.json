@@ -128,6 +128,7 @@
     { "name": "json_artifact_parse_validation", "statement": "rust/tests/validation_report.rs parses generated JSON artifacts and checks report counts against parsed generated Rust" },
     { "name": "rust_to_target_ir_validation", "statement": "rust/tests/semantic_validation.rs parses generated.rs, reconstructs target fingerprints, and compares them to LeanRustCore.TargetValidation.targetValidationSnapshot" },
     { "name": "target_validation_snapshot", "statement": "LeanRustCore.TargetValidation.targetValidationSnapshot is generated from the extractor-owned SurfaceFun artifact" },
+    { "name": "target_interpreter_all_emitted_functions", "statement": "rust/tests/target_interpreter.rs iterates every emitted target-validation function, generates snapshot-typed sample inputs, interprets the fingerprint, and compares it with the compiled generated Rust call" },
     { "name": "ffi_boundary_exporter", "statement": "LeanRustCore.BoundaryExport.generatedBoundaryRust emits optional feature-gated raw ABI wrappers for primitive and Result<u32,u32> exports" },
     { "name": "ffi_feature_isolation", "statement": "raw ABI wrappers are isolated under the Rust ffi feature and are not emitted into rust/src/generated.rs" },
     { "name": "rust_adapter_owned_rejected", "statement": "owned Rust values cannot cross the raw FFI boundary" },

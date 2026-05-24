@@ -381,7 +381,7 @@ def checks : List ValidationCheck := [
   {
     name := "target-fingerprint-interpreter",
     status := "passed",
-    detail := "rust/tests/target_interpreter.rs executes selected Lean-generated target fingerprints and compares them with compiled generated Rust functions"
+    detail := "rust/tests/target_interpreter.rs parses rust/target-validation.txt, generates sample inputs for every emitted function, executes every Lean-generated target fingerprint, and compares each interpreted value with the compiled generated Rust function"
   },
   {
     name := "property-differential-seeds",

@@ -51,6 +51,7 @@ def check_required_files() -> None:
         "docs/PUBLISHING.md",
         "CHANGELOG.md",
         "rust/tests/remaining_completion.rs",
+        "rust/tests/target_interpreter.rs",
     ]
     for path in required:
         require((ROOT / path).exists(), f"missing remaining-completion artifact {path}")
@@ -145,6 +146,7 @@ def check_rust_runtime_and_validate() -> None:
         require(needle in validate, f"validate crate missing {needle}")
 
     remaining_test = read("rust/tests/remaining_completion.rs")
+    target_interpreter = read("rust/tests/target_interpreter.rs")
     for needle in [
         "remaining_rows_reports_and_dashboard_are_complete",
         "remaining_runtime_features_are_exercised",
@@ -155,6 +157,16 @@ def check_rust_runtime_and_validate() -> None:
         "ControlledIoProgram",
     ]:
         require(needle in remaining_test, f"remaining completion test missing {needle}")
+    for needle in [
+        "generated_subset_semantics_are_executable_for_every_emitted_function",
+        "dispatch_compiled_function",
+        "sample_args_for",
+        "parse_snapshot_functions",
+    ]:
+        require(
+            needle in target_interpreter,
+            f"target interpreter exhaustive coverage missing {needle}",
+        )
 
     abi = "\n".join(
         [
@@ -254,6 +266,16 @@ def check_docs_and_release() -> None:
         text = read(path).lower()
         require("test" in text or "tests" in text, f"{path} must mention tests")
         require("complete" in text or "completion" in text, f"{path} must mention completion")
+
+    semantics = read("docs/SEMANTICS.md")
+    for needle in [
+        "every emitted function",
+        "supported executable value domain",
+        "match_pattern",
+        "BinaryTreeU32",
+        "fn(u32) -> u32",
+    ]:
+        require(needle in semantics, f"docs/SEMANTICS.md missing {needle}")
 
     workflow = read(".github/workflows/ci.yml")
     ci_script = read("scripts/check-ci-e2e.sh")

@@ -156,10 +156,12 @@ Additional generated/trusted artifacts:
 
 The semantic validation test parses generated Rust with `syn`, reconstructs the
 approved generated-subset target fingerprint, and compares it to the Lean-side
-snapshot. `rust/tests/target_interpreter.rs` then executes selected generated
-fingerprints and compares the interpreted results with compiled Rust calls. This
-turns target validation from parse-only checking into explicit Rust AST →
-target-fingerprint reconstruction plus executable target-semantics sampling.
+snapshot. `rust/tests/target_interpreter.rs` then iterates every emitted
+target-validation function, generates sample inputs from the snapshot types,
+executes the reconstructed fingerprint interpreter, and compares that result
+with the compiled Rust call. This turns target validation from parse-only
+checking into explicit Rust AST → target-fingerprint reconstruction plus
+executable target-semantics coverage for the whole emitted function set.
 
 ## Phase 4 boundary-export trusted surface
 

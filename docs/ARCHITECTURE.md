@@ -310,13 +310,13 @@ and normalized expression fingerprints.
 
 `rust/tests/semantic_validation.rs` parses `rust/src/generated.rs` with `syn`,
 reconstructs the generated-subset target fingerprints from the Rust AST, and
-compares that reconstruction with the Lean-generated snapshot. `rust/tests/target_interpreter.rs`
-executes selected target fingerprints for exact integers, captured structural
-lambdas, and erased typeclass equality, then compares those interpreted results
-with compiled generated Rust functions. This is stronger than the previous
-parser-only gate: the Rust source must now be parseable, reconstructible into
-the approved generated target subset, and semantically sampled through the target
-fingerprint interpreter.
+compares that reconstruction with the Lean-generated snapshot.
+`rust/tests/target_interpreter.rs` now goes further: it parses the same
+snapshot, generates sample inputs for every emitted function, interprets every
+emitted target fingerprint, and compares those interpreted results with the
+compiled generated Rust calls. The executable layer now covers the full
+target-validation function set rather than a selected sample, so parser drift,
+dispatcher drift, or interpreter gaps fail before release.
 
 ## Phase 4 completed: optional raw ABI boundary exporter
 
