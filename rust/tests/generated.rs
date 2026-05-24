@@ -203,6 +203,66 @@ fn parameterized_structs_and_enums_are_monomorphized() {
     assert_eq!(tagged_present_u32(6), TaggedU32::Present(6));
     assert_eq!(tagged_default_u32(TaggedU32::Missing, 7), 7);
     assert_eq!(tagged_default_u32(TaggedU32::Present(6), 7), 6);
+    assert_eq!(
+        pair_box_make_u32_string(9, String::from("rust")),
+        PairboxU32String {
+            left: 9,
+            right: String::from("rust"),
+        }
+    );
+    assert_eq!(
+        pair_box_swap_u32_string(PairboxU32String {
+            left: 7,
+            right: String::from("lean"),
+        }),
+        PairboxStringU32 {
+            left: String::from("lean"),
+            right: 7,
+        }
+    );
+    assert_eq!(pair_choice_left_u32_string(6), PairchoiceU32String::Left(6));
+    assert_eq!(
+        pair_choice_default_u32_string(PairchoiceU32String::Left(6), 11),
+        6
+    );
+    assert_eq!(
+        pair_choice_default_u32_string(PairchoiceU32String::Right(String::from("skip")), 11),
+        11
+    );
+    assert_eq!(
+        nested_payload_ok_u32_string(8),
+        NestedpayloadU32String {
+            primary: Some(8),
+            secondary: Ok(8),
+        }
+    );
+    assert_eq!(
+        nested_payload_err_u32_string(String::from("boom"), 9),
+        NestedpayloadU32String {
+            primary: Some(9),
+            secondary: Err(String::from("boom")),
+        }
+    );
+    assert_eq!(
+        nested_payload_value_or_u32_string(
+            NestedpayloadU32String {
+                primary: Some(41),
+                secondary: Err(String::from("x")),
+            },
+            0,
+        ),
+        41
+    );
+    assert_eq!(
+        nested_payload_value_or_u32_string(
+            NestedpayloadU32String {
+                primary: None,
+                secondary: Err(String::from("x")),
+            },
+            12,
+        ),
+        12
+    );
 }
 
 #[test]

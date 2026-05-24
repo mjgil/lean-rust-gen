@@ -1536,10 +1536,10 @@ where
         else if isNamedRecursor n "rec" then
           translateEnumRec typeCtx locals expected e n args
         else
-          match (← translateFunctionCall? typeCtx locals n args) with
+          match (← translateProjectionApp? typeCtx locals expected n args) with
           | some expr => return expr
           | none =>
-              match (← translateProjectionApp? typeCtx locals expected n args) with
+              match (← translateFunctionCall? typeCtx locals n args) with
               | some expr => return expr
               | none =>
                   match (← translateConstructorApp? typeCtx locals expected n args) with

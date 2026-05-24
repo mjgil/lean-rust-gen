@@ -58,7 +58,9 @@ scripts/check-next-20-completion.py
 It verifies the rows 21 through 40 feature modules and docs, plus complete
 diagnostic corpus coverage for `LRC001` through `LRC014`, per-template
 `requiresSpan`/`nextFeature` metadata, the four explicit extractor fallback
-branches, and the Rust completion test that scans the checked corpus fixtures.
+branches, the parameterized-data corpus for multi-parameter, nested, and
+rejected dependent generic shapes, and the Rust completion test that scans the
+checked corpus fixtures.
 
 ## Remaining rows 41-63 gate
 

@@ -164,7 +164,7 @@ def checks : List ValidationCheck := [
   {
     name := "parameterized-data-lowering",
     status := "passed",
-    detail := "index-free parameterized structures/enums are monomorphized into Rust structs/enums such as BoxedU32 and TaggedU32"
+    detail := "index-free parameterized structures/enums, including multi-parameter and nested shapes, are monomorphized into Rust structs/enums such as BoxedU32, TaggedU32, PairboxU32String, PairchoiceU32String, and NestedpayloadU32String"
   },
   {
     name := "standard-container-shapes",

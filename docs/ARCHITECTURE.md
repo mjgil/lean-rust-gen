@@ -217,6 +217,22 @@ The first-20 and remaining-completion gates now require the semantics docs to
 separate proved semantics from tested semantics and require the Lean/Rust
 representative evaluators to stay in sync.
 
+## Newly completed: generalized parameterized-data discovery
+
+The extractor's index-free inductive path now has artifact-backed coverage for
+more than the original `Boxed`/`Tagged` slice. `LeanRustCore.ParameterizedExamples`
+adds ordinary exported Lean declarations that prove:
+
+- multi-parameter structure monomorphization via `PairBox UInt32 String`
+- multi-parameter enum monomorphization via `PairChoice UInt32 String`
+- nested parameterized payload lowering via `NestedPayload UInt32 String`
+
+Those examples flow through the ordinary extraction pipeline, appear in
+`generated.rs`, `differential_generated.rs`, and `target-validation.txt`, and
+are backed by positive corpus fixtures. Dependent generic/indexed shapes such as
+`Vector α n` remain explicitly rejected and are covered by the unsupported
+corpus plus `docs/GENERICS.md`.
+
 ## Newly completed: Rust identifier hygiene and parser-backed validation
 
 `LeanRustCore.RustHygiene` is now the single place that maps source names to

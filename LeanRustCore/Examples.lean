@@ -1,6 +1,7 @@
 import LeanRustCore.IR
 import LeanRustCore.EmitRust
 import LeanRustCore.Extract
+import LeanRustCore.ParameterizedExamples
 
 namespace LeanRustCore.Examples
 
@@ -57,6 +58,18 @@ structure Bounded_Proof where
 inductive Tagged (α : Type) where
   | missing
   | present (value : α)
+
+structure PairBox (α β : Type) where
+  left : α
+  right : β
+
+inductive PairChoice (α β : Type) where
+  | left (value : α)
+  | right (value : β)
+
+structure NestedPayload (α β : Type) where
+  primary : Option α
+  secondary : Except β α
 
 @[rust_export, rust_nat_wrapping_u32]
 def clamp_u32 (lo hi x : Nat) : Nat :=
@@ -496,6 +509,44 @@ def tagged_default_u32 (t : Tagged UInt32) (fallback : UInt32) : UInt32 :=
   match t with
   | Tagged.missing => fallback
   | Tagged.present value => value
+
+@[rust_export]
+def pair_box_make_u32_string (x : UInt32) (label : String) :
+    PairBox UInt32 String :=
+  { left := x, right := label }
+
+@[rust_export]
+def pair_box_swap_u32_string
+    (pair : PairBox UInt32 String) :
+    PairBox String UInt32 :=
+  { left := pair.right, right := pair.left }
+
+@[rust_export]
+def pair_choice_left_u32_string (x : UInt32) :
+    PairChoice UInt32 String :=
+  .left x
+
+@[rust_export]
+def pair_choice_default_u32_string
+    (choice : PairChoice UInt32 String)
+    (fallback : UInt32) : UInt32 :=
+  PairChoice.casesOn choice (fun value => value) (fun _ => fallback)
+
+@[rust_export]
+def nested_payload_ok_u32_string (x : UInt32) :
+    NestedPayload UInt32 String :=
+  { primary := some x, secondary := Except.ok x }
+
+@[rust_export]
+def nested_payload_err_u32_string (message : String) (fallback : UInt32) :
+    NestedPayload UInt32 String :=
+  { primary := some fallback, secondary := Except.error message }
+
+@[rust_export]
+def nested_payload_value_or_u32_string
+    (payload : NestedPayload UInt32 String)
+    (fallback : UInt32) : UInt32 :=
+  Option.casesOn payload.primary fallback (fun value => value)
 
 @[rust_export]
 def step_stay (_x : Unit) : Step :=

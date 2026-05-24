@@ -43,7 +43,7 @@
     { "feature": "ci-end-to-end-matrix", "status": "supported-scripted-gates", "examples": ["scripts/check-ci-e2e.sh", "linux+macos workflow matrix"] },
     { "feature": "next20-completion", "status": "supported-complete", "examples": ["rows 21-40", "scripts/check-next-20-completion.py", "rust/tests/next20_completion.rs"] },
     { "feature": "next20-diagnostic-corpus", "status": "supported-complete", "examples": ["corpus/negative", "corpus/unsupported", "extract-regular-unsupported-export", "docs/DIAGNOSTICS.md"] },
-    { "feature": "parameterized-data-monomorphization", "status": "supported-complete", "examples": ["GenericEmission.monomorphizeDataShape", "ParameterizedData.substituteTypeVars", "docs/GENERICS.md"] },
+    { "feature": "parameterized-data-monomorphization", "status": "supported-complete", "examples": ["PairboxU32String", "NestedpayloadU32String", "corpus/positive/parameterized_pair_box.expected.json", "docs/GENERICS.md"] },
     { "feature": "rust-generic-policy", "status": "supported-final-policy", "examples": ["GenericPolicy.finalRustGenericPolicySummary", "LRC009", "docs/GENERICS.md"] },
     { "feature": "complete-numeric-semantics", "status": "supported-complete", "examples": ["NumericSemantics.rules", "runtime numeric helpers", "docs/NUMERIC_SEMANTICS.md"] },
     { "feature": "complete-dependent-erasure", "status": "supported-complete", "examples": ["DependentErasureChecker.checkDependentErasure", "docs/DEPENDENT_ERASURE.md"] },

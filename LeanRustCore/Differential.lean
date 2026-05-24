@@ -301,7 +301,13 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "generic_option_default__step(None, Step::Stay)" (surfaceExpected "generic_option_default__step" [vNone stepTy, vStepStay]),
   assertion "generic_option_default__step(Some(Step::Jump(7)), Step::Stay)" (surfaceExpected "generic_option_default__step" [vSome (vStepJump 7), vStepStay]),
   assertion "auto_option_default_step(None, Step::Jump(5))" (surfaceExpected "auto_option_default_step" [vNone stepTy, vStepJump 5]),
-  assertion "auto_option_default_step(Some(Step::Stay), Step::Jump(5))" (surfaceExpected "auto_option_default_step" [vSome vStepStay, vStepJump 5])
+  assertion "auto_option_default_step(Some(Step::Stay), Step::Jump(5))" (surfaceExpected "auto_option_default_step" [vSome vStepStay, vStepJump 5]),
+  assertion "pair_box_make_u32_string(9, String::from(\"rust\"))" "PairboxU32String { left: 9u32, right: String::from(\"rust\") }",
+  assertion "pair_box_swap_u32_string(PairboxU32String { left: 7, right: String::from(\"lean\") })" "PairboxStringU32 { left: String::from(\"lean\"), right: 7u32 }",
+  assertion "pair_choice_left_u32_string(6)" "PairchoiceU32String::Left(6u32)",
+  assertion "pair_choice_default_u32_string(PairchoiceU32String::Right(String::from(\"skip\")), 11)" "11u32",
+  assertion "nested_payload_ok_u32_string(8)" "NestedpayloadU32String { primary: Some(8u32), secondary: Ok(8u32) }",
+  assertion "nested_payload_value_or_u32_string(NestedpayloadU32String { primary: Some(41), secondary: Err(String::from(\"x\")) }, 0)" "41u32"
 ]
 
 private def emitAssertion (a : RustAssertion) : String :=

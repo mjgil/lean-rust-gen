@@ -54,6 +54,7 @@ def check_files() -> None:
     required = [
         "LeanRustCore/GenericEmission.lean",
         "LeanRustCore/ParameterizedData.lean",
+        "LeanRustCore/ParameterizedExamples.lean",
         "LeanRustCore/GenericPolicy.lean",
         "LeanRustCore/NumericSemantics.lean",
         "LeanRustCore/DependentErasureChecker.lean",
@@ -74,6 +75,9 @@ def check_files() -> None:
         "docs/STD_LOWERINGS.md",
         "docs/TYPECLASSES.md",
         "rust/tests/next20_completion.rs",
+        "corpus/positive/parameterized_pair_box.expected.json",
+        "corpus/positive/parameterized_nested_payload.expected.json",
+        "corpus/unsupported/dependent_generic_index.expected.json",
     ]
     for path in required:
         require((ROOT / path).exists(), f"missing next-20 artifact {path}")
@@ -81,8 +85,9 @@ def check_files() -> None:
 
 def check_lean_modules() -> None:
     expectations = {
-        "LeanRustCore/GenericEmission.lean": ["ParameterizedDataShape", "monomorphizeDataShape", "rustGenericEmissionAllowedByDefault", "genericEmissionSummary"],
-        "LeanRustCore/ParameterizedData.lean": ["substituteTypeVars", "decideMonomorphicInstance", "parameterizedDataSummary"],
+        "LeanRustCore/GenericEmission.lean": ["ParameterizedDataShape", "monomorphizeDataShape", "multiParameterEnumFixture", "nestedParameterizedFixture", "acceptedParameterizedFixtures", "rejectedDependentParameterizedShapes", "rustGenericEmissionAllowedByDefault", "genericEmissionSummary"],
+        "LeanRustCore/ParameterizedData.lean": ["substituteTypeVars", "decideMonomorphicInstance", "acceptedParameterizedShapes", "rejectedDependentGenericShapes", "parameterizedDataSummary"],
+        "LeanRustCore/ParameterizedExamples.lean": ["structure PairBox", "inductive PairChoice", "structure NestedPayload"],
         "LeanRustCore/GenericPolicy.lean": ["ExportGenericDecision", "finalRustGenericPolicySummary", "LRC009"],
         "LeanRustCore/NumericSemantics.lean": ["NumericMode", "NumericRule", "checkedAddU32", "preconditionedDivU32", "numericSemanticsSummary"],
         "LeanRustCore/DependentErasureChecker.lean": ["RuntimeRelevance", "ErasureDecision", "checkDependentErasure", "dependentErasureCheckerSummary"],
@@ -99,7 +104,7 @@ def check_lean_modules() -> None:
             require(needle in text, f"{path} missing {needle}")
     imports = read("LeanRustCore.lean")
     for module in [
-        "GenericEmission", "ParameterizedData", "GenericPolicy", "NumericSemantics", "DependentErasureChecker",
+        "GenericEmission", "ParameterizedData", "ParameterizedExamples", "GenericPolicy", "NumericSemantics", "DependentErasureChecker",
         "RecursiveDiscovery", "OwnershipPolicy", "PatternMatrix", "RecursionAnalysis", "StdImplementation", "TypeclassSpecialization",
     ]:
         require(f"import LeanRustCore.{module}" in imports, f"LeanRustCore.lean missing {module}")
@@ -118,10 +123,35 @@ def check_runtime_and_tests() -> None:
     for needle in [
         "next20_reports_mark_rows_21_40_complete",
         "next20_diagnostic_corpus_covers_all_rejection_paths",
+        "next20_parameterized_data_examples_cover_multi_parameter_and_nested_shapes",
         "next20_runtime_helpers_cover_numeric_std_and_layouts",
         "u32_checked_div", "RcTreeU32", "ArenaTreeU32", "list_append_u32", "list_partition_nonzero_u32",
     ]:
         require(needle in test, f"next20 test missing {needle}")
+
+    generated = read("rust/src/generated.rs")
+    for needle in [
+        "pub struct PairboxU32String",
+        "pub struct PairboxStringU32",
+        "pub enum PairchoiceU32String",
+        "pub struct NestedpayloadU32String",
+        "pub fn pair_box_make_u32_string",
+        "pub fn pair_box_swap_u32_string",
+        "pub fn pair_choice_default_u32_string",
+        "pub fn nested_payload_value_or_u32_string",
+    ]:
+        require(needle in generated, f"generated Rust missing {needle}")
+
+    target_validation = read("rust/target-validation.txt")
+    for needle in [
+        "TYPE\tstruct\tPairboxU32String",
+        "TYPE\tenum\tPairchoiceU32String",
+        "TYPE\tstruct\tNestedpayloadU32String",
+        "FN\tpair_box_make_u32_string",
+        "FN\tpair_choice_default_u32_string",
+        "FN\tnested_payload_value_or_u32_string",
+    ]:
+        require(needle in target_validation, f"target-validation snapshot missing {needle}")
 
 
 def check_diagnostic_corpus() -> None:
@@ -164,6 +194,38 @@ def check_diagnostic_corpus() -> None:
     )
 
 
+def check_parameterized_data_corpus() -> None:
+    pair_box = load_json("corpus/positive/parameterized_pair_box.expected.json")
+    require(pair_box["kind"] == "positive", "pair-box corpus case must be positive")
+    require(pair_box["source"] == "LeanRustCore.Examples.pair_box_make_u32_string", "pair-box corpus case must reference the exported example")
+    require(pair_box["expected_status"] == "supported", "pair-box corpus case must be supported")
+    require(
+        set(pair_box["required_features"]) == {"generic-monomorphization", "struct-enum-shape"},
+        "pair-box corpus case must record generic monomorphization + struct/enum coverage",
+    )
+
+    nested = load_json("corpus/positive/parameterized_nested_payload.expected.json")
+    require(nested["kind"] == "positive", "nested-payload corpus case must be positive")
+    require(nested["source"] == "LeanRustCore.Examples.nested_payload_value_or_u32_string", "nested-payload corpus case must reference the exported example")
+    require(nested["expected_status"] == "supported", "nested-payload corpus case must be supported")
+    require(
+        set(nested["required_features"]) == {"generic-monomorphization", "struct-enum-shape", "container-shape"},
+        "nested-payload corpus case must record nested container coverage",
+    )
+
+    dependent = load_json("corpus/unsupported/dependent_generic_index.expected.json")
+    require(dependent["kind"] == "unsupported", "dependent-generic corpus case must be unsupported")
+    require(dependent["diagnostic_code"] == "LRC008", "dependent-generic corpus case must use LRC008")
+    require(
+        dependent["next_feature"] == "dependent erasure proof classifier",
+        "dependent-generic corpus case must point at dependent erasure follow-up work",
+    )
+    require(
+        "docs/GENERICS.md" in dependent["documentation"],
+        "dependent-generic corpus case must reference the generics doc",
+    )
+
+
 def check_docs() -> None:
     for path in [
         "docs/GENERICS.md", "docs/NUMERIC_SEMANTICS.md", "docs/DEPENDENT_ERASURE.md", "docs/RECURSIVE_DATA.md",
@@ -184,6 +246,9 @@ def check_docs() -> None:
         require("```lean" in section, f"docs/DIAGNOSTICS.md section for {code} needs a Lean example")
     for branch in EXTRACTOR_BRANCHES:
         require(branch in diagnostics, f"docs/DIAGNOSTICS.md must describe {branch}")
+    generics = read("docs/GENERICS.md").lower()
+    for phrase in ["multi-parameter", "nested", "dependent generic", "index-free", "lrc013"]:
+        require(phrase in generics, f"docs/GENERICS.md missing phrase {phrase}")
 
 
 def check_reports() -> None:
@@ -237,6 +302,7 @@ def main() -> None:
     check_lean_modules()
     check_runtime_and_tests()
     check_diagnostic_corpus()
+    check_parameterized_data_corpus()
     check_docs()
     check_reports()
     check_scripts()

@@ -131,8 +131,42 @@ def parameterizedFixtureU32String : Except String MonomorphizedDataShape :=
     { parameter := "B", replacement := .string }
   ]
 
+def multiParameterEnumFixture : ParameterizedDataShape := {
+  leanName := "LeanRustCore.ParameterizedExamples.PairChoice",
+  rustStem := "PairChoice",
+  parameters := [{ name := "A" }, { name := "B" }],
+  fields := [],
+  variants := [
+    ("left", [.recursive "param:A"]),
+    ("right", [.recursive "param:B"])
+  ]
+}
+
+def nestedParameterizedFixture : ParameterizedDataShape := {
+  leanName := "LeanRustCore.ParameterizedExamples.NestedPayload",
+  rustStem := "NestedPayload",
+  parameters := [{ name := "A" }, { name := "B" }],
+  fields := [
+    ("primary", .option (.recursive "param:A")),
+    ("secondary", .result (.recursive "param:A") (.recursive "param:B"))
+  ],
+  variants := []
+}
+
+def acceptedParameterizedFixtures : List ParameterizedDataShape := [
+  parameterizedFixture,
+  multiParameterEnumFixture,
+  nestedParameterizedFixture
+]
+
+def rejectedDependentParameterizedShapes : List String := [
+  "Vector α n",
+  "Sigma fun a => β a",
+  "indexed inductive parameters whose runtime shape depends on indices"
+]
+
 /-- Human-readable summary for reports. -/
 def genericEmissionSummary : String :=
-  "rows 23/25 complete: parameterized Lean data is accepted through deterministic concrete monomorphization; Rust generic emission is explicitly disabled in the safe default lane until a verified generic/bounds lane is added"
+  "rows 23/25 complete: parameterized Lean data is accepted through deterministic concrete monomorphization for index-free multi-parameter and nested shapes; dependent generic/indexed shapes stay rejected, and Rust generic emission is explicitly disabled in the safe default lane until a verified generic/bounds lane is added"
 
 end LeanRustCore.GenericEmission

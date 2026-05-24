@@ -13,7 +13,13 @@ def substituteTypeVars (subs : List TypeVarSubstitution) (ty : RType) : RType :=
 def decideMonomorphicInstance (shape : LeanRustCore.GenericEmission.ParameterizedDataShape) (subs : List TypeVarSubstitution) : Except String MonomorphicInstance :=
   LeanRustCore.GenericEmission.monomorphizeDataShape shape subs
 
+def acceptedParameterizedShapes : List String :=
+  LeanRustCore.GenericEmission.acceptedParameterizedFixtures.map (fun fixture => fixture.leanName)
+
+def rejectedDependentGenericShapes : List String :=
+  LeanRustCore.GenericEmission.rejectedDependentParameterizedShapes
+
 def parameterizedDataSummary : String :=
-  "row 23 complete: parameterized data is admitted only through concrete monomorphic instances with deterministic Rust names and tests/docs for each accepted shape"
+  "row 25 complete: parameterized data admits arbitrary eligible index-free structures/enums through concrete monomorphic instances with deterministic Rust names, including multi-parameter and nested shapes; dependent generic/indexed shapes remain explicitly rejected and documented"
 
 end LeanRustCore.ParameterizedData

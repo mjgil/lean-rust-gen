@@ -413,8 +413,12 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub struct Point",
         "pub struct BoundedProof",
         "pub struct BoxedU32",
+        "pub struct PairboxU32String",
+        "pub struct PairboxStringU32",
+        "pub struct NestedpayloadU32String",
         "pub struct AddDeltaU32Env",
         "pub enum Choice",
+        "pub enum PairchoiceU32String",
         "pub enum TaggedU32",
         "pub enum Step",
         "pub enum U32FnCase",
@@ -452,6 +456,13 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn fin_checked10_u32",
         "pub fn vector_map_inc3_u32",
         "pub fn boxed_u32",
+        "pub fn pair_box_make_u32_string",
+        "pub fn pair_box_swap_u32_string",
+        "pub fn pair_choice_left_u32_string",
+        "pub fn pair_choice_default_u32_string",
+        "pub fn nested_payload_ok_u32_string",
+        "pub fn nested_payload_err_u32_string",
+        "pub fn nested_payload_value_or_u32_string",
         "pub fn tagged_default_u32",
         "pub fn unsupported_higher_order_u32",
         "pub fn option_default_u64",
@@ -518,8 +529,16 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("FORMAT\tlean-rust-core.target-validation.v2"));
     assert!(snapshot.contains("TYPE\tstruct\tBoundedProof"));
     assert!(snapshot.contains("TYPE\tstruct\tBoxedU32"));
+    assert!(snapshot.contains("TYPE\tstruct\tPairboxU32String"));
+    assert!(snapshot.contains("TYPE\tstruct\tPairboxStringU32"));
+    assert!(snapshot.contains("TYPE\tenum\tPairchoiceU32String"));
+    assert!(snapshot.contains("TYPE\tstruct\tNestedpayloadU32String"));
     assert!(snapshot.contains("TYPE\tenum\tOrdering"));
     assert!(snapshot.contains("FN\tclamp_u32"));
+    assert!(snapshot.contains("FN\tpair_box_make_u32_string"));
+    assert!(snapshot.contains("FN\tpair_box_swap_u32_string"));
+    assert!(snapshot.contains("FN\tpair_choice_default_u32_string"));
+    assert!(snapshot.contains("FN\tnested_payload_value_or_u32_string"));
     assert!(snapshot.contains("FN\tunsupported_higher_order_u32"));
     assert!(snapshot.contains("call_value(var(f),var(x))"));
     assert!(snapshot.contains("FN\tlist_map_inc_u32"));

@@ -1,14 +1,18 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
-TYPE_COUNT	11
-FN_COUNT	119
+TYPE_COUNT	15
+FN_COUNT	126
+TYPE	struct	PairboxStringU32	left:String,right:u32
 TYPE	struct	BoundedProof	value:u32
+TYPE	struct	PairboxU32String	left:u32,right:String
 TYPE	struct	AddDeltaU32Env	delta:u32
 TYPE	struct	BoxedU32	value:u32
+TYPE	struct	NestedpayloadU32String	primary:Option<u32>,secondary:Result<u32, String>
 TYPE	struct	Point	x:u32,y:u32
 TYPE	enum	ExprU32	Lit(u32)|Add(Box<ExprU32>,Box<ExprU32>)
 TYPE	enum	Choice	First|Second
 TYPE	enum	Ordering	Lt|Eq|Gt
+TYPE	enum	PairchoiceU32String	Left(u32)|Right(String)
 TYPE	enum	U32FnCase	Inc|Double|Add(u32)
 TYPE	enum	TaggedU32	Missing|Present(u32)
 TYPE	enum	BinaryTreeU32	Leaf|Node(Box<BinaryTreeU32>,u32,Box<BinaryTreeU32>)
@@ -18,6 +22,7 @@ FN	some_u32	x:u32	Option<u32>	some(var(x))
 FN	exact_int_mul	a:num_bigint::BigInt,b:num_bigint::BigInt	num_bigint::BigInt	mul(var(a),var(b))
 FN	result_ok_u32	x:u32	Result<u32, u32>	ok(var(x))
 FN	general_step_match_u32	s:Step,fallback:u32	u32	match_pattern(var(s),Step::Stay()=>var(fallback)|Step::Jump(varpat(amount))=>add(var(amount),lit(1)))
+FN	nested_payload_err_u32_string	message:String,fallback:u32	NestedpayloadU32String	struct(NestedpayloadU32String,primary=some(var(fallback)),secondary=err(var(message)))
 FN	list_append_u32	xs:Vec<u32>,ys:Vec<u32>	Vec<u32>	list_append(var(xs),var(ys))
 FN	option_identity_u32	x:Option<u32>	Option<u32>	var(x)
 FN	echo_string	x:String	String	var(x)
@@ -27,6 +32,7 @@ FN	expr_lit_u32	value:u32	ExprU32	enum(ExprU32::Lit,var(value))
 FN	tagged_present_u32	x:u32	TaggedU32	enum(TaggedU32::Present,var(x))
 FN	unsupported_higher_order_u32	f:fn(u32) -> u32,x:u32	u32	call_value(var(f),var(x))
 FN	is_nonzero_u32	x:u32	bool	if(eq(var(x),lit(0)),bool(false),bool(true))
+FN	pair_choice_left_u32_string	x:u32	PairchoiceU32String	enum(PairchoiceU32String::Left,var(x))
 FN	subtype_inc_u32	x:u32	u32	add(var(x),lit(1))
 FN	step_amount_plus_one_or	s:Step,fallback:u32	u32	match_pattern(var(s),Step::Stay()=>var(fallback)|Step::Jump(varpat(amount))=>add(var(amount),lit(1)))
 FN	fin_checked10_u32	x:u32	Option<u32>	if(lt(var(x),lit(10)),some(var(x)),none)
@@ -37,6 +43,7 @@ FN	tree_node_u32	left:BinaryTreeU32,value:u32,right:BinaryTreeU32	BinaryTreeU32	
 FN	decidable_eq_u32	a:u32,b:u32	bool	eq(var(a),var(b))
 FN	echo_list_u32	xs:Vec<u32>	Vec<u32>	var(xs)
 FN	tree_leaf_u32	_x:()	BinaryTreeU32	enum(BinaryTreeU32::Leaf)
+FN	pair_box_swap_u32_string	pair:PairboxU32String	PairboxStringU32	struct(PairboxStringU32,left=field(var(pair),right),right=field(var(pair),left))
 FN	clamp_u32	lo:u32,hi:u32,x:u32	u32	if(lt(var(x),var(lo)),var(lo),if(gt(var(x),var(hi)),var(hi),var(x)))
 FN	vector_map_inc3_u32	xs:Vec<u32>	Vec<u32>	list_map(x,var(xs),add(var(x),lit(1)))
 FN	pair_sum_match_u32	a:u32,b:u32	u32	match_pattern(tuple(var(a),var(b)),(varpat(x),varpat(y))=>add(var(x),var(y)))
@@ -57,10 +64,12 @@ FN	closure_env_apply_add_delta_u32	delta:u32,x:u32	u32	let(env,struct(AddDeltaU3
 FN	option_bind_inc_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(y)=>some(add(var(y),lit(1))))
 FN	ord_compare_u32	a:u32,b:u32	Ordering	compare(var(a),var(b))
 FN	defun_compose_inc_double_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Double),call(defun_apply_u32,enum(U32FnCase::Inc),var(x)))
+FN	pair_choice_default_u32_string	choice:PairchoiceU32String,fallback:u32	u32	match_pattern(var(choice),PairchoiceU32String::Left(varpat(value))=>var(value)|PairchoiceU32String::Right(varpat(_hyg1897))=>var(fallback))
 FN	add_u32	a:u32,b:u32	u32	add(var(a),var(b))
 FN	repr_u32	x:u32	String	repr(u32,var(x))
 FN	list_filter_nonzero_u32	xs:Vec<u32>	Vec<u32>	list_filter(x,var(xs),gt(var(x),lit(0)))
 FN	point_x	p:Point	u32	field(var(p),x)
+FN	nested_payload_value_or_u32_string	payload:NestedpayloadU32String,fallback:u32	u32	match_pattern(field(var(payload),primary),None=>var(fallback)|Some(varpat(value))=>var(value))
 FN	add_u64	a:u64,b:u64	u64	add(var(a),var(b))
 FN	boxed_u32	x:u32	BoxedU32	struct(BoxedU32,value=var(x))
 FN	defun_apply_add5_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Add,lit(5)),var(x))
@@ -82,6 +91,7 @@ FN	result_err_some_u32	e:u32	Result<u32, Option<u32>>	err(some(var(e)))
 FN	list_map_add_capture_u32	delta:u32,xs:Vec<u32>	Vec<u32>	list_map(x,var(xs),add(var(x),var(delta)))
 FN	general_bool_match_u32	flag:bool,when_true:u32,when_false:u32	u32	match_pattern(var(flag),true=>add(var(when_true),lit(1))|false=>add(var(when_false),lit(1)))
 FN	option_map_inc_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(y)=>some(add(var(y),lit(1))))
+FN	pair_box_make_u32_string	x:u32,label:String	PairboxU32String	struct(PairboxU32String,left=var(x),right=var(label))
 FN	echo_sum_u32	x:Result<u32, u32>	Result<u32, u32>	var(x)
 FN	fin_val10_u32	i:u32	u32	var(i)
 FN	to_string_u32	x:u32	String	to_string(u32,var(x))
@@ -118,6 +128,7 @@ FN	state_tick_u32	s:u32	(u32, u32)	let(old,var(s),tuple(var(old),add(var(s),lit(
 FN	list_foldr_sum_u32	xs:Vec<u32>	u32	list_foldr(x,acc,var(xs),lit(0),add(var(x),var(acc)))
 FN	exact_int_add	a:num_bigint::BigInt,b:num_bigint::BigInt	num_bigint::BigInt	add(var(a),var(b))
 FN	list_length_u32	xs:Vec<u32>	u32	list_length(var(xs))
+FN	nested_payload_ok_u32_string	x:u32	NestedpayloadU32String	struct(NestedpayloadU32String,primary=some(var(x)),secondary=ok(var(x)))
 FN	list_all_nonzero_u32	xs:Vec<u32>	bool	list_all(x,var(xs),gt(var(x),lit(0)))
 FN	identity_u64	x:u64	u64	var(x)
 FN	choose_generic_u32	flag:bool,when_true:u32,when_false:u32	u32	if(var(flag),var(when_true),var(when_false))

@@ -167,6 +167,110 @@ fn next20_diagnostic_corpus_covers_all_rejection_paths() {
 }
 
 #[test]
+fn next20_parameterized_data_examples_cover_multi_parameter_and_nested_shapes() {
+    let generated =
+        fs::read_to_string(repo_root().join("rust/src/generated.rs")).expect("generated Rust");
+    for needle in [
+        "pub struct PairboxU32String",
+        "pub struct PairboxStringU32",
+        "pub enum PairchoiceU32String",
+        "pub struct NestedpayloadU32String",
+        "pub fn pair_box_make_u32_string",
+        "pub fn pair_box_swap_u32_string",
+        "pub fn pair_choice_left_u32_string",
+        "pub fn pair_choice_default_u32_string",
+        "pub fn nested_payload_ok_u32_string",
+        "pub fn nested_payload_err_u32_string",
+        "pub fn nested_payload_value_or_u32_string",
+    ] {
+        assert!(
+            generated.contains(needle),
+            "missing generated item {needle}"
+        );
+    }
+
+    let target_validation = fs::read_to_string(repo_root().join("rust/target-validation.txt"))
+        .expect("target validation");
+    for needle in [
+        "TYPE\tstruct\tPairboxU32String",
+        "TYPE\tstruct\tPairboxStringU32",
+        "TYPE\tenum\tPairchoiceU32String",
+        "TYPE\tstruct\tNestedpayloadU32String",
+        "FN\tpair_box_make_u32_string",
+        "FN\tpair_box_swap_u32_string",
+        "FN\tpair_choice_default_u32_string",
+        "FN\tnested_payload_value_or_u32_string",
+    ] {
+        assert!(
+            target_validation.contains(needle),
+            "missing target-validation item {needle}"
+        );
+    }
+
+    let pair_box = serde_json::from_str::<serde_json::Value>(include_str!(
+        "../../corpus/positive/parameterized_pair_box.expected.json"
+    ))
+    .unwrap();
+    assert_eq!(pair_box["kind"].as_str(), Some("positive"));
+    assert_eq!(pair_box["expected_status"].as_str(), Some("supported"));
+    assert_eq!(
+        pair_box["required_features"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|item| item.as_str())
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["generic-monomorphization", "struct-enum-shape"])
+    );
+
+    let nested = serde_json::from_str::<serde_json::Value>(include_str!(
+        "../../corpus/positive/parameterized_nested_payload.expected.json"
+    ))
+    .unwrap();
+    assert_eq!(nested["kind"].as_str(), Some("positive"));
+    assert_eq!(nested["expected_status"].as_str(), Some("supported"));
+    assert_eq!(
+        nested["required_features"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|item| item.as_str())
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from([
+            "container-shape",
+            "generic-monomorphization",
+            "struct-enum-shape",
+        ])
+    );
+
+    let dependent = serde_json::from_str::<serde_json::Value>(include_str!(
+        "../../corpus/unsupported/dependent_generic_index.expected.json"
+    ))
+    .unwrap();
+    assert_eq!(dependent["kind"].as_str(), Some("unsupported"));
+    assert_eq!(dependent["diagnostic_code"].as_str(), Some("LRC008"));
+    assert_eq!(
+        dependent["next_feature"].as_str(),
+        Some("dependent erasure proof classifier")
+    );
+
+    let generics_doc =
+        fs::read_to_string(repo_root().join("docs/GENERICS.md")).expect("generics doc");
+    for phrase in [
+        "multi-parameter",
+        "nested",
+        "dependent generic",
+        "index-free",
+        "LRC013",
+    ] {
+        assert!(
+            generics_doc.contains(phrase),
+            "docs/GENERICS.md missing {phrase}"
+        );
+    }
+}
+
+#[test]
 fn next20_runtime_helpers_cover_numeric_std_and_layouts() {
     // RcTreeU32 and ArenaTreeU32 are the row-32 runtime layout fixtures.
     assert_eq!(u32_checked_add(u32::MAX, 1), None);

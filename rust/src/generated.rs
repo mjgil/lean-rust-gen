@@ -2,8 +2,20 @@
 // The checked-in rust/src/generated.rs is a fallback snapshot; scripts/gen.sh regenerates it.
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PairboxStringU32 {
+    pub left: String,
+    pub right: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BoundedProof {
     pub value: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PairboxU32String {
+    pub left: u32,
+    pub right: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -14,6 +26,12 @@ pub struct AddDeltaU32Env {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BoxedU32 {
     pub value: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NestedpayloadU32String {
+    pub primary: Option<u32>,
+    pub secondary: Result<u32, String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -39,6 +57,12 @@ pub enum Ordering {
     Lt,
     Eq,
     Gt,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PairchoiceU32String {
+    Left(u32),
+    Right(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -89,6 +113,13 @@ pub fn general_step_match_u32(s: Step, fallback: u32) -> u32 {
     }
 }
 
+pub fn nested_payload_err_u32_string(message: String, fallback: u32) -> NestedpayloadU32String {
+    NestedpayloadU32String {
+        primary: Some(fallback),
+        secondary: Err(message),
+    }
+}
+
 pub fn list_append_u32(xs: Vec<u32>, ys: Vec<u32>) -> Vec<u32> {
     {
         let mut __lrc_vec = xs;
@@ -131,6 +162,10 @@ pub fn is_nonzero_u32(x: u32) -> bool {
     } else {
         true
     }
+}
+
+pub fn pair_choice_left_u32_string(x: u32) -> PairchoiceU32String {
+    PairchoiceU32String::Left(x)
 }
 
 pub fn subtype_inc_u32(x: u32) -> u32 {
@@ -190,6 +225,13 @@ pub fn echo_list_u32(xs: Vec<u32>) -> Vec<u32> {
 
 pub fn tree_leaf_u32(_x: ()) -> BinaryTreeU32 {
     BinaryTreeU32::Leaf
+}
+
+pub fn pair_box_swap_u32_string(pair: PairboxU32String) -> PairboxStringU32 {
+    PairboxStringU32 {
+        left: (pair).right,
+        right: (pair).left,
+    }
 }
 
 pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
@@ -342,6 +384,13 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
     defun_apply_u32(U32FnCase::Double, defun_apply_u32(U32FnCase::Inc, x))
 }
 
+pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
+    match choice {
+        PairchoiceU32String::Left(value) => value,
+        PairchoiceU32String::Right(_hyg1897) => fallback,
+    }
+}
+
 pub fn add_u32(a: u32, b: u32) -> u32 {
     (a).wrapping_add(b)
 }
@@ -364,6 +413,13 @@ pub fn list_filter_nonzero_u32(xs: Vec<u32>) -> Vec<u32> {
 
 pub fn point_x(p: Point) -> u32 {
     (p).x
+}
+
+pub fn nested_payload_value_or_u32_string(payload: NestedpayloadU32String, fallback: u32) -> u32 {
+    match (payload).primary {
+        None => fallback,
+        Some(value) => value,
+    }
 }
 
 pub fn add_u64(a: u64, b: u64) -> u64 {
@@ -487,6 +543,13 @@ pub fn option_map_inc_u32(x: Option<u32>) -> Option<u32> {
     match x {
         None => None::<u32>,
         Some(y) => Some((y).wrapping_add(1)),
+    }
+}
+
+pub fn pair_box_make_u32_string(x: u32, label: String) -> PairboxU32String {
+    PairboxU32String {
+        left: x,
+        right: label,
     }
 }
 
@@ -710,6 +773,13 @@ pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint
 
 pub fn list_length_u32(xs: Vec<u32>) -> u32 {
     (xs).len() as u32
+}
+
+pub fn nested_payload_ok_u32_string(x: u32) -> NestedpayloadU32String {
+    NestedpayloadU32String {
+        primary: Some(x),
+        secondary: Ok(x),
+    }
 }
 
 pub fn list_all_nonzero_u32(xs: Vec<u32>) -> bool {
