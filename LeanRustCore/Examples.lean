@@ -369,6 +369,14 @@ def option_do_inc_u32 (x : Option UInt32) : Option UInt32 := do
   let v ← x
   pure (v + 1)
 
+@[rust_export]
+def option_seq_right_u32 (x : Option UInt32) : Option UInt32 :=
+  x *> pure (41 : UInt32)
+
+@[rust_export]
+def option_seq_left_u32 (x : Option UInt32) : Option UInt32 :=
+  x <* pure (41 : UInt32)
+
 
 @[rust_export]
 def list_append_u32 (xs ys : List UInt32) : List UInt32 :=
@@ -426,6 +434,14 @@ def result_map_err_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
 def except_do_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 := do
   let v ← x
   pure (v + 1)
+
+@[rust_export]
+def except_seq_right_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
+  x *> pure (41 : UInt32)
+
+@[rust_export]
+def except_seq_left_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
+  x <* pure (41 : UInt32)
 
 @[rust_export]
 def reader_add_env_u32 (env x : UInt32) : UInt32 :=

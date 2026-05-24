@@ -625,17 +625,23 @@ shapes.
 ## Remaining pure-do extraction progress
 
 Task 52 is no longer metadata-only for the direct `Option` / `Except` cases.
-`LeanRustCore.Extract` now recognizes the real elaborated `Bind.bind` and
-`Pure.pure` AST shapes emitted by Lean for ordinary `do` blocks and lowers them
-straight into `SurfaceExpr.optionBind`, `SurfaceExpr.resultBind`,
-`SurfaceExpr.optionSome`, and `SurfaceExpr.resultOk`.
+`LeanRustCore.Extract` now recognizes the real elaborated `Bind.bind`,
+`Pure.pure`, `SeqRight.seqRight`, and `SeqLeft.seqLeft` AST shapes emitted by
+Lean for ordinary `do`, `*>`, and `<*` code and lowers them straight into the
+existing `SurfaceExpr.optionBind`, `SurfaceExpr.resultBind`,
+`SurfaceExpr.optionSome`, `SurfaceExpr.resultOk`, `SurfaceExpr.optionMap`, and
+`SurfaceExpr.resultMapOk` carriers.
 
 That means ordinary exported declarations like
-`LeanRustCore.Examples.option_do_inc_u32` and
-`LeanRustCore.Examples.except_do_inc_u32` now flow through the real
+`LeanRustCore.Examples.option_do_inc_u32`,
+`LeanRustCore.Examples.except_do_inc_u32`,
+`LeanRustCore.Examples.option_seq_right_u32`,
+`LeanRustCore.Examples.option_seq_left_u32`,
+`LeanRustCore.Examples.except_seq_right_u32`, and
+`LeanRustCore.Examples.except_seq_left_u32` now flow through the real
 Lean→ExtractIR→SurfaceExpr→Rust pipeline, show up in `rust/src/generated.rs`,
-`rust/extract-ir.txt`, `rust/target-validation.txt`, and the FFI wrapper lane,
-and are enforced by generated, differential, parser-validation, and shell
+`rust/extract-ir.txt`, and `rust/target-validation.txt`, and are enforced by
+generated, differential, parser-validation, interpreter, corpus, and shell
 release tests.
 
 `StateM`, `ReaderT`, and `ExceptT(StateM)` still have runtime models and docs,

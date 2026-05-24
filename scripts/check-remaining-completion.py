@@ -68,6 +68,10 @@ def check_required_files() -> None:
         "corpus/positive/stored_multi_closure_apply.expected.json",
         "corpus/positive/returned_multi_closure_apply.expected.json",
         "corpus/positive/passed_multi_closure_apply.expected.json",
+        "corpus/positive/option_seq_right.expected.json",
+        "corpus/positive/option_seq_left.expected.json",
+        "corpus/positive/except_seq_right.expected.json",
+        "corpus/positive/except_seq_left.expected.json",
     ]
     for path in required:
         require((ROOT / path).exists(), f"missing remaining-completion artifact {path}")
@@ -187,6 +191,7 @@ def check_rust_runtime_and_validate() -> None:
     for needle in [
         "remaining_rows_reports_and_dashboard_are_complete",
         "remaining_runtime_features_are_exercised",
+        "remaining_pure_do_generated_examples_cover_bind_and_seq_shapes",
         "remaining_source_level_closure_lowerings_are_exercised",
         "remaining_validate_semantics_cover_representative_values",
         "remaining_property_generators_are_randomized_and_shrinkable",
@@ -424,6 +429,40 @@ def check_closure_docs_and_corpus() -> None:
         )
 
 
+def check_pure_do_docs_and_corpus() -> None:
+    docs = read("docs/PURE_DO_NOTATION.md")
+    architecture = read("docs/ARCHITECTURE.md")
+    exported_examples = read("LeanRustCore/Examples.lean")
+    for needle in [
+        "option_do_inc_u32",
+        "except_do_inc_u32",
+        "option_seq_right_u32",
+        "option_seq_left_u32",
+        "except_seq_right_u32",
+        "except_seq_left_u32",
+        "SeqRight.seqRight",
+        "SeqLeft.seqLeft",
+    ]:
+        require(needle in docs or needle in architecture or needle in exported_examples, f"pure-do coverage missing {needle}")
+
+    for fixture_name in [
+        "option_seq_right.expected.json",
+        "option_seq_left.expected.json",
+        "except_seq_right.expected.json",
+        "except_seq_left.expected.json",
+    ]:
+        fixture = json_file(f"corpus/positive/{fixture_name}")
+        require(fixture.get("expected_status") == "supported", f"{fixture_name} must be supported")
+        require(
+            "scripts/check-remaining-completion.py" in fixture.get("tests", []),
+            f"{fixture_name} missing remaining completion gate",
+        )
+        require(
+            "docs/PURE_DO_NOTATION.md" in fixture.get("documentation", []),
+            f"{fixture_name} missing pure-do docs",
+        )
+
+
 def check_docs_and_release() -> None:
     for path in [
         "docs/TYPECLASS_DICTIONARIES.md",
@@ -518,6 +557,7 @@ def main() -> None:
     check_reports_and_dashboard()
     check_dictionary_docs_and_corpus()
     check_closure_docs_and_corpus()
+    check_pure_do_docs_and_corpus()
     check_docs_and_release()
     check_scripts()
 

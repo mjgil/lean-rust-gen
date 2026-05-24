@@ -104,6 +104,16 @@ fn remaining_runtime_features_are_exercised() {
 }
 
 #[test]
+fn remaining_pure_do_generated_examples_cover_bind_and_seq_shapes() {
+    assert_eq!(option_do_inc_u32(Some(41)), Some(42));
+    assert_eq!(option_seq_right_u32(Some(5)), Some(41));
+    assert_eq!(option_seq_left_u32(Some(5)), Some(5));
+    assert_eq!(except_do_inc_u32(Ok(41)), Ok(42));
+    assert_eq!(except_seq_right_u32(Ok(5)), Ok(41));
+    assert_eq!(except_seq_left_u32(Ok(5)), Ok(5));
+}
+
+#[test]
 fn remaining_source_level_closure_lowerings_are_exercised() {
     assert_eq!(stored_closure_apply_u32(5, 37), 42);
     assert_eq!(returned_closure_apply_u32(5, 37), 42);

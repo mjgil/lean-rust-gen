@@ -780,6 +780,10 @@ fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
     }
     assert!(!ffi.contains("lrc_option_do_inc_u32"));
     assert!(!ffi.contains("lrc_except_do_inc_u32"));
+    assert!(!ffi.contains("lrc_option_seq_right_u32"));
+    assert!(!ffi.contains("lrc_option_seq_left_u32"));
+    assert!(!ffi.contains("lrc_except_seq_right_u32"));
+    assert!(!ffi.contains("lrc_except_seq_left_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_inc_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_roundtrip_u32"));
 }

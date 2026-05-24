@@ -1,7 +1,7 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
 TYPE_COUNT	18
-FN_COUNT	175
+FN_COUNT	179
 TYPE	struct	RoseTreeU32	value:u32,children:Vec<RoseTreeU32>
 TYPE	struct	PairboxStringU32	left:String,right:u32
 TYPE	struct	BoundedProof	value:u32
@@ -58,7 +58,7 @@ FN	tree_node_u32	left:BinaryTreeU32,value:u32,right:BinaryTreeU32	BinaryTreeU32	
 FN	decidable_eq_u32	a:u32,b:u32	bool	eq(var(a),var(b))
 FN	tree_sum_worklist_u32	t:BinaryTreeU32	u32	call(__runtime_tree_sum_worklist_u32,var(t))
 FN	rose_branch_u32	value:u32,children:Vec<RoseTreeU32>	RoseTreeU32	struct(RoseTreeU32,value=var(value),children=var(children))
-FN	list_reverse_first_or_u32	xs:Vec<u32>,fallback:u32	u32	list_foldl(_hyg1638,x,var(fallback),call(__runtime_list_reverse_u32,var(xs)),var(x))
+FN	list_reverse_first_or_u32	xs:Vec<u32>,fallback:u32	u32	list_foldl(_hyg1680,x,var(fallback),call(__runtime_list_reverse_u32,var(xs)),var(x))
 FN	echo_list_u32	xs:Vec<u32>	Vec<u32>	var(xs)
 FN	tree_leaf_u32	_x:()	BinaryTreeU32	enum(BinaryTreeU32::Leaf)
 FN	equality_cast_subtype_value_u32	x:u32	u32	var(x)
@@ -91,7 +91,7 @@ FN	ord_compare_u32	a:u32,b:u32	Ordering	compare(var(a),var(b))
 FN	nat_two_step_or_zero_u32	n:u32	u32	if(lt(var(n),lit(2)),lit(0),var(n))
 FN	gcd_u32	a:u32,b:u32	u32	if(eq(var(a),lit(0)),var(b),if(eq(var(b),lit(0)),var(a),if(eq(var(a),var(b)),var(a),if(lt(var(a),var(b)),call(gcd_u32,var(a),sub(var(b),var(a))),call(gcd_u32,sub(var(a),var(b)),var(b))))))
 FN	defun_compose_inc_double_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Double),call(defun_apply_u32,enum(U32FnCase::Inc),var(x)))
-FN	pair_choice_default_u32_string	choice:PairchoiceU32String,fallback:u32	u32	match_pattern(var(choice),PairchoiceU32String::Left(varpat(value))=>var(value)|PairchoiceU32String::Right(varpat(_hyg2802))=>var(fallback))
+FN	pair_choice_default_u32_string	choice:PairchoiceU32String,fallback:u32	u32	match_pattern(var(choice),PairchoiceU32String::Left(varpat(value))=>var(value)|PairchoiceU32String::Right(varpat(_hyg2890))=>var(fallback))
 FN	add_u32	a:u32,b:u32	u32	add(var(a),var(b))
 FN	repr_u32	x:u32	String	repr(u32,var(x))
 FN	list_filter_nonzero_u32	xs:Vec<u32>	Vec<u32>	list_filter(x,var(xs),gt(var(x),lit(0)))
@@ -116,10 +116,12 @@ FN	string_append_lean	left:String,right:String	String	call(__runtime_string_appe
 FN	make_point	x:u32,y:u32	Point	struct(Point,x=var(x),y=var(y))
 FN	closure_apply_capture_u32	delta:u32,x:u32	u32	let(y,var(x),add(var(y),var(delta)))
 FN	string_contains_char_lean	s:String,c:char	bool	call(__runtime_string_contains_char,var(s),var(c))
+FN	except_seq_right_u32	x:Result<u32, u32>	Result<u32, u32>	match_enum(var(x),Err(__lrc_err)=>err(var(__lrc_err))|Ok(__seq_target)=>ok(lit(41)))
 FN	subtype_roundtrip_u32	x:u32	u32	var(x)
 FN	tree_sum_u32	t:BinaryTreeU32	u32	match_enum(var(t),BinaryTreeU32::Leaf()=>lit(0)|BinaryTreeU32::Node(left,value,right)=>add(add(call(tree_sum_u32,deref(var(left))),var(value)),call(tree_sum_u32,deref(var(right)))))
 FN	fin_succ_checked10_u32	i:u32	Option<u32>	if(lt(add(var(i),lit(1)),lit(10)),some(add(var(i),lit(1))),none)
 FN	result_err_some_u32	e:u32	Result<u32, Option<u32>>	err(some(var(e)))
+FN	option_seq_right_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(__seq_target)=>some(lit(41)))
 FN	list_map_add_capture_u32	delta:u32,xs:Vec<u32>	Vec<u32>	list_map(x,var(xs),add(var(x),var(delta)))
 FN	general_bool_match_u32	flag:bool,when_true:u32,when_false:u32	u32	match_pattern(var(flag),true=>add(var(when_true),lit(1))|false=>add(var(when_false),lit(1)))
 FN	option_map_inc_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(y)=>some(add(var(y),lit(1))))
@@ -149,6 +151,7 @@ FN	option_default_u32	x:Option<u32>,fallback:u32	u32	match_pattern(var(x),None=>
 FN	even_step_u32	value:u32,next:OddNode	EvenNode	enum(EvenNode::Step,var(value),box(var(next)))
 FN	nested_none_u32	_x:()	Option<Option<u32>>	some(none)
 FN	array_push_u32	xs:Vec<u32>,x:u32	Vec<u32>	array_push(var(xs),var(x))
+FN	except_seq_left_u32	x:Result<u32, u32>	Result<u32, u32>	match_enum(var(x),Err(__lrc_err)=>err(var(__lrc_err))|Ok(__seq_left)=>match_enum(ok(lit(41)),Err(__lrc_err)=>err(var(__lrc_err))|Ok(__seq_right)=>ok(var(__seq_left))))
 FN	max_u32	a:u32,b:u32	u32	if(lt(var(a),var(b)),var(b),var(a))
 FN	mul_u32	a:u32,b:u32	u32	mul(var(a),var(b))
 FN	vector_echo3_u32	xs:Vec<u32>	Vec<u32>	var(xs)
@@ -172,6 +175,7 @@ FN	generated_dict_compare_u32	a:u32,b:u32	Ordering	call(__runtime_dictionary_com
 FN	list_length_u32	xs:Vec<u32>	u32	list_length(var(xs))
 FN	nested_payload_ok_u32_string	x:u32	NestedpayloadU32String	struct(NestedpayloadU32String,primary=some(var(x)),secondary=ok(var(x)))
 FN	even_terminal_u32	value:u32	EvenNode	enum(EvenNode::Terminal,var(value))
+FN	option_seq_left_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(__seq_left)=>match_option(some(lit(41)),none=>none|some(__seq_right)=>some(var(__seq_left))))
 FN	generated_dict_default_u32	_x:()	u32	call(__runtime_dictionary_default_u32_const,)
 FN	checked_div_u32	a:u32,b:u32	Option<u32>	call(__runtime_u32_checked_div,var(a),var(b))
 FN	list_all_nonzero_u32	xs:Vec<u32>	bool	list_all(x,var(xs),gt(var(x),lit(0)))

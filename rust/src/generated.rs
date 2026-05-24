@@ -311,11 +311,11 @@ pub fn rose_branch_u32(value: u32, children: Vec<RoseTreeU32>) -> RoseTreeU32 {
 
 pub fn list_reverse_first_or_u32(xs: Vec<u32>, fallback: u32) -> u32 {
     {
-        let mut _hyg1638: u32 = fallback;
+        let mut _hyg1680: u32 = fallback;
         for x in crate::runtime::list_reverse_u32(xs) {
-            _hyg1638 = x;
+            _hyg1680 = x;
         }
-        _hyg1638
+        _hyg1680
     }
 }
 
@@ -550,7 +550,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg2802) => fallback,
+        PairchoiceU32String::Right(_hyg2890) => fallback,
     }
 }
 
@@ -684,6 +684,13 @@ pub fn string_contains_char_lean(s: String, c: char) -> bool {
     crate::runtime::string_contains_char(&(s), c)
 }
 
+pub fn except_seq_right_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x {
+        Err(__lrc_err) => Err::<_, u32>(__lrc_err),
+        Ok(__seq_target) => Ok(41),
+    }
+}
+
 pub fn subtype_roundtrip_u32(x: u32) -> u32 {
     x
 }
@@ -707,6 +714,13 @@ pub fn fin_succ_checked10_u32(i: u32) -> Option<u32> {
 
 pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>> {
     Err(Some(e))
+}
+
+pub fn option_seq_right_u32(x: Option<u32>) -> Option<u32> {
+    match x {
+        None => None::<u32>,
+        Some(__seq_target) => Some(41),
+    }
 }
 
 pub fn list_map_add_capture_u32(delta: u32, xs: Vec<u32>) -> Vec<u32> {
@@ -888,6 +902,16 @@ pub fn array_push_u32(xs: Vec<u32>, x: u32) -> Vec<u32> {
     }
 }
 
+pub fn except_seq_left_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x {
+        Err(__lrc_err) => Err::<_, u32>(__lrc_err),
+        Ok(__seq_left) => match Ok(41) {
+            Err(__lrc_err) => Err::<_, u32>(__lrc_err),
+            Ok(__seq_right) => Ok(__seq_left),
+        },
+    }
+}
+
 pub fn max_u32(a: u32, b: u32) -> u32 {
     if (a) < (b) {
         b
@@ -1023,6 +1047,16 @@ pub fn nested_payload_ok_u32_string(x: u32) -> NestedpayloadU32String {
 
 pub fn even_terminal_u32(value: u32) -> EvenNode {
     EvenNode::Terminal(value)
+}
+
+pub fn option_seq_left_u32(x: Option<u32>) -> Option<u32> {
+    match x {
+        None => None::<u32>,
+        Some(__seq_left) => match Some(41) {
+            None => None::<u32>,
+            Some(__seq_right) => Some(__seq_left),
+        },
+    }
 }
 
 pub fn generated_dict_default_u32(_x: ()) -> u32 {

@@ -35,8 +35,6 @@ private def joinWithLocal (sep : String) : List String → String
 
 /-- Human-readable summary included in validation/proof reports. -/
 def pureEffectsSummary : String :=
-  "Sprint 9 lowers pure do-notation for " ++
-  joinWithLocal ", " (supportedEffects.map effectName) ++
-  " into matches, explicit state tuples, or explicit environment arguments; IO remains outside the safe direct lane"
+  "the direct lane lowers pure do-notation for Option and Except into matches, while StateM and ReaderT currently remain runtime/documentation-backed effect families; IO remains outside the safe direct lane"
 
 end LeanRustCore.PureEffects

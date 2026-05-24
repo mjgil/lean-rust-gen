@@ -713,6 +713,10 @@ where
           translateElaboratedPureDoBind? typeCtx locals expected args
         else if n == ``Pure.pure then
           translateElaboratedPureDoPure? typeCtx locals expected args
+        else if n == ``SeqRight.seqRight then
+          translateElaboratedPureDoSeqRight? typeCtx locals expected args
+        else if n == ``SeqLeft.seqLeft then
+          translateElaboratedPureDoSeqLeft? typeCtx locals expected args
         else
           pure none
     | _ => pure none
@@ -774,6 +778,88 @@ where
               let okTy ← typeOfLeanWithCtx typeCtx alphaExpr
               let value ← translateExpr typeCtx locals (some okTy) valueExpr
               pure (some (.resultOk errTy value))
+            else
+              pure none
+        | _ => pure none
+    | _ => pure none
+
+  translateElaboratedPureDoSeqRight? (typeCtx : TypeCtx) (locals : LocalCtx)
+      (expected : Option RType) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    match args with
+    | monadExpr :: _instExpr :: alphaExpr :: betaExpr :: targetExpr :: fnExpr :: [] =>
+        match stripMData monadExpr with
+        | .const monadName _ =>
+            if monadName == ``Option then
+              let innerTy ← typeOfLeanWithCtx typeCtx alphaExpr
+              let outTy ← typeOfLeanWithCtx typeCtx betaExpr
+              match expected with
+              | some (.option wanted) =>
+                  if wanted != outTy then
+                    throwError "elaborated Option seqRight result type did not match the expected Option type"
+              | some _ => throwError "elaborated Option seqRight expected type was not Option"
+              | none => pure ()
+              let target ← translateExpr typeCtx locals (some (.option innerTy)) targetExpr
+              let (_unitBinder, body) ← translateUnaryLambdaBody typeCtx locals .unit (.option outTy) fnExpr
+              pure (some (.optionBind "__seq_target" innerTy outTy target body))
+            else
+              pure none
+        | .app (.const monadName _) errExpr =>
+            if monadName == ``Except then
+              let errTy ← typeOfLeanWithCtx typeCtx errExpr
+              let okTy ← typeOfLeanWithCtx typeCtx alphaExpr
+              let outTy ← typeOfLeanWithCtx typeCtx betaExpr
+              match expected with
+              | some (.result wantedOk wantedErr) =>
+                  if wantedOk != outTy || wantedErr != errTy then
+                    throwError "elaborated Except seqRight result type did not match the expected Result type"
+              | some _ => throwError "elaborated Except seqRight expected type was not Result"
+              | none => pure ()
+              let target ← translateExpr typeCtx locals (some (.result okTy errTy)) targetExpr
+              let (_unitBinder, body) ← translateUnaryLambdaBody typeCtx locals .unit (.result outTy errTy) fnExpr
+              pure (some (.resultBind "__seq_target" errTy okTy outTy target body))
+            else
+              pure none
+        | _ => pure none
+    | _ => pure none
+
+  translateElaboratedPureDoSeqLeft? (typeCtx : TypeCtx) (locals : LocalCtx)
+      (expected : Option RType) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    match args with
+    | monadExpr :: _instExpr :: alphaExpr :: betaExpr :: targetExpr :: fnExpr :: [] =>
+        match stripMData monadExpr with
+        | .const monadName _ =>
+            if monadName == ``Option then
+              let leftTy ← typeOfLeanWithCtx typeCtx alphaExpr
+              let rightTy ← typeOfLeanWithCtx typeCtx betaExpr
+              match expected with
+              | some (.option wanted) =>
+                  if wanted != leftTy then
+                    throwError "elaborated Option seqLeft result type did not match the expected Option type"
+              | some _ => throwError "elaborated Option seqLeft expected type was not Option"
+              | none => pure ()
+              let target ← translateExpr typeCtx locals (some (.option leftTy)) targetExpr
+              let (_unitBinder, rightBody) ← translateUnaryLambdaBody typeCtx locals .unit (.option rightTy) fnExpr
+              let binder := "__seq_left"
+              let rightMap := .optionMap "__seq_right" rightTy leftTy rightBody (.var binder)
+              pure (some (.optionBind binder leftTy leftTy target rightMap))
+            else
+              pure none
+        | .app (.const monadName _) errExpr =>
+            if monadName == ``Except then
+              let errTy ← typeOfLeanWithCtx typeCtx errExpr
+              let leftTy ← typeOfLeanWithCtx typeCtx alphaExpr
+              let rightTy ← typeOfLeanWithCtx typeCtx betaExpr
+              match expected with
+              | some (.result wantedOk wantedErr) =>
+                  if wantedOk != leftTy || wantedErr != errTy then
+                    throwError "elaborated Except seqLeft result type did not match the expected Result type"
+              | some _ => throwError "elaborated Except seqLeft expected type was not Result"
+              | none => pure ()
+              let target ← translateExpr typeCtx locals (some (.result leftTy errTy)) targetExpr
+              let (_unitBinder, rightBody) ← translateUnaryLambdaBody typeCtx locals .unit (.result rightTy errTy) fnExpr
+              let binder := "__seq_left"
+              let rightMap := .resultMapOk "__seq_right" errTy rightTy leftTy rightBody (.var binder)
+              pure (some (.resultBind binder errTy leftTy leftTy target rightMap))
             else
               pure none
         | _ => pure none
@@ -3116,7 +3202,11 @@ private def generatedDictionaryExport (declName : Name) : Bool :=
 private def monadicSpecializationExport (declName : Name) : Bool :=
   let leaf := nameLeaf declName
   leaf == "option_do_inc_u32" ||
-  leaf == "except_do_inc_u32"
+  leaf == "except_do_inc_u32" ||
+  leaf == "option_seq_right_u32" ||
+  leaf == "option_seq_left_u32" ||
+  leaf == "except_seq_right_u32" ||
+  leaf == "except_seq_left_u32"
 
 private def closureConversionExport (declName : Name) : Bool :=
   let leaf := nameLeaf declName
