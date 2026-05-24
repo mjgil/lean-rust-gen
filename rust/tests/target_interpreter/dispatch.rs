@@ -229,6 +229,7 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         ))),
         "subtype_roundtrip_u32" => Ok(v_u32(subtype_roundtrip_u32(as_u32(&args[0])?))),
         "tree_sum_u32" => Ok(v_u32(tree_sum_u32(as_binary_tree_u32(&args[0])?))),
+        "tree_sum_worklist_u32" => Ok(v_u32(tree_sum_worklist_u32(as_binary_tree_u32(&args[0])?))),
         "fin_succ_checked10_u32" => Ok(v_option_u32(fin_succ_checked10_u32(as_u32(&args[0])?))),
         "result_err_some_u32" => Ok(v_result_u32_option_u32(result_err_some_u32(as_u32(
             &args[0],
@@ -327,6 +328,13 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         "tagged_missing_u32" => Ok(v_tagged_u32(tagged_missing_u32(as_unit(&args[0])?))),
         "echo_u32" => Ok(v_u32(echo_u32(as_u32(&args[0])?))),
         "nat_sum_to_u32" => Ok(v_u32(nat_sum_to_u32(as_u32(&args[0])?))),
+        "gcd_u32" => Ok(v_u32(gcd_u32(as_u32(&args[0])?, as_u32(&args[1])?))),
+        "reverse_accum_u32" => Ok(v_vec_u32(reverse_accum_u32(
+            as_vec_u32(&args[0])?,
+            as_vec_u32(&args[1])?,
+        ))),
+        "mutual_even_u32" => Ok(v_bool(mutual_even_u32(as_u32(&args[0])?))),
+        "mutual_odd_u32" => Ok(v_bool(mutual_odd_u32(as_u32(&args[0])?))),
         "proof_erased_u32" => Ok(v_u32(proof_erased_u32(as_u32(&args[0])?))),
         "tree_size_u32" => Ok(v_u32(tree_size_u32(as_binary_tree_u32(&args[0])?))),
         "list_fold_sum_u32" => Ok(v_u32(list_fold_sum_u32(as_vec_u32(&args[0])?))),

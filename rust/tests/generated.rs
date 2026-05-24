@@ -205,6 +205,24 @@ fn recursive_user_data_uses_owned_box_layout() {
 }
 
 #[test]
+fn general_recursion_lowering_works() {
+    assert_eq!(gcd_u32(42, 30), 6);
+    assert_eq!(gcd_u32(0, 9), 9);
+    assert_eq!(reverse_accum_u32(vec![1, 2, 3], vec![9]), vec![3, 2, 1, 9]);
+    assert!(mutual_even_u32(8));
+    assert!(!mutual_even_u32(7));
+    assert!(mutual_odd_u32(7));
+    assert!(!mutual_odd_u32(8));
+
+    let tree = tree_node_u32(
+        tree_node_u32(tree_leaf_u32(()), 1, tree_leaf_u32(())),
+        40,
+        tree_node_u32(tree_leaf_u32(()), 1, tree_leaf_u32(())),
+    );
+    assert_eq!(tree_sum_worklist_u32(tree), 42);
+}
+
+#[test]
 fn bool_and_option_matches_lower() {
     assert_eq!(bool_match_u32(true, 1, 2), 1);
     assert_eq!(bool_match_u32(false, 1, 2), 2);

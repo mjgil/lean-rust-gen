@@ -239,12 +239,12 @@
       "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
       "diagnostics": ["next20-pattern-matrix"]
       } },
-    { "feature": "recursion-analysis-lowering", "status": "supported-complete", "examples": ["RecursionAnalysis.decisions", "docs/RECURSION_LOWERING.md"],
+    { "feature": "recursion-analysis-lowering", "status": "supported-complete", "examples": ["RecursionAnalysis.decisions", "gcd_u32", "reverse_accum_u32", "mutual_even_u32", "tree_sum_worklist_u32", "docs/RECURSION_LOWERING.md"],
       "evidence": {
-      "implementation": ["LeanRustCore/RecursionAnalysis.lean"],
-      "tests": ["rust/tests/next20_completion.rs", "scripts/check-next-20-completion.py"],
+      "implementation": ["LeanRustCore/RecursionAnalysis.lean", "LeanRustCore/RecursionExamples.lean", "LeanRustCore/Extract.lean", "rust/src/recursion_helpers.rs"],
+      "tests": ["rust/tests/general_recursion_completion.rs", "rust/tests/generated.rs", "rust/tests/target_interpreter.rs", "scripts/check-next-20-completion.py"],
       "docs": ["docs/RECURSION_LOWERING.md", "docs/ARCHITECTURE.md"],
-      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
+      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/recursion_gcd.expected.json", "corpus/positive/recursion_tree_worklist.expected.json"],
       "diagnostics": ["next20-recursion-analysis"]
       } },
     { "feature": "std-lowering-implementation", "status": "supported-complete", "examples": ["StdImplementation.lowerings", "runtime Std helpers", "docs/STD_LOWERINGS.md"],

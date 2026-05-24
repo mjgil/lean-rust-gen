@@ -3,6 +3,7 @@ import LeanRustCore.EmitRust
 import LeanRustCore.Extract
 import LeanRustCore.NumericExamples
 import LeanRustCore.ParameterizedExamples
+import LeanRustCore.RecursionExamples
 import LeanRustCore.TypedIRExamples
 
 namespace LeanRustCore.Examples
@@ -204,10 +205,6 @@ def option_bind_inc_u32 (x : Option UInt32) : Option UInt32 :=
 def result_bind_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
   Except.bind x (fun y => Except.ok (y + 1))
 
-@[rust_export, rust_nat_wrapping_u32]
-def nat_sum_to_u32 (n : Nat) : Nat :=
-  Nat.rec 0 (fun k acc => acc + k) n
-
 @[rust_export]
 def subtype_val_u32 (x : { n : UInt32 // True }) : UInt32 :=
   x.val
@@ -321,39 +318,6 @@ def pair_sum_match_u32 (a b : UInt32) : UInt32 :=
   match (a, b) with
   | (x, y) => x + y
 
-@[rust_export]
-def list_head_or_zero_u32 (xs : List UInt32) : UInt32 :=
-  match xs with
-  | [] => 0
-  | head :: _ => head
-
-@[rust_export]
-def list_second_or_zero_u32 (xs : List UInt32) : UInt32 :=
-  match xs with
-  | _ :: second :: _ => second
-  | _ => 0
-
-@[rust_export, rust_nat_wrapping_u32]
-def nat_pred_or_zero_u32 (n : Nat) : Nat :=
-  match n with
-  | 0 => 0
-  | Nat.succ pred => pred
-
-@[rust_export, rust_nat_wrapping_u32]
-def nat_two_step_or_zero_u32 (n : Nat) : Nat :=
-  match n with
-  | Nat.succ (Nat.succ k) => k + 2
-  | _ => 0
-
-@[rust_export, rust_nat_wrapping_u32]
-def list_length_u32 (xs : List UInt32) : Nat :=
-  xs.length
-
-/-- Recognized tail-recursive Nat accumulator lane used by the Sprint-5/6 loop-lowering gate. -/
-@[rust_export, rust_nat_wrapping_u32]
-def tail_sum_down_u32 (n : Nat) : Nat :=
-  Nat.rec 0 (fun k acc => acc + (n - k)) n
-
 @[rust_export, rust_nat_exact]
 def exact_nat_add (a b : Nat) : Nat :=
   a + b
@@ -423,29 +387,35 @@ def array_push_u32 (xs : Array UInt32) (x : UInt32) : Array UInt32 :=
 def option_getd_u32 (x : Option UInt32) (fallback : UInt32) : UInt32 :=
   x.getD fallback
 
-@[rust_export]
-def result_map_ok_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
-  Except.map (fun y => y + 1) x
+@[rust_export] def result_map_ok_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 := Except.map (fun y => y + 1) x
 
-@[rust_export]
-def list_reverse_first_or_u32 (xs : List UInt32) (fallback : UInt32) : UInt32 :=
-  (List.reverse xs).foldl (fun _ x => x) fallback
+@[rust_export] def list_reverse_first_or_u32 (xs : List UInt32) (fallback : UInt32) : UInt32 := (List.reverse xs).foldl (fun _ x => x) fallback
 
-@[rust_export, rust_nat_wrapping_u32]
-def array_get_opt_u32 (xs : Array UInt32) (i : Nat) : Option UInt32 :=
-  Array.get? xs i
+@[rust_export] def list_head_or_zero_u32 (xs : List UInt32) : UInt32 := match xs with | [] => 0 | head :: _ => head
 
-@[rust_export]
-def string_append_lean (left right : String) : String :=
-  String.append left right
+@[rust_export] def list_second_or_zero_u32 (xs : List UInt32) : UInt32 := match xs with | _ :: second :: _ => second | _ => 0
 
-@[rust_export, rust_nat_wrapping_u32]
-def string_length_chars_u32 (s : String) : Nat :=
-  String.length s
+@[rust_export, rust_nat_wrapping_u32] def nat_pred_or_zero_u32 (n : Nat) : Nat := match n with | 0 => 0 | Nat.succ pred => pred
 
-@[rust_export]
-def string_contains_char_lean (s : String) (c : Char) : Bool :=
-  String.contains s c
+@[rust_export, rust_nat_wrapping_u32] def nat_two_step_or_zero_u32 (n : Nat) : Nat := match n with | Nat.succ (Nat.succ k) => k + 2 | _ => 0
+
+@[rust_export, rust_nat_wrapping_u32] def list_length_u32 (xs : List UInt32) : Nat := xs.length
+
+@[rust_export, rust_nat_wrapping_u32] def tail_sum_down_u32 (n : Nat) : Nat := Nat.rec 0 (fun k acc => acc + (n - k)) n
+
+@[rust_export, rust_nat_wrapping_u32] def nat_sum_to_u32 (n : Nat) : Nat := Nat.rec 0 (fun k acc => acc + k) n
+@[rust_export, rust_nat_wrapping_u32] def gcd_u32 (a b : Nat) : Nat := LeanRustCore.RecursionExamples.gcd_u32 a b
+@[rust_export] def reverse_accum_u32 (xs acc : List UInt32) : List UInt32 := LeanRustCore.RecursionExamples.reverse_accum_u32 xs acc
+@[rust_export, rust_nat_wrapping_u32] def mutual_even_u32 (n : Nat) : Bool := LeanRustCore.RecursionExamples.mutual_even_u32 n
+@[rust_export, rust_nat_wrapping_u32] def mutual_odd_u32 (n : Nat) : Bool := LeanRustCore.RecursionExamples.mutual_odd_u32 n
+
+@[rust_export, rust_nat_wrapping_u32] def array_get_opt_u32 (xs : Array UInt32) (i : Nat) : Option UInt32 := Array.get? xs i
+
+@[rust_export] def string_append_lean (left right : String) : String := String.append left right
+
+@[rust_export, rust_nat_wrapping_u32] def string_length_chars_u32 (s : String) : Nat := String.length s
+
+@[rust_export] def string_contains_char_lean (s : String) (c : Char) : Bool := String.contains s c
 
 @[rust_export]
 def result_map_err_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
@@ -519,6 +489,12 @@ def tree_sum_u32 (t : BinaryTreeU32) : UInt32 :=
   match t with
   | BinaryTreeU32.leaf => 0
   | BinaryTreeU32.node left value right => tree_sum_u32 left + value + tree_sum_u32 right
+
+@[rust_export]
+def tree_sum_worklist_u32 (t : BinaryTreeU32) : UInt32 :=
+  match t with
+  | BinaryTreeU32.leaf => 0
+  | BinaryTreeU32.node left value right => tree_sum_worklist_u32 left + value + tree_sum_worklist_u32 right
 
 @[rust_export]
 def expr_lit_u32 (value : UInt32) : ExprU32 :=

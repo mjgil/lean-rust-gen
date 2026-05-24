@@ -1,0 +1,9 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "positive",
+  "source": "LeanRustCore.Examples.reverse_accum_u32",
+  "expected_status": "supported",
+  "required_features": ["general-recursion", "structural-list-recursion"],
+  "tests": ["semantic_validation", "rust/tests/generated.rs", "rust/tests/general_recursion_completion.rs"],
+  "documentation": ["docs/RECURSION_LOWERING.md", "docs/ARCHITECTURE.md"]
+}

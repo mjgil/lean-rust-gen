@@ -802,6 +802,23 @@ private def checkedU32 : SurfaceValue → Except CompatibilityReport Nat
   | .fin _ n => pure (u32Wrap n)
   | _ => evalError .unsupportedType "expected UInt32 during surface evaluation"
 
+private partial def evalTreeSumWorklist (root : SurfaceValue) : Except CompatibilityReport SurfaceValue := do
+  let mut total := 0
+  let mut worklist := [root]
+  while !worklist.isEmpty do
+    match worklist with
+    | [] => pure ()
+    | current :: rest =>
+        worklist := rest
+        match current with
+        | .enumVal "BinaryTreeU32" "leaf" [] => pure ()
+        | .enumVal "BinaryTreeU32" "node" [.boxed left, .u32 value, .boxed right] => do
+            total := u32Wrap (total + value)
+            worklist := left :: right :: worklist
+        | _ =>
+            evalError .unsupportedType "tree_sum_worklist_u32 expected BinaryTreeU32 runtime values"
+  pure (.u32 total)
+
 private def checkedU64 : SurfaceValue → Except CompatibilityReport Nat
   | .u64 n => pure (u64Wrap n)
   | _ => evalError .unsupportedType "expected UInt64 during surface evaluation"
@@ -1320,15 +1337,31 @@ mutual
         match fuel with
         | 0 => evalError .unsupportedExpression ("surface evaluator call-fuel exhausted at `" ++ name ++ "`")
         | fuel' + 1 =>
-            match lookupSurfaceFun? functions name with
-            | none => evalError .unsupportedExpression ("surface evaluator cannot find function `" ++ name ++ "`")
-            | some f => do
-                let evaluatedArgs ← args.mapM (evalSurfaceExprWithFuel fuel functions env)
-                let declaredArgTypes := f.args.map (fun arg => arg.2)
-                if declaredArgTypes == argTypes && f.ret == ret then
-                  evalSurfaceFunWithFuel fuel' functions f evaluatedArgs
-                else
-                  evalError .unsupportedType ("surface call signature for `" ++ name ++ "` does not match the function environment")
+            let evaluatedArgs ← args.mapM (evalSurfaceExprWithFuel fuel functions env)
+            if name == "__runtime_list_prepend_u32" &&
+                argTypes == [.u32, .list .u32] &&
+                ret == .list .u32 then
+              match evaluatedArgs with
+              | [head, .list tail] => pure (.list (head :: tail))
+              | _ => evalError .unsupportedType "list_prepend_u32 expected (u32, List<u32>)"
+            else if name == "__runtime_tree_sum_worklist_u32" &&
+                argTypes == [.enum "BinaryTreeU32" [
+                  ("leaf", []),
+                  ("node", [.boxed (.recursive "BinaryTreeU32"), .u32, .boxed (.recursive "BinaryTreeU32")])
+                ]] &&
+                ret == .u32 then
+              match evaluatedArgs with
+              | [tree] => evalTreeSumWorklist tree
+              | _ => evalError .unsupportedType "tree_sum_worklist_u32 expected BinaryTreeU32"
+            else
+              match lookupSurfaceFun? functions name with
+              | none => evalError .unsupportedExpression ("surface evaluator cannot find function `" ++ name ++ "`")
+              | some f => do
+                  let declaredArgTypes := f.args.map (fun arg => arg.2)
+                  if declaredArgTypes == argTypes && f.ret == ret then
+                    evalSurfaceFunWithFuel fuel' functions f evaluatedArgs
+                  else
+                    evalError .unsupportedType ("surface call signature for `" ++ name ++ "` does not match the function environment")
     | .callValue _ _ _ _ =>
         evalError .unsupportedExpression "surface evaluator does not interpret higher-order function values in differential tests"
     | .boxNew inner value => do

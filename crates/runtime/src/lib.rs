@@ -172,6 +172,11 @@ pub fn list_reverse_u32(mut xs: Vec<u32>) -> Vec<u32> {
     xs
 }
 
+pub fn list_prepend_u32(head: u32, mut xs: Vec<u32>) -> Vec<u32> {
+    xs.insert(0, head);
+    xs
+}
+
 pub fn list_head_clone<T: Clone>(xs: &[T]) -> Option<T> {
     xs.first().cloned()
 }
@@ -570,6 +575,7 @@ mod tests {
         assert_eq!(list_append_u32(vec![1, 2], vec![3]), vec![1, 2, 3]);
         assert_eq!(list_find_nonzero_u32(&[0, 0, 42]), Some(42));
         assert_eq!(list_reverse_u32(vec![1, 2, 3]), vec![3, 2, 1]);
+        assert_eq!(list_prepend_u32(1, vec![2, 3]), vec![1, 2, 3]);
         assert_eq!(list_zip_u32(vec![1, 2], vec![3, 4]), vec![(1, 3), (2, 4)]);
         assert_eq!(
             list_partition_nonzero_u32(vec![0, 1, 0, 2]),

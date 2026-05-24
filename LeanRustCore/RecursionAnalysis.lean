@@ -14,6 +14,7 @@ inductive RecursionKind where
   | nonrecursive
   | directTail
   | directStructural
+  | directDecreasing
   | mutualStructural
   | explicitStack
   | rejectedPartial
@@ -22,6 +23,7 @@ inductive RecursionKind where
 inductive StackPolicy where
   | constantStackLoop
   | boundedBySourceStructure
+  | boundedByDecreasingMeasure
   | explicitHeapStack
   | rejected
   deriving Repr, BEq, DecidableEq
@@ -39,12 +41,18 @@ structure RecursionDecision where
 def decisions : List RecursionDecision := [
   { functionName := "list_length_u32", kind := .directStructural, decreasingArgument := some "xs", stackPolicy := .constantStackLoop, rustShape := "Vec::len/for loop", requiredTests := ["list_length_u32 differential", "target_interpreter"], requiredDocs := ["docs/RECURSION_LOWERING.md"] },
   { functionName := "tail_sum_down_u32", kind := .directTail, decreasingArgument := some "n", stackPolicy := .constantStackLoop, rustShape := "while n != 0", requiredTests := ["tail recursion differential", "target fingerprint"], requiredDocs := ["docs/RECURSION_LOWERING.md"] },
+  { functionName := "nat_sum_to_u32", kind := .directTail, decreasingArgument := some "n", stackPolicy := .constantStackLoop, rustShape := "Nat.rec accumulator while loop", requiredTests := ["nat accumulator differential", "target fingerprint"], requiredDocs := ["docs/RECURSION_LOWERING.md"] },
+  { functionName := "gcd_u32", kind := .directDecreasing, decreasingArgument := some "(a, b)", stackPolicy := .boundedByDecreasingMeasure, rustShape := "checked recursive subtraction pair calls", requiredTests := ["gcd corpus", "generated recursion tests", "target_interpreter"], requiredDocs := ["docs/RECURSION_LOWERING.md"] },
+  { functionName := "reverse_accum_u32", kind := .directStructural, decreasingArgument := some "xs", stackPolicy := .boundedBySourceStructure, rustShape := "recursive List.cons/[] match with owned Vec rebuilding", requiredTests := ["reverse accumulator corpus", "generated recursion tests", "target_interpreter"], requiredDocs := ["docs/RECURSION_LOWERING.md"] },
+  { functionName := "mutual_even_u32", kind := .mutualStructural, decreasingArgument := some "n", stackPolicy := .boundedByDecreasingMeasure, rustShape := "mutual decrementing Nat call pair", requiredTests := ["mutual recursion corpus", "generated recursion tests", "target_interpreter"], requiredDocs := ["docs/RECURSION_LOWERING.md"] },
+  { functionName := "mutual_odd_u32", kind := .mutualStructural, decreasingArgument := some "n", stackPolicy := .boundedByDecreasingMeasure, rustShape := "mutual decrementing Nat call pair", requiredTests := ["mutual recursion corpus", "generated recursion tests", "target_interpreter"], requiredDocs := ["docs/RECURSION_LOWERING.md"] },
   { functionName := "tree_size_u32", kind := .directStructural, decreasingArgument := some "tree", stackPolicy := .boundedBySourceStructure, rustShape := "recursive match over Box payloads", requiredTests := ["recursive tree property tests"], requiredDocs := ["docs/RECURSION_LOWERING.md", "docs/RECURSIVE_DATA.md"] },
-  { functionName := "tree_sum_u32", kind := .explicitStack, decreasingArgument := some "tree", stackPolicy := .explicitHeapStack, rustShape := "Vec worklist policy for large trees", requiredTests := ["explicit stack policy test"], requiredDocs := ["docs/RECURSION_LOWERING.md"] },
+  { functionName := "tree_sum_u32", kind := .directStructural, decreasingArgument := some "tree", stackPolicy := .boundedBySourceStructure, rustShape := "recursive payload-tree sum over Box payloads", requiredTests := ["pattern-tree differential", "target_interpreter"], requiredDocs := ["docs/RECURSION_LOWERING.md", "docs/PATTERN_COMPILER.md"] },
+  { functionName := "tree_sum_worklist_u32", kind := .explicitStack, decreasingArgument := some "tree", stackPolicy := .explicitHeapStack, rustShape := "Vec worklist helper for large trees", requiredTests := ["explicit stack policy test", "generated recursion tests", "target_interpreter"], requiredDocs := ["docs/RECURSION_LOWERING.md"] },
   { functionName := "unsupported_partial_loop", kind := .rejectedPartial, decreasingArgument := none, stackPolicy := .rejected, rustShape := "LRC006 diagnostic", requiredTests := ["negative partial recursion corpus"], requiredDocs := ["docs/DIAGNOSTICS.md#lrc006"] }
 ]
 
 def recursionAnalysisSummary : String :=
-  "recursion completion classifies nonrecursive/direct-tail/direct-structural/mutual/explicit-stack SCCs, records decreasing arguments, lowers tail calls to loops, and rejects partial/non-structural recursion with stable diagnostics"
+  "recursion completion classifies nonrecursive/direct-tail/direct-structural/direct-decreasing/mutual/explicit-stack SCCs, records decreasing arguments, lowers accumulator loops, supports decreasing gcd/list/mutual recursion plus explicit heap-stack tree traversal, and rejects partial/non-structural recursion with stable LRC006 diagnostics"
 
 end LeanRustCore.RecursionAnalysis

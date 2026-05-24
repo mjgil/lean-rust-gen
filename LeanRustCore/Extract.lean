@@ -1835,6 +1835,8 @@ private def boxedU32Ty : RType :=
 
 private def u32ListTy : RType := .list .u32
 
+private def binaryTreeU32ListTy : RType := .list binaryTreeU32Type
+
 private def u32ArrayTy : RType := .array .u32
 
 private def u32OptionTy : RType := .option .u32
@@ -1924,6 +1926,64 @@ private def sprint13ManualSurfaceFun? (declName : Name) (rustFunName : String) :
       some { name := rustFunName, args := [("xs", u32ListTy)], ret := .bool, body := .listAll "x" .u32 (.var "xs") (.gt .u32 (.var "x") (.litU32 0)) }
   | "list_find_nonzero_u32" =>
       some { name := rustFunName, args := [("xs", u32ListTy)], ret := u32OptionTy, body := .listFind "x" .u32 (.var "xs") (.lt .u32 (.litU32 0) (.var "x")) }
+  | "gcd_u32" =>
+      some {
+        name := rustFunName,
+        args := [("a", .u32), ("b", .u32)],
+        ret := .u32,
+        body := .ite
+          (.eq .u32 (.var "a") (.litU32 0))
+          (.var "b")
+          (.ite
+            (.eq .u32 (.var "b") (.litU32 0))
+            (.var "a")
+            (.ite
+              (.eq .u32 (.var "a") (.var "b"))
+              (.var "a")
+              (.ite
+                (.lt .u32 (.var "a") (.var "b"))
+                (.call "gcd_u32" [.u32, .u32] .u32 [.var "a", .sub .u32 (.var "b") (.var "a")])
+                (.call "gcd_u32" [.u32, .u32] .u32 [.sub .u32 (.var "a") (.var "b"), .var "b"]))))
+      }
+  | "reverse_accum_u32" =>
+      some {
+        name := rustFunName,
+        args := [("xs", u32ListTy), ("acc", u32ListTy)],
+        ret := u32ListTy,
+        body := .ite
+          (.eq .u32 (.listLength .u32 (.var "xs")) (.litU32 0))
+          (.var "acc")
+          (.matchOption
+            (.call "__runtime_list_head_clone" [u32ListTy] u32OptionTy [.var "xs"])
+            (.var "acc")
+            "head"
+            (.letIn "tail"
+              (.call "__runtime_list_tail_clone" [u32ListTy] u32ListTy [.var "xs"])
+              (.call "reverse_accum_u32" [u32ListTy, u32ListTy] u32ListTy [
+                .var "tail",
+                (.call "__runtime_list_prepend_u32" [.u32, u32ListTy] u32ListTy [.var "head", .var "acc"])
+              ])))
+      }
+  | "mutual_even_u32" =>
+      some {
+        name := rustFunName,
+        args := [("n", .u32)],
+        ret := .bool,
+        body := .ite
+          (.eq .u32 (.var "n") (.litU32 0))
+          (.litBool true)
+          (.call "mutual_odd_u32" [.u32] .bool [.sub .u32 (.var "n") (.litU32 1)])
+      }
+  | "mutual_odd_u32" =>
+      some {
+        name := rustFunName,
+        args := [("n", .u32)],
+        ret := .bool,
+        body := .ite
+          (.eq .u32 (.var "n") (.litU32 0))
+          (.litBool false)
+          (.call "mutual_even_u32" [.u32] .bool [.sub .u32 (.var "n") (.litU32 1)])
+      }
   | "array_fold_sum_u32" =>
       some { name := rustFunName, args := [("xs", u32ArrayTy)], ret := .u32, body := .arrayFoldl "acc" "x" .u32 .u32 (.litU32 0) (.var "xs") (.add .u32 (.var "acc") (.var "x")) }
   | "array_push_u32" =>
@@ -2069,6 +2129,13 @@ private def sprint13ManualSurfaceFun? (declName : Name) (rustFunName : String) :
                 (.var "value"))
               (.call "tree_sum_u32" [binaryTreeU32Type] .u32 [.boxDeref (.recursive "BinaryTreeU32") (.var "right")])))
         ]
+      }
+  | "tree_sum_worklist_u32" =>
+      some {
+        name := rustFunName,
+        args := [("t", binaryTreeU32Type)],
+        ret := .u32,
+        body := .call "__runtime_tree_sum_worklist_u32" [binaryTreeU32Type] .u32 [.var "t"]
       }
   | "expr_eval_u32" =>
       some {

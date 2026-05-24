@@ -8,11 +8,12 @@ use super::model::{
     Value,
 };
 use super::parse::{call_payload, split_top_args, split_top_level};
+use lean_rust_core_generated::recursion_helpers::tree_sum_worklist_u32 as helper_tree_sum_worklist_u32;
 use lean_rust_core_generated::runtime::{
-    array_get_u32, list_head_clone, list_reverse_u32, list_tail_clone, string_append,
-    string_contains_char, string_length_chars, u32_checked_add, u32_checked_div, u32_checked_mod,
-    u32_checked_sub, u32_preconditioned_div, u32_preconditioned_mod, u32_saturating_add,
-    u32_saturating_sub, u64_to_u32_checked,
+    array_get_u32, list_head_clone, list_prepend_u32, list_reverse_u32, list_tail_clone,
+    string_append, string_contains_char, string_length_chars, u32_checked_add, u32_checked_div,
+    u32_checked_mod, u32_checked_sub, u32_preconditioned_div, u32_preconditioned_mod,
+    u32_saturating_add, u32_saturating_sub, u64_to_u32_checked,
 };
 
 pub fn eval_target_function(
@@ -242,8 +243,19 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
                     )),
                 }
             }
+            "__runtime_list_prepend_u32" => {
+                return Ok(Value::VecU32(list_prepend_u32(
+                    as_u32(&values[0])?,
+                    as_vec_u32(&values[1])?,
+                )))
+            }
             "__runtime_list_reverse_u32" => {
                 return Ok(Value::VecU32(list_reverse_u32(as_vec_u32(&values[0])?)))
+            }
+            "__runtime_tree_sum_worklist_u32" => {
+                return Ok(Value::U32(helper_tree_sum_worklist_u32(
+                    as_binary_tree_u32(&values[0])?,
+                )))
             }
             "__runtime_array_get_u32" => {
                 return Ok(Value::OptionU32(array_get_u32(

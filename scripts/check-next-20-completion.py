@@ -64,6 +64,7 @@ def check_files() -> None:
         "LeanRustCore/OwnershipPolicy.lean",
         "LeanRustCore/PatternMatrix.lean",
         "LeanRustCore/RecursionAnalysis.lean",
+        "LeanRustCore/RecursionExamples.lean",
         "LeanRustCore/StdImplementation.lean",
         "LeanRustCore/TypeclassSpecialization.lean",
         "docs/GENERICS.md",
@@ -77,7 +78,9 @@ def check_files() -> None:
         "docs/STD_LOWERINGS.md",
         "docs/TYPECLASSES.md",
         "crates/validate/src/ownership_validation.rs",
+        "rust/src/recursion_helpers.rs",
         "rust/tests/next20_completion.rs",
+        "rust/tests/general_recursion_completion.rs",
         "rust/tests/pattern_matrix_completion.rs",
         "corpus/positive/parameterized_pair_box.expected.json",
         "corpus/positive/parameterized_nested_payload.expected.json",
@@ -94,6 +97,10 @@ def check_files() -> None:
         "corpus/positive/pattern_nat_pred.expected.json",
         "corpus/positive/pattern_nat_two_step.expected.json",
         "corpus/positive/pattern_tree_sum.expected.json",
+        "corpus/positive/recursion_gcd.expected.json",
+        "corpus/positive/recursion_reverse_accum.expected.json",
+        "corpus/positive/recursion_mutual_parity.expected.json",
+        "corpus/positive/recursion_tree_worklist.expected.json",
         "corpus/positive/std_result_map_ok.expected.json",
         "corpus/positive/std_list_reverse.expected.json",
         "corpus/positive/std_array_get.expected.json",
@@ -120,6 +127,7 @@ def check_lean_modules() -> None:
         "LeanRustCore/OwnershipPolicy.lean": ["OwnershipMode", "OwnershipRule", "borrowedShared", "approvedReferenceForms", "ownershipPolicySummary", "ownershipPolicyEnforcementSummary"],
         "LeanRustCore/PatternMatrix.lean": ["PatternClass", "completedPatternFeatures", "patternMatrixSummary"],
         "LeanRustCore/RecursionAnalysis.lean": ["RecursionKind", "StackPolicy", "decisions", "recursionAnalysisSummary"],
+        "LeanRustCore/RecursionExamples.lean": ["def gcd_u32", "def reverse_accum_u32", "def mutual_even_u32", "def mutual_odd_u32"],
         "LeanRustCore/StdImplementation.lean": ["ImplementedLowering", "implementedLoweringCount", "stdImplementationSummary"],
         "LeanRustCore/TypeclassSpecialization.lean": ["SpecializedClass", "classes", "typeclassSpecializationCompletionSummary"],
     }
@@ -130,7 +138,7 @@ def check_lean_modules() -> None:
     imports = read("LeanRustCore.lean")
     for module in [
         "GenericEmission", "ParameterizedData", "ParameterizedExamples", "GenericPolicy", "NumericSemantics", "DependentErasureChecker",
-        "RecursiveDiscovery", "OwnershipPolicy", "PatternMatrix", "RecursionAnalysis", "StdImplementation", "StdExamples", "TypeclassSpecialization",
+        "RecursiveDiscovery", "OwnershipPolicy", "PatternMatrix", "RecursionAnalysis", "RecursionExamples", "StdImplementation", "StdExamples", "TypeclassSpecialization",
     ]:
         require(f"import LeanRustCore.{module}" in imports, f"LeanRustCore.lean missing {module}")
 
@@ -141,7 +149,7 @@ def check_runtime_and_tests() -> None:
         "u32_checked_div", "u32_checked_mod", "u64_checked_add", "i32_checked_add", "i64_checked_mul",
         "u32_saturating_mul", "int_to_i32_checked", "u64_to_u32_checked", "list_append_u32",
         "list_find_nonzero_u32", "list_head_clone", "list_tail_clone", "list_partition_nonzero_u32", "RcTreeU32", "ArenaTreeU32",
-        "borrowed_vec_len_u32", "borrowed_string_is_empty", "clone_vec_for_shared_use", "exact_int_mul",
+        "borrowed_vec_len_u32", "borrowed_string_is_empty", "clone_vec_for_shared_use", "exact_int_mul", "list_prepend_u32",
     ]:
         require(needle in runtime, f"runtime crate missing {needle}")
     test = read("rust/tests/next20_completion.rs")
@@ -168,6 +176,20 @@ def check_runtime_and_tests() -> None:
     ]:
         require(needle in pattern_test, f"pattern-matrix test missing {needle}")
 
+    recursion_test = read("rust/tests/general_recursion_completion.rs")
+    for needle in [
+        "task40_general_recursion_examples_and_docs_are_complete",
+        "gcd_u32",
+        "reverse_accum_u32",
+        "mutual_even_u32",
+        "mutual_odd_u32",
+        "tree_sum_worklist_u32",
+        "recursion_gcd.expected.json",
+        "recursion_tree_worklist.expected.json",
+        "general recursion lowering",
+    ]:
+        require(needle in recursion_test, f"general recursion test missing {needle}")
+
     parser_validation = read("rust/tests/parser_validation.rs")
     for needle in [
         "parser_validates_generated_ownership_policy",
@@ -193,6 +215,11 @@ def check_runtime_and_tests() -> None:
         "pub fn list_second_or_zero_u32",
         "pub fn nat_pred_or_zero_u32",
         "pub fn nat_two_step_or_zero_u32",
+        "pub fn gcd_u32",
+        "pub fn reverse_accum_u32",
+        "pub fn mutual_even_u32",
+        "pub fn mutual_odd_u32",
+        "pub fn tree_sum_worklist_u32",
         "pub struct RoseTreeU32",
         "pub enum EvenNode",
         "pub enum OddNode",
@@ -235,6 +262,15 @@ def check_runtime_and_tests() -> None:
         "FN\tlist_second_or_zero_u32",
         "FN\tnat_pred_or_zero_u32",
         "FN\tnat_two_step_or_zero_u32",
+        "FN\tgcd_u32",
+        "FN\treverse_accum_u32",
+        "FN\tmutual_even_u32",
+        "FN\tmutual_odd_u32",
+        "FN\ttree_sum_worklist_u32",
+        "call(gcd_u32",
+        "call(mutual_odd_u32",
+        "call(__runtime_list_prepend_u32",
+        "call(__runtime_tree_sum_worklist_u32",
         "TYPE\tstruct\tRoseTreeU32",
         "TYPE\tenum\tEvenNode",
         "TYPE\tenum\tOddNode",
@@ -437,6 +473,40 @@ def check_pattern_positive_corpus() -> None:
         )
 
 
+def check_general_recursion_positive_corpus() -> None:
+    expected = {
+        "corpus/positive/recursion_gcd.expected.json": (
+            "LeanRustCore.Examples.gcd_u32",
+            {"general-recursion", "tail-recursion"},
+        ),
+        "corpus/positive/recursion_reverse_accum.expected.json": (
+            "LeanRustCore.Examples.reverse_accum_u32",
+            {"general-recursion", "structural-list-recursion"},
+        ),
+        "corpus/positive/recursion_mutual_parity.expected.json": (
+            "LeanRustCore.Examples.mutual_even_u32",
+            {"general-recursion", "mutual-recursion"},
+        ),
+        "corpus/positive/recursion_tree_worklist.expected.json": (
+            "LeanRustCore.Examples.tree_sum_worklist_u32",
+            {"explicit-stack-recursion", "recursive-direct-scc"},
+        ),
+    }
+    for path, (source, features) in expected.items():
+        fixture = load_json(path)
+        require(fixture["kind"] == "positive", f"{path} must be positive")
+        require(fixture["source"] == source, f"{path} must reference {source}")
+        require(fixture["expected_status"] == "supported", f"{path} must be supported")
+        require(
+            set(fixture["required_features"]) == features,
+            f"{path} must record required features {sorted(features)}",
+        )
+        require(
+            "docs/RECURSION_LOWERING.md" in fixture["documentation"],
+            f"{path} must reference docs/RECURSION_LOWERING.md",
+        )
+
+
 def check_std_positive_corpus() -> None:
     expected = {
         "corpus/positive/std_result_map_ok.expected.json": (
@@ -517,6 +587,17 @@ def check_docs() -> None:
     pattern = read("docs/PATTERN_COMPILER.md")
     for phrase in ["List.nil", "List.cons", "Nat.zero", "Nat.succ", "list_head_clone", "list_tail_clone", "as-pattern", "LRC006"]:
         require(phrase in pattern, f"docs/PATTERN_COMPILER.md missing phrase {phrase}")
+    recursion = read("docs/RECURSION_LOWERING.md")
+    for phrase in [
+        "gcd_u32",
+        "reverse_accum_u32",
+        "mutual_even_u32",
+        "mutual_odd_u32",
+        "tree_sum_worklist_u32",
+        "explicit heap stack",
+        "LRC006",
+    ]:
+        require(phrase in recursion, f"docs/RECURSION_LOWERING.md missing phrase {phrase}")
 
 
 def check_reports() -> None:
@@ -555,13 +636,17 @@ def check_reports() -> None:
     for needle in [
         "LeanRustCore.NumericSemantics.rules", "LeanRustCore.PatternMatrix.completedPatternFeatures",
         "LeanRustCore.RecursionAnalysis.decisions", "LeanRustCore.StdImplementation.lowerings",
-        "LeanRustCore.TypeclassSpecialization.classes",
+        "LeanRustCore.TypeclassSpecialization.classes", "LeanRustCore.RecursionExamples",
     ]:
         require(needle in trusted, f"proof-report trusted core missing {needle}")
     facts = {fact["name"] for fact in proof.get("facts", [])}
     require(
         "ownership_policy_enforced_emission" in facts,
         "proof-report missing ownership_policy_enforced_emission fact",
+    )
+    require(
+        "recursion_analysis_complete" in facts,
+        "proof-report missing recursion_analysis_complete fact",
     )
 
 
@@ -579,6 +664,7 @@ def main() -> None:
     check_dependent_erasure_positive_corpus()
     check_recursive_positive_corpus()
     check_pattern_positive_corpus()
+    check_general_recursion_positive_corpus()
     check_std_positive_corpus()
     check_docs()
     check_reports()

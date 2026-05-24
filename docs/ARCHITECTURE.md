@@ -481,11 +481,22 @@ Prod, and index-free enum recursor/casesOn shapes through that node, while the
 Surface checker enforces exhaustiveness for the supported fragment and binder
 uniqueness before Rust codegen.
 
-`LeanRustCore.RecursionLowering` records the Sprint-5/6 recursion policy. The
-current implementation adds `SurfaceExpr.listLength` for owned-list length and
-`SurfaceExpr.tailRecNat` for one checked Nat accumulator tail-recursion lane. The
-emitter turns these into safe Rust `len()` and `while` constructs, and the
-Surface evaluator remains fuel-bounded.
+`LeanRustCore.RecursionLowering` records the Sprint-5/6 recursion policy, and
+Task 40 extends that metadata into real extractor coverage. The current
+implementation still uses `SurfaceExpr.listLength` for owned-list length and
+`SurfaceExpr.tailRecNat` for checked Nat accumulator loops, but it now also
+admits several general recursion shapes through ordinary checked call nodes:
+`gcd_u32` for decreasing subtraction-pair recursion, `reverse_accum_u32` for
+structural list recursion, and `mutual_even_u32`/`mutual_odd_u32` for a mutual
+Nat SCC.
+
+The explicit-stack lane is now concrete instead of metadata-only. The exported
+`tree_sum_worklist_u32` fixture lowers through the extractor and emits a call to
+`crate::recursion_helpers::tree_sum_worklist_u32`, which uses a `Vec` worklist
+instead of Rust call-stack recursion. The Surface evaluator and the target
+interpreter both understand this helper, so the checked Lean semantics, emitted
+Rust, and `rust/target-validation.txt` stay aligned for explicit heap-stack
+traversals.
 
 ## Sprint 15-16: recursive data and validation v2
 

@@ -147,6 +147,20 @@ pub fn checked_add_u32(a: u32, b: u32) -> Option<u32> {
     crate::runtime::u32_checked_add(a, b)
 }
 
+pub fn reverse_accum_u32(xs: Vec<u32>, acc: Vec<u32>) -> Vec<u32> {
+    if (xs).len() as u32 == 0 {
+        acc
+    } else {
+        match crate::runtime::list_head_clone(&(xs)) {
+            None => acc,
+            Some(head) => {
+                let tail = crate::runtime::list_tail_clone(&(xs));
+                reverse_accum_u32(tail, crate::runtime::list_prepend_u32(head, acc))
+            }
+        }
+    }
+}
+
 pub fn nested_payload_err_u32_string(message: String, fallback: u32) -> NestedpayloadU32String {
     NestedpayloadU32String {
         primary: Some(fallback),
@@ -212,9 +226,9 @@ pub fn list_head_or_zero_u32(xs: Vec<u32>) -> u32 {
     } else {
         match crate::runtime::list_head_clone(&(xs)) {
             None => 0,
-            Some(_hyg1406) => {
-                let _hyg1407 = crate::runtime::list_tail_clone(&(xs));
-                _hyg1406
+            Some(_hyg1663) => {
+                let _hyg1664 = crate::runtime::list_tail_clone(&(xs));
+                _hyg1663
             }
         }
     }
@@ -286,6 +300,10 @@ pub fn decidable_eq_u32(a: u32, b: u32) -> bool {
     a == b
 }
 
+pub fn tree_sum_worklist_u32(t: BinaryTreeU32) -> u32 {
+    crate::recursion_helpers::tree_sum_worklist_u32(t)
+}
+
 pub fn rose_branch_u32(value: u32, children: Vec<RoseTreeU32>) -> RoseTreeU32 {
     RoseTreeU32 {
         value: value,
@@ -295,11 +313,11 @@ pub fn rose_branch_u32(value: u32, children: Vec<RoseTreeU32>) -> RoseTreeU32 {
 
 pub fn list_reverse_first_or_u32(xs: Vec<u32>, fallback: u32) -> u32 {
     {
-        let mut _hyg1787: u32 = fallback;
+        let mut _hyg1633: u32 = fallback;
         for x in crate::runtime::list_reverse_u32(xs) {
-            _hyg1787 = x;
+            _hyg1633 = x;
         }
-        _hyg1787
+        _hyg1633
     }
 }
 
@@ -390,16 +408,16 @@ pub fn list_second_or_zero_u32(xs: Vec<u32>) -> u32 {
     } else {
         match crate::runtime::list_head_clone(&(xs)) {
             None => 0,
-            Some(_hyg1441) => {
-                let _hyg1442 = crate::runtime::list_tail_clone(&(xs));
-                if (_hyg1442).len() as u32 == 0 {
+            Some(_hyg1698) => {
+                let _hyg1699 = crate::runtime::list_tail_clone(&(xs));
+                if (_hyg1699).len() as u32 == 0 {
                     0
                 } else {
-                    match crate::runtime::list_head_clone(&(_hyg1442)) {
+                    match crate::runtime::list_head_clone(&(_hyg1699)) {
                         None => 0,
-                        Some(_hyg1443) => {
-                            let _hyg1444 = crate::runtime::list_tail_clone(&(_hyg1442));
-                            _hyg1443
+                        Some(_hyg1700) => {
+                            let _hyg1701 = crate::runtime::list_tail_clone(&(_hyg1699));
+                            _hyg1700
                         }
                     }
                 }
@@ -513,13 +531,33 @@ pub fn nat_two_step_or_zero_u32(n: u32) -> u32 {
         0
     } else {
         {
-            let _hyg1487 = (n).wrapping_sub(1);
-            if _hyg1487 == 0 {
+            let _hyg1744 = (n).wrapping_sub(1);
+            if _hyg1744 == 0 {
                 0
             } else {
                 {
-                    let _hyg1488 = (_hyg1487).wrapping_sub(1);
-                    (_hyg1488).wrapping_add(2)
+                    let _hyg1745 = (_hyg1744).wrapping_sub(1);
+                    (_hyg1745).wrapping_add(2)
+                }
+            }
+        }
+    }
+}
+
+pub fn gcd_u32(a: u32, b: u32) -> u32 {
+    if a == 0 {
+        b
+    } else {
+        if b == 0 {
+            a
+        } else {
+            if a == b {
+                a
+            } else {
+                if a < b {
+                    gcd_u32(a, (b).wrapping_sub(a))
+                } else {
+                    gcd_u32((a).wrapping_sub(b), b)
                 }
             }
         }
@@ -533,7 +571,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg2627) => fallback,
+        PairchoiceU32String::Right(_hyg2693) => fallback,
     }
 }
 
@@ -1067,4 +1105,20 @@ pub fn helper_chain_u32(x: u32) -> u32 {
 
 pub fn auto_option_default_step(x: Option<Step>, fallback: Step) -> Step {
     generic_option_default__step(x, fallback)
+}
+
+pub fn mutual_even_u32(n: u32) -> bool {
+    if n == 0 {
+        true
+    } else {
+        mutual_odd_u32((n).wrapping_sub(1))
+    }
+}
+
+pub fn mutual_odd_u32(n: u32) -> bool {
+    if n == 0 {
+        false
+    } else {
+        mutual_even_u32((n).wrapping_sub(1))
+    }
 }

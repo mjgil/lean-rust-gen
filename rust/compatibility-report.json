@@ -2,7 +2,7 @@
   "format": "lean-rust-core.compatibility-report.v1",
   "architecture": "direct-lean-emits-rust",
   "feature_tag_schema": "lean-rust-core.feature-tags.v1",
-  "generated_function_count": 157,
+  "generated_function_count": 162,
   "diagnostics": [
     { "source": "LeanRustCore.Examples.inhabited_default_u32", "rust_name": "inhabited_default_u32", "code": "supported", "detail": "exported-typeclass-specialization", "features": ["typeclass-specialization"], "next_feature": null },
     { "source": "LeanRustCore.Examples.array_get_opt_u32", "rust_name": "array_get_opt_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null },
@@ -13,6 +13,7 @@
     { "source": "LeanRustCore.Examples.result_ok_u32", "rust_name": "result_ok_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.general_step_match_u32", "rust_name": "general_step_match_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.checked_add_u32", "rust_name": "checked_add_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
+    { "source": "LeanRustCore.Examples.reverse_accum_u32", "rust_name": "reverse_accum_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.nested_payload_err_u32_string", "rust_name": "nested_payload_err_u32_string", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.list_append_u32", "rust_name": "list_append_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.checked_cast_u64_to_u32", "rust_name": "checked_cast_u64_to_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
@@ -37,6 +38,7 @@
     { "source": "LeanRustCore.Examples.bool_match_u32", "rust_name": "bool_match_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.tree_node_u32", "rust_name": "tree_node_u32", "code": "supported", "detail": "exported-recursive-box-data", "features": ["recursive-owned-box-data"], "next_feature": null },
     { "source": "LeanRustCore.Examples.decidable_eq_u32", "rust_name": "decidable_eq_u32", "code": "supported", "detail": "exported-typeclass-specialization", "features": ["typeclass-specialization"], "next_feature": null },
+    { "source": "LeanRustCore.Examples.tree_sum_worklist_u32", "rust_name": "tree_sum_worklist_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.rose_branch_u32", "rust_name": "rose_branch_u32", "code": "supported", "detail": "exported-recursive-box-data", "features": ["recursive-owned-box-data"], "next_feature": null },
     { "source": "LeanRustCore.Examples.list_reverse_first_or_u32", "rust_name": "list_reverse_first_or_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.echo_list_u32", "rust_name": "echo_list_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
@@ -67,6 +69,7 @@
     { "source": "LeanRustCore.Examples.option_bind_inc_u32", "rust_name": "option_bind_inc_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.ord_compare_u32", "rust_name": "ord_compare_u32", "code": "supported", "detail": "exported-typeclass-specialization", "features": ["typeclass-specialization"], "next_feature": null },
     { "source": "LeanRustCore.Examples.nat_two_step_or_zero_u32", "rust_name": "nat_two_step_or_zero_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null },
+    { "source": "LeanRustCore.Examples.gcd_u32", "rust_name": "gcd_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.defun_compose_inc_double_u32", "rust_name": "defun_compose_inc_double_u32", "code": "supported", "detail": "exported-defunctionalized-function-case", "features": ["defunctionalization"], "next_feature": null },
     { "source": "LeanRustCore.Examples.pair_choice_default_u32_string", "rust_name": "pair_choice_default_u32_string", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.add_u32", "rust_name": "add_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null },
@@ -160,6 +163,8 @@
     { "source": "LeanRustCore.Examples.auto_identity_u32", "rust_name": "auto_identity_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.inc_twice_u32", "rust_name": "inc_twice_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.helper_chain_u32", "rust_name": "helper_chain_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
-    { "source": "LeanRustCore.Examples.auto_option_default_step", "rust_name": "auto_option_default_step", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null }
+    { "source": "LeanRustCore.Examples.auto_option_default_step", "rust_name": "auto_option_default_step", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
+    { "source": "LeanRustCore.Examples.mutual_even_u32", "rust_name": "mutual_even_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null },
+    { "source": "LeanRustCore.Examples.mutual_odd_u32", "rust_name": "mutual_odd_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null }
   ]
 }

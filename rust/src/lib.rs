@@ -3,6 +3,7 @@
 pub mod abi;
 pub use lean_rust_core_runtime as runtime;
 pub use lean_rust_core_runtime as runtime_crate;
+pub mod recursion_helpers;
 
 mod generated {
     #![allow(

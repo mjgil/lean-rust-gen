@@ -108,6 +108,11 @@ pub extern "C" fn lrc_nat_two_step_or_zero_u32(n: u32) -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_gcd_u32(a: u32, b: u32) -> u32 {
+    crate::gcd_u32(a, b)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_defun_compose_inc_double_u32(x: u32) -> u32 {
     crate::defun_compose_inc_double_u32(x)
 }
@@ -130,6 +135,15 @@ pub extern "C" fn lrc_defun_apply_add5_u32(x: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn lrc_reader_add_env_u32(env: u32, x: u32) -> u32 {
     crate::reader_add_env_u32(env, x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_mutual_even_u32(n: u32) -> u32 {
+    if crate::mutual_even_u32(n) {
+        1
+    } else {
+        0
+    }
 }
 
 #[no_mangle]
@@ -180,6 +194,15 @@ pub extern "C" fn lrc_echo_i32(x: i32) -> i32 {
 #[no_mangle]
 pub extern "C" fn lrc_helper_chain_u32(x: u32) -> u32 {
     crate::helper_chain_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_mutual_odd_u32(n: u32) -> u32 {
+    if crate::mutual_odd_u32(n) {
+        1
+    } else {
+        0
+    }
 }
 
 #[no_mangle]

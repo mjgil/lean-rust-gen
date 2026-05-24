@@ -270,11 +270,11 @@ def coverageEntries : List CoverageEntry := [
     ["rust/proof-report.json", "rust/coverage-dashboard.json"]
     ["next20-pattern-matrix"],
   mkEntry "recursion-analysis-lowering" "supported-complete"
-    ["RecursionAnalysis.decisions", "docs/RECURSION_LOWERING.md"]
-    ["LeanRustCore/RecursionAnalysis.lean"]
-    ["rust/tests/next20_completion.rs", "scripts/check-next-20-completion.py"]
+    ["RecursionAnalysis.decisions", "gcd_u32", "reverse_accum_u32", "mutual_even_u32", "tree_sum_worklist_u32", "docs/RECURSION_LOWERING.md"]
+    ["LeanRustCore/RecursionAnalysis.lean", "LeanRustCore/RecursionExamples.lean", "LeanRustCore/Extract.lean", "rust/src/recursion_helpers.rs"]
+    ["rust/tests/general_recursion_completion.rs", "rust/tests/generated.rs", "rust/tests/target_interpreter.rs", "scripts/check-next-20-completion.py"]
     ["docs/RECURSION_LOWERING.md", "docs/ARCHITECTURE.md"]
-    ["rust/proof-report.json", "rust/coverage-dashboard.json"]
+    ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/recursion_gcd.expected.json", "corpus/positive/recursion_tree_worklist.expected.json"]
     ["next20-recursion-analysis"],
   mkEntry "std-lowering-implementation" "supported-complete"
     ["StdImplementation.lowerings", "runtime Std helpers", "docs/STD_LOWERINGS.md"]
