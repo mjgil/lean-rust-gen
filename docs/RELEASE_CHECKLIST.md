@@ -103,4 +103,13 @@ The release target matrix is:
 - macOS default lane
 - macOS `ffi` lane
 
-Task 9 remains incomplete until CI evidence exists for every combination above.
+GitHub Actions runs these combinations through the scripted lane helper:
+
+```text
+./scripts/check-ci-e2e.sh default
+./scripts/check-ci-e2e.sh ffi
+```
+
+`.github/workflows/ci.yml` executes that helper across the Linux/macOS by
+default/`ffi` matrix, so the checked workflow and the local scripted path use
+the same commands.

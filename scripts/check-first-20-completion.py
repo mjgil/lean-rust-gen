@@ -154,7 +154,12 @@ def check_scripts_and_ci() -> None:
         text = read(path)
         require("scripts/check-first-20-completion.py" in text, f"{path} missing first-20 gate")
     workflow = read(".github/workflows/ci.yml")
-    require("./scripts/check.sh" in workflow, "CI workflow must run scripts/check.sh")
+    ci_script = read("scripts/check-ci-e2e.sh")
+    require(
+        "./scripts/check-ci-e2e.sh ${{ matrix.rust_features }}" in workflow,
+        "CI workflow must run the scripted lane helper",
+    )
+    require("./scripts/check.sh" in ci_script, "CI lane helper must run scripts/check.sh")
     release_docs = read("docs/RELEASE_CHECKLIST.md")
     require("scripts/check-first-20-completion.py" in release_docs, "release checklist missing first-20 gate")
 

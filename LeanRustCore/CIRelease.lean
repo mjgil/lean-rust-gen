@@ -25,10 +25,10 @@ structure CIMatrixEntry where
 
 /-- Required CI matrix entries. -/
 def matrix : List CIMatrixEntry := [
-  { platform := .linux, rustFeatures := "default", leanToolchain := "leanprover/lean4:v4.22.0", commands := ["lake build", "cargo test --workspace", "cargo fmt --check --all", "cargo clippy --workspace --all-targets -- -D warnings"], docs := ["docs/RELEASE_CHECKLIST.md"] },
-  { platform := .linux, rustFeatures := "ffi", leanToolchain := "leanprover/lean4:v4.22.0", commands := ["cargo test -p lean-rust-core-generated --features ffi"], docs := ["docs/FFI_BOUNDARY.md"] },
-  { platform := .macos, rustFeatures := "default", leanToolchain := "leanprover/lean4:v4.22.0", commands := ["lake build", "cargo test --workspace"], docs := ["docs/RELEASE_CHECKLIST.md"] },
-  { platform := .macos, rustFeatures := "ffi", leanToolchain := "leanprover/lean4:v4.22.0", commands := ["cargo test -p lean-rust-core-generated --features ffi"], docs := ["docs/FFI_BOUNDARY.md"] }
+  { platform := .linux, rustFeatures := "default", leanToolchain := "leanprover/lean4:v4.22.0", commands := ["./scripts/check-ci-e2e.sh default"], docs := ["docs/RELEASE_CHECKLIST.md"] },
+  { platform := .linux, rustFeatures := "ffi", leanToolchain := "leanprover/lean4:v4.22.0", commands := ["./scripts/check-ci-e2e.sh ffi"], docs := ["docs/FFI_BOUNDARY.md", "docs/RELEASE_CHECKLIST.md"] },
+  { platform := .macos, rustFeatures := "default", leanToolchain := "leanprover/lean4:v4.22.0", commands := ["./scripts/check-ci-e2e.sh default"], docs := ["docs/RELEASE_CHECKLIST.md"] },
+  { platform := .macos, rustFeatures := "ffi", leanToolchain := "leanprover/lean4:v4.22.0", commands := ["./scripts/check-ci-e2e.sh ffi"], docs := ["docs/FFI_BOUNDARY.md", "docs/RELEASE_CHECKLIST.md"] }
 ]
 
 def matrixEntryComplete (entry : CIMatrixEntry) : Bool :=

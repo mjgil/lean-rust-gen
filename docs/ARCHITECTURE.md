@@ -278,6 +278,21 @@ module with scoped lint allowances for mechanically emitted patterns. Handwritte
 Rust in the crate still runs under the normal workspace `cargo clippy
 --workspace --all-targets -- -D warnings` policy.
 
+## CI Matrix Execution
+
+The repository now drives multi-platform release validation through
+`scripts/check-ci-e2e.sh`, which is the single entry point used by
+`.github/workflows/ci.yml` for the Linux/macOS by default/`ffi` matrix.
+
+- `./scripts/check-ci-e2e.sh default` runs the full pinned-toolchain release gate
+  in `./scripts/check.sh`.
+- `./scripts/check-ci-e2e.sh ffi` runs the same release gate and then executes
+  `cargo test --workspace --features ffi` to prove the feature-enabled workspace
+  lane on the same platform.
+
+This keeps the CI matrix, release checklist, and scripted local verification on
+the same command surface instead of maintaining separate ad hoc job steps.
+
 ## Final 16 completion layer
 
 The final completion patch adds metadata and workspace structure around the

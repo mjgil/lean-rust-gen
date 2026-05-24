@@ -20,19 +20,5 @@ jobs:
           rustup default 1.85.0
       - name: Setup Lean
         uses: leanprover/lean-action@v1
-      - name: Check default lane
-        if: matrix.rust_features == 'default'
-        run: ./scripts/check.sh
-      - name: Check ffi lane
-        if: matrix.rust_features == 'ffi'
-        run: |
-          ./scripts/check-no-placeholders.sh
-          ./scripts/check-toolchain-pins.sh
-          ./scripts/check-first-20-completion.py
-          ./scripts/check-next-20-completion.py
-          ./scripts/check-final-16-completion.py
-          ./scripts/check-remaining-completion.py
-          lake build
-          ./scripts/check-extractor-snapshot.sh
-          cargo test --workspace --features ffi
-          cargo test -p lean-rust-core-generated --features ffi
+      - name: Run scripted CI lane
+        run: ./scripts/check-ci-e2e.sh ${{ matrix.rust_features }}

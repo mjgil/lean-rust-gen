@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import re
 
@@ -38,6 +39,7 @@ def check_required_files() -> None:
         "LeanRustCore/CIRelease.lean",
         "LeanRustCore/Publishing.lean",
         "LeanRustCore/RemainingCompletion.lean",
+        "scripts/check-ci-e2e.sh",
         "docs/TYPECLASS_DICTIONARIES.md",
         "docs/FIRST_CLASS_CLOSURES.md",
         "docs/PURE_DO_NOTATION.md",
@@ -52,6 +54,10 @@ def check_required_files() -> None:
     ]
     for path in required:
         require((ROOT / path).exists(), f"missing remaining-completion artifact {path}")
+    require(
+        os.access(ROOT / "scripts/check-ci-e2e.sh", os.X_OK),
+        "scripts/check-ci-e2e.sh must be executable",
+    )
 
 
 def check_lean_modules() -> None:
@@ -213,9 +219,18 @@ def check_docs_and_release() -> None:
         require("complete" in text or "completion" in text, f"{path} must mention completion")
 
     workflow = read(".github/workflows/ci.yml")
+    ci_script = read("scripts/check-ci-e2e.sh")
     require("ubuntu-latest" in workflow and "macos-latest" in workflow, "CI workflow must cover linux and macos")
     require("rust_features" in workflow and "ffi" in workflow, "CI workflow must cover ffi feature")
-    require("check-remaining-completion.py" in workflow, "CI workflow missing remaining completion gate")
+    require(
+        "./scripts/check-ci-e2e.sh ${{ matrix.rust_features }}" in workflow,
+        "CI workflow missing scripted lane runner",
+    )
+    require("./scripts/check.sh" in ci_script, "CI lane helper must run the full release gate")
+    require(
+        "cargo test --workspace --features ffi" in ci_script,
+        "CI lane helper must run the ffi workspace lane",
+    )
 
     release = read("docs/RELEASE_CHECKLIST.md")
     require("check-remaining-completion.py" in release, "release docs missing remaining gate")
