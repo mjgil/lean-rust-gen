@@ -64,11 +64,15 @@ branches, the parameterized-data corpus for multi-parameter, nested, and
 rejected dependent generic shapes, the positive dependent-erasure corpus for
 equality casts, invariant `Sigma`, invariant indexed-family carriers, invariant
 dependent matches, and nested proof wrappers, the positive recursive corpus for
-direct trees, nested `RoseTreeU32`, and mutual `EvenNode`/`OddNode` SCCs, and
-the Rust completion test that scans the checked corpus fixtures. It also now
-requires parser-backed ownership validation: the direct generated lane must emit
-no reference types, no explicit lifetimes, and only the approved temporary
-shared operand borrows for exact `BigUint`/`BigInt` arithmetic.
+direct trees, nested `RoseTreeU32`, and mutual `EvenNode`/`OddNode` SCCs, the
+pattern-matrix corpus for `List.nil`/`List.cons`, `Nat.zero`/`Nat.succ`, and
+tree-shaped matches, and the Rust completion test that scans the checked corpus
+fixtures. It also now requires parser-backed ownership validation: the direct
+generated lane must emit no reference types, no explicit lifetimes, and only
+the approved temporary shared operand borrows for exact `BigUint`/`BigInt`
+arithmetic plus the audited helper borrows for `list_head_clone`,
+`list_tail_clone`, `array_get_u32`, `string_append`, `string_length_chars`, and
+`string_contains_char`.
 
 ## Remaining rows 41-63 gate
 

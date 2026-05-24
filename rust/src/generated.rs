@@ -206,6 +206,20 @@ pub fn is_nonzero_u32(x: u32) -> bool {
     }
 }
 
+pub fn list_head_or_zero_u32(xs: Vec<u32>) -> u32 {
+    if (xs).len() as u32 == 0 {
+        0
+    } else {
+        match crate::runtime::list_head_clone(&(xs)) {
+            None => 0,
+            Some(_hyg1406) => {
+                let _hyg1407 = crate::runtime::list_tail_clone(&(xs));
+                _hyg1406
+            }
+        }
+    }
+}
+
 pub fn pair_choice_left_u32_string(x: u32) -> PairchoiceU32String {
     PairchoiceU32String::Left(x)
 }
@@ -281,11 +295,11 @@ pub fn rose_branch_u32(value: u32, children: Vec<RoseTreeU32>) -> RoseTreeU32 {
 
 pub fn list_reverse_first_or_u32(xs: Vec<u32>, fallback: u32) -> u32 {
     {
-        let mut _hyg1679: u32 = fallback;
+        let mut _hyg1787: u32 = fallback;
         for x in crate::runtime::list_reverse_u32(xs) {
-            _hyg1679 = x;
+            _hyg1787 = x;
         }
-        _hyg1679
+        _hyg1787
     }
 }
 
@@ -370,6 +384,30 @@ pub fn expr_eval_u32(e: ExprU32) -> u32 {
     }
 }
 
+pub fn list_second_or_zero_u32(xs: Vec<u32>) -> u32 {
+    if (xs).len() as u32 == 0 {
+        0
+    } else {
+        match crate::runtime::list_head_clone(&(xs)) {
+            None => 0,
+            Some(_hyg1441) => {
+                let _hyg1442 = crate::runtime::list_tail_clone(&(xs));
+                if (_hyg1442).len() as u32 == 0 {
+                    0
+                } else {
+                    match crate::runtime::list_head_clone(&(_hyg1442)) {
+                        None => 0,
+                        Some(_hyg1443) => {
+                            let _hyg1444 = crate::runtime::list_tail_clone(&(_hyg1442));
+                            _hyg1443
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 pub fn list_find_nonzero_u32(xs: Vec<u32>) -> Option<u32> {
     {
         for x in xs {
@@ -378,6 +416,14 @@ pub fn list_find_nonzero_u32(xs: Vec<u32>) -> Option<u32> {
             }
         }
         None
+    }
+}
+
+pub fn nat_pred_or_zero_u32(n: u32) -> u32 {
+    if n == 0 {
+        0
+    } else {
+        (n).wrapping_sub(1)
     }
 }
 
@@ -462,6 +508,24 @@ pub fn ord_compare_u32(a: u32, b: u32) -> Ordering {
     }
 }
 
+pub fn nat_two_step_or_zero_u32(n: u32) -> u32 {
+    if n == 0 {
+        0
+    } else {
+        {
+            let _hyg1487 = (n).wrapping_sub(1);
+            if _hyg1487 == 0 {
+                0
+            } else {
+                {
+                    let _hyg1488 = (_hyg1487).wrapping_sub(1);
+                    (_hyg1488).wrapping_add(2)
+                }
+            }
+        }
+    }
+}
+
 pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
     defun_apply_u32(U32FnCase::Double, defun_apply_u32(U32FnCase::Inc, x))
 }
@@ -469,7 +533,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg2519) => fallback,
+        PairchoiceU32String::Right(_hyg2627) => fallback,
     }
 }
 

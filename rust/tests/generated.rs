@@ -217,6 +217,16 @@ fn bool_and_option_matches_lower() {
     assert_eq!(general_bool_match_u32(false, 9, 20), 21);
     assert_eq!(general_option_match_u32(None, 8), 8);
     assert_eq!(general_option_match_u32(Some(41), 8), 42);
+    assert_eq!(list_head_or_zero_u32(vec![]), 0);
+    assert_eq!(list_head_or_zero_u32(vec![41, 7]), 41);
+    assert_eq!(list_second_or_zero_u32(vec![]), 0);
+    assert_eq!(list_second_or_zero_u32(vec![41]), 0);
+    assert_eq!(list_second_or_zero_u32(vec![41, 7, 9]), 7);
+    assert_eq!(nat_pred_or_zero_u32(0), 0);
+    assert_eq!(nat_pred_or_zero_u32(9), 8);
+    assert_eq!(nat_two_step_or_zero_u32(0), 0);
+    assert_eq!(nat_two_step_or_zero_u32(1), 0);
+    assert_eq!(nat_two_step_or_zero_u32(5), 5);
 }
 
 #[test]

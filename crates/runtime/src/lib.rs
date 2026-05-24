@@ -172,6 +172,14 @@ pub fn list_reverse_u32(mut xs: Vec<u32>) -> Vec<u32> {
     xs
 }
 
+pub fn list_head_clone<T: Clone>(xs: &[T]) -> Option<T> {
+    xs.first().cloned()
+}
+
+pub fn list_tail_clone<T: Clone>(xs: &[T]) -> Vec<T> {
+    xs.get(1..).unwrap_or(&[]).to_vec()
+}
+
 pub fn list_zip_u32(xs: Vec<u32>, ys: Vec<u32>) -> Vec<(u32, u32)> {
     xs.into_iter().zip(ys).collect()
 }
@@ -683,5 +691,13 @@ mod tests {
         assert_eq!(arena.sum(root), Some(42));
         assert_eq!(arena.node(ArenaNodeId(999), 1, root), None);
         assert_eq!(arena.sum(ArenaNodeId(999)), None);
+    }
+
+    #[test]
+    fn list_pattern_helpers_clone_head_and_tail() {
+        assert_eq!(list_head_clone::<u32>(&[]), None);
+        assert_eq!(list_head_clone(&[7u32, 9u32]), Some(7));
+        assert_eq!(list_tail_clone::<u32>(&[]), Vec::<u32>::new());
+        assert_eq!(list_tail_clone(&[7u32, 9u32, 11u32]), vec![9, 11]);
     }
 }

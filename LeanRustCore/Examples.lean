@@ -321,6 +321,30 @@ def pair_sum_match_u32 (a b : UInt32) : UInt32 :=
   match (a, b) with
   | (x, y) => x + y
 
+@[rust_export]
+def list_head_or_zero_u32 (xs : List UInt32) : UInt32 :=
+  match xs with
+  | [] => 0
+  | head :: _ => head
+
+@[rust_export]
+def list_second_or_zero_u32 (xs : List UInt32) : UInt32 :=
+  match xs with
+  | _ :: second :: _ => second
+  | _ => 0
+
+@[rust_export, rust_nat_wrapping_u32]
+def nat_pred_or_zero_u32 (n : Nat) : Nat :=
+  match n with
+  | 0 => 0
+  | Nat.succ pred => pred
+
+@[rust_export, rust_nat_wrapping_u32]
+def nat_two_step_or_zero_u32 (n : Nat) : Nat :=
+  match n with
+  | Nat.succ (Nat.succ k) => k + 2
+  | _ => 0
+
 @[rust_export, rust_nat_wrapping_u32]
 def list_length_u32 (xs : List UInt32) : Nat :=
   xs.length

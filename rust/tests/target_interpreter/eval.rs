@@ -9,9 +9,10 @@ use super::model::{
 };
 use super::parse::{call_payload, split_top_args, split_top_level};
 use lean_rust_core_generated::runtime::{
-    array_get_u32, list_reverse_u32, string_append, string_contains_char, string_length_chars,
-    u32_checked_add, u32_checked_div, u32_checked_mod, u32_checked_sub, u32_preconditioned_div,
-    u32_preconditioned_mod, u32_saturating_add, u32_saturating_sub, u64_to_u32_checked,
+    array_get_u32, list_head_clone, list_reverse_u32, list_tail_clone, string_append,
+    string_contains_char, string_length_chars, u32_checked_add, u32_checked_div, u32_checked_mod,
+    u32_checked_sub, u32_preconditioned_div, u32_preconditioned_mod, u32_saturating_add,
+    u32_saturating_sub, u64_to_u32_checked,
 };
 
 pub fn eval_target_function(
@@ -92,6 +93,13 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
     if let Some(inner) = call_payload(expr, "add") {
         let args = split_top_args(inner);
         return eval_add(
+            eval_expr(functions, args[0], env)?,
+            eval_expr(functions, args[1], env)?,
+        );
+    }
+    if let Some(inner) = call_payload(expr, "sub") {
+        let args = split_top_args(inner);
+        return eval_sub(
             eval_expr(functions, args[0], env)?,
             eval_expr(functions, args[1], env)?,
         );
@@ -214,6 +222,25 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
             }
             "__runtime_u64_to_u32_checked" => {
                 return Ok(Value::OptionU32(u64_to_u32_checked(as_u64(&values[0])?)))
+            }
+            "__runtime_list_head_clone" => {
+                return match &values[0] {
+                    Value::VecU32(values) => Ok(Value::OptionU32(list_head_clone(values))),
+                    other => Err(format!(
+                        "unsupported __runtime_list_head_clone target {other:?}"
+                    )),
+                }
+            }
+            "__runtime_list_tail_clone" => {
+                return match &values[0] {
+                    Value::VecU32(values) => Ok(Value::VecU32(list_tail_clone(values))),
+                    Value::VecRoseTreeU32(values) => {
+                        Ok(Value::VecRoseTreeU32(list_tail_clone(values)))
+                    }
+                    other => Err(format!(
+                        "unsupported __runtime_list_tail_clone target {other:?}"
+                    )),
+                }
             }
             "__runtime_list_reverse_u32" => {
                 return Ok(Value::VecU32(list_reverse_u32(as_vec_u32(&values[0])?)))
@@ -488,6 +515,15 @@ fn eval_mul(left: Value, right: Value) -> Result<Value, String> {
         (Value::Nat(left), Value::Nat(right)) => Ok(Value::Nat(left * right)),
         (Value::Int(left), Value::Int(right)) => Ok(Value::Int(left * right)),
         other => Err(format!("unsupported mul values {other:?}")),
+    }
+}
+
+fn eval_sub(left: Value, right: Value) -> Result<Value, String> {
+    match (left, right) {
+        (Value::U32(left), Value::U32(right)) => Ok(Value::U32(left.wrapping_sub(right))),
+        (Value::Nat(left), Value::Nat(right)) => Ok(Value::Nat(left - right)),
+        (Value::Int(left), Value::Int(right)) => Ok(Value::Int(left - right)),
+        other => Err(format!("unsupported sub values {other:?}")),
     }
 }
 

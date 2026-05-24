@@ -474,7 +474,7 @@ fn next20_ownership_policy_enforces_non_escaping_borrows() {
     let generated =
         fs::read_to_string(repo_root().join("rust/src/generated.rs")).expect("generated Rust");
     let validation = validate_generated_ownership(&generated).expect("generated Rust should parse");
-    assert_eq!(validation.approved_reference_exprs, 12);
+    assert_eq!(validation.approved_reference_exprs, 18);
     assert!(
         validation.violations.is_empty(),
         "generated ownership policy violations: {:?}",

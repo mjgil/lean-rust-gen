@@ -18,10 +18,11 @@ Ownership rules live in `LeanRustCore.OwnershipPolicy.rules`. The parser and
 validation gates reject ad-hoc references or lifetimes that are not covered by
 this policy table. In the direct generated lane, the emitted borrow shapes are
 temporary shared operand borrows for exact BigUint/BigInt arithmetic plus the
-audited runtime-helper borrows used by `array_get_u32`, `string_append`
-suffixes, `string_length_chars`, and `string_contains_char`. The generated Rust
-must emit no reference types in public or private declarations and no explicit
-lifetimes anywhere in the generated file.
+audited runtime-helper borrows used by `list_head_clone`, `list_tail_clone`,
+`array_get_u32`, `string_append` suffixes, `string_length_chars`, and
+`string_contains_char`. The generated Rust must emit no reference types in
+public or private declarations and no explicit lifetimes anywhere in the
+generated file.
 
 The validation gates also check the exact phrases `temporary shared operand borrows`,
 `exact biguint/bigint arithmetic`, `no reference types`, `no explicit lifetimes`,

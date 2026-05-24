@@ -242,6 +242,10 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[1])?,
             as_u32(&args[2])?,
         ))),
+        "list_head_or_zero_u32" => Ok(v_u32(list_head_or_zero_u32(as_vec_u32(&args[0])?))),
+        "list_second_or_zero_u32" => Ok(v_u32(list_second_or_zero_u32(as_vec_u32(&args[0])?))),
+        "nat_pred_or_zero_u32" => Ok(v_u32(nat_pred_or_zero_u32(as_u32(&args[0])?))),
+        "nat_two_step_or_zero_u32" => Ok(v_u32(nat_two_step_or_zero_u32(as_u32(&args[0])?))),
         "option_map_inc_u32" => Ok(v_option_u32(option_map_inc_u32(as_option_u32(&args[0])?))),
         "pair_box_make_u32_string" => Ok(v_pairbox_u32_string(pair_box_make_u32_string(
             as_u32(&args[0])?,

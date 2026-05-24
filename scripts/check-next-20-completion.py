@@ -78,6 +78,7 @@ def check_files() -> None:
         "docs/TYPECLASSES.md",
         "crates/validate/src/ownership_validation.rs",
         "rust/tests/next20_completion.rs",
+        "rust/tests/pattern_matrix_completion.rs",
         "corpus/positive/parameterized_pair_box.expected.json",
         "corpus/positive/parameterized_nested_payload.expected.json",
         "corpus/positive/equality_cast_subtype.expected.json",
@@ -88,6 +89,11 @@ def check_files() -> None:
         "corpus/positive/recursive_binary_tree.expected.json",
         "corpus/positive/recursive_rose_tree.expected.json",
         "corpus/positive/recursive_even_odd.expected.json",
+        "corpus/positive/pattern_list_head.expected.json",
+        "corpus/positive/pattern_list_second.expected.json",
+        "corpus/positive/pattern_nat_pred.expected.json",
+        "corpus/positive/pattern_nat_two_step.expected.json",
+        "corpus/positive/pattern_tree_sum.expected.json",
         "corpus/positive/std_result_map_ok.expected.json",
         "corpus/positive/std_list_reverse.expected.json",
         "corpus/positive/std_array_get.expected.json",
@@ -134,7 +140,7 @@ def check_runtime_and_tests() -> None:
     for needle in [
         "u32_checked_div", "u32_checked_mod", "u64_checked_add", "i32_checked_add", "i64_checked_mul",
         "u32_saturating_mul", "int_to_i32_checked", "u64_to_u32_checked", "list_append_u32",
-        "list_find_nonzero_u32", "list_partition_nonzero_u32", "RcTreeU32", "ArenaTreeU32",
+        "list_find_nonzero_u32", "list_head_clone", "list_tail_clone", "list_partition_nonzero_u32", "RcTreeU32", "ArenaTreeU32",
         "borrowed_vec_len_u32", "borrowed_string_is_empty", "clone_vec_for_shared_use", "exact_int_mul",
     ]:
         require(needle in runtime, f"runtime crate missing {needle}")
@@ -151,6 +157,16 @@ def check_runtime_and_tests() -> None:
         "next20_dependent_erasure_examples_cover_invariant_sigma_and_indexed_shapes",
     ]:
         require(needle in test, f"next20 test missing {needle}")
+    pattern_test = read("rust/tests/pattern_matrix_completion.rs")
+    for needle in [
+        "pattern_matrix_examples_cover_list_nat_tree_and_nested_shapes",
+        "list_head_or_zero_u32",
+        "list_second_or_zero_u32",
+        "nat_pred_or_zero_u32",
+        "nat_two_step_or_zero_u32",
+        "pattern_tree_sum.expected.json",
+    ]:
+        require(needle in pattern_test, f"pattern-matrix test missing {needle}")
 
     parser_validation = read("rust/tests/parser_validation.rs")
     for needle in [
@@ -173,6 +189,10 @@ def check_runtime_and_tests() -> None:
         "pub fn flag_carrier_false_value_u32",
         "pub fn flag_carrier_match_invariant_u32",
         "pub fn nested_proof_wrapper_value_u32",
+        "pub fn list_head_or_zero_u32",
+        "pub fn list_second_or_zero_u32",
+        "pub fn nat_pred_or_zero_u32",
+        "pub fn nat_two_step_or_zero_u32",
         "pub struct RoseTreeU32",
         "pub enum EvenNode",
         "pub enum OddNode",
@@ -211,6 +231,10 @@ def check_runtime_and_tests() -> None:
         "FN\tflag_carrier_false_value_u32",
         "FN\tflag_carrier_match_invariant_u32",
         "FN\tnested_proof_wrapper_value_u32",
+        "FN\tlist_head_or_zero_u32",
+        "FN\tlist_second_or_zero_u32",
+        "FN\tnat_pred_or_zero_u32",
+        "FN\tnat_two_step_or_zero_u32",
         "TYPE\tstruct\tRoseTreeU32",
         "TYPE\tenum\tEvenNode",
         "TYPE\tenum\tOddNode",
@@ -375,6 +399,44 @@ def check_recursive_positive_corpus() -> None:
         )
 
 
+def check_pattern_positive_corpus() -> None:
+    expected = {
+        "corpus/positive/pattern_list_head.expected.json": (
+            "LeanRustCore.Examples.list_head_or_zero_u32",
+            {"container-shape", "general-pattern-match"},
+        ),
+        "corpus/positive/pattern_list_second.expected.json": (
+            "LeanRustCore.Examples.list_second_or_zero_u32",
+            {"container-shape", "general-pattern-match"},
+        ),
+        "corpus/positive/pattern_nat_pred.expected.json": (
+            "LeanRustCore.Examples.nat_pred_or_zero_u32",
+            {"general-pattern-match", "primitive"},
+        ),
+        "corpus/positive/pattern_nat_two_step.expected.json": (
+            "LeanRustCore.Examples.nat_two_step_or_zero_u32",
+            {"general-pattern-match", "primitive"},
+        ),
+        "corpus/positive/pattern_tree_sum.expected.json": (
+            "LeanRustCore.Examples.tree_sum_u32",
+            {"general-pattern-match", "recursive-direct-scc", "recursive-owned-box-data"},
+        ),
+    }
+    for path, (source, features) in expected.items():
+        fixture = load_json(path)
+        require(fixture["kind"] == "positive", f"{path} must be positive")
+        require(fixture["source"] == source, f"{path} must reference {source}")
+        require(fixture["expected_status"] == "supported", f"{path} must be supported")
+        require(
+            set(fixture["required_features"]) == features,
+            f"{path} must record required features {sorted(features)}",
+        )
+        require(
+            "docs/PATTERN_COMPILER.md" in fixture["documentation"],
+            f"{path} must reference docs/PATTERN_COMPILER.md",
+        )
+
+
 def check_std_positive_corpus() -> None:
     expected = {
         "corpus/positive/std_result_map_ok.expected.json": (
@@ -450,8 +512,11 @@ def check_docs() -> None:
     for phrase in ["direct recursion", "nested recursion", "mutual recursion", "cycle-breaking", "list/array/vec", "layout selection"]:
         require(phrase in recursive, f"docs/RECURSIVE_DATA.md missing phrase {phrase}")
     ownership = read("docs/OWNERSHIP.md").lower()
-    for phrase in ["temporary shared operand borrows", "exact biguint/bigint arithmetic", "no reference types", "no explicit lifetimes", "generated references do not escape"]:
+    for phrase in ["temporary shared operand borrows", "exact biguint/bigint arithmetic", "list_head_clone", "list_tail_clone", "no reference types", "no explicit lifetimes", "generated references do not escape"]:
         require(phrase in ownership, f"docs/OWNERSHIP.md missing phrase {phrase}")
+    pattern = read("docs/PATTERN_COMPILER.md")
+    for phrase in ["List.nil", "List.cons", "Nat.zero", "Nat.succ", "list_head_clone", "list_tail_clone", "as-pattern", "LRC006"]:
+        require(phrase in pattern, f"docs/PATTERN_COMPILER.md missing phrase {phrase}")
 
 
 def check_reports() -> None:
@@ -513,6 +578,7 @@ def main() -> None:
     check_parameterized_data_corpus()
     check_dependent_erasure_positive_corpus()
     check_recursive_positive_corpus()
+    check_pattern_positive_corpus()
     check_std_positive_corpus()
     check_docs()
     check_reports()

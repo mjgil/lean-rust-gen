@@ -1,0 +1,9 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "positive",
+  "source": "LeanRustCore.Examples.list_second_or_zero_u32",
+  "expected_status": "supported",
+  "required_features": ["container-shape", "general-pattern-match"],
+  "tests": ["differential_generated", "rust/tests/generated.rs", "rust/tests/pattern_matrix_completion.rs"],
+  "documentation": ["docs/PATTERN_COMPILER.md", "docs/ARCHITECTURE.md"]
+}

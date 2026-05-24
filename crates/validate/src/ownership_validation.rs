@@ -451,6 +451,8 @@ fn scan_expr_binary(binary: &ExprBinary, validation: &mut OwnershipValidation) {
 
 fn allow_runtime_helper_borrow(func: &Expr, index: usize) -> bool {
     match runtime_helper_name(func).as_deref() {
+        Some("list_head_clone") => index == 0,
+        Some("list_tail_clone") => index == 0,
         Some("array_get_u32") => index == 0,
         Some("string_append") => index == 1,
         Some("string_length_chars") => index == 0,
@@ -521,5 +523,15 @@ mod tests {
             .violations
             .iter()
             .any(|violation| violation.contains("unapproved reference expression")));
+    }
+
+    #[test]
+    fn accepts_pattern_runtime_helper_borrows() {
+        let accepted = validate_generated_ownership(
+            "pub fn head(xs: Vec<u32>) -> Option<u32> { crate::runtime::list_head_clone(&(xs)) }",
+        )
+        .unwrap();
+        assert_eq!(accepted.approved_reference_exprs, 1);
+        assert!(accepted.violations.is_empty());
     }
 }

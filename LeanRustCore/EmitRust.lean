@@ -175,6 +175,11 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .litI64 n => emitInt n
   | .litChar c => emitRustChar c
   | .litString value => emitRustStringLiteral value
+  | .letIn name value (.var bodyName) =>
+      if bodyName == name then
+        emitSurfaceExpr value
+      else
+        "{ let " ++ rustValueIdent "value" name ++ " = " ++ emitSurfaceExpr value ++ "; " ++ emitSurfaceExpr (.var bodyName) ++ " }"
   | .letIn name value body => "{ let " ++ rustValueIdent "value" name ++ " = " ++ emitSurfaceExpr value ++ "; " ++ emitSurfaceExpr body ++ " }"
   | .ite c a b => "if " ++ emitSurfaceExpr c ++ " { " ++ emitSurfaceExpr a ++ " } else { " ++ emitSurfaceExpr b ++ " }"
   | .matchBool c whenTrue whenFalse => "match " ++ emitSurfaceExpr c ++ " { true => " ++ emitSurfaceExpr whenTrue ++ ", false => " ++ emitSurfaceExpr whenFalse ++ " }"

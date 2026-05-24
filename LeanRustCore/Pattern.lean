@@ -27,6 +27,6 @@ def compileConstructorMatch (targetTy : RType) (target : SurfaceExpr) (arms : Li
 
 /-- Human-readable summary included in generated validation/proof reports. -/
 def patternCompilerSummary : String :=
-  "Sprint 3–4 constructor-pattern compiler lowers elaborated Bool/Option/Prod/index-free-enum patterns into checked SurfaceExpr.matchPattern nodes; Surface.typeOfExpected validates exhaustiveness, binder uniqueness, and branch type consistency"
+  "Sprint 3–4 constructor-pattern compiler lowers elaborated Bool/Option/Prod/index-free-enum patterns into checked SurfaceExpr.matchPattern nodes, lowers List.nil/List.cons and Nat.zero/Nat.succ recursors into first-order if/let/matchOption surface code, and relies on Surface.typeOfExpected for exhaustiveness, binder uniqueness, and branch type consistency"
 
 end LeanRustCore.Pattern

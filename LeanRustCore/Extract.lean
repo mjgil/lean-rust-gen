@@ -638,6 +638,9 @@ private def literalForExpected (expected : Option RType) (n : Nat) : SurfaceExpr
 private def isNamedRecursor (n : Name) (leaf : String) : Bool :=
   nameLeaf n == leaf
 
+private def isPatternMatchHelper (n : Name) : Bool :=
+  (nameLeaf n).startsWith "match_"
+
 private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e0 : Expr) : CoreM SurfaceExpr := do
   let e := stripMData e0
   if unitLiteral? e then
@@ -998,6 +1001,71 @@ where
             let (idxName, accName, body) ← translateNatStepLambdaBody typeCtx locals accTy stepExpr
             return .natFold idxName accName accTy init n body
         | _ => unsupported e
+
+  translateNatSuccBranch (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType)
+      (succCase : Expr) : CoreM (String × SurfaceExpr) := do
+    match stripMData succCase with
+    | .lam predName predTyExpr body _ => do
+        let actualPredTy ← typeOfLeanWithCtx typeCtx predTyExpr
+        if actualPredTy == .u32 then
+          let predBinder := sanitizeRustIdent "pred" (nameLeaf predName)
+          let bodyExpr ← translateExpr (none :: typeCtx)
+            (some { name := predBinder, ty := .u32 } :: locals)
+            expected
+            body
+          pure (predBinder, bodyExpr)
+        else
+          throwError "Nat.casesOn successor branch binder must lower to Nat/u32"
+    | _ => unsupported succCase
+
+  translateNatCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType)
+      (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | _motive :: discrExpr :: zeroExpr :: succExpr :: [] => do
+        let discr ← translateExpr typeCtx locals (some .u32) discrExpr
+        let zeroBranch ← translateExpr typeCtx locals expected zeroExpr
+        let (predBinder, succBranchBody) ← translateNatSuccBranch typeCtx locals expected succExpr
+        let predValue := SurfaceExpr.sub .u32 discr (.litU32 1)
+        pure <| .ite (.eq .u32 discr (.litU32 0)) zeroBranch
+          (.letIn predBinder predValue succBranchBody)
+    | _ => unsupported e
+
+  translateListConsBranch (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType)
+      (elemTy : RType) (consCase : Expr) : CoreM (String × String × SurfaceExpr) := do
+    match stripMData consCase with
+    | .lam headName headTyExpr rest _ =>
+        match stripMData rest with
+        | .lam tailName tailTyExpr body _ => do
+            let actualHeadTy ← typeOfLeanWithCtx typeCtx headTyExpr
+            let actualTailTy ← typeOfLeanWithCtx (none :: typeCtx) tailTyExpr
+            if actualHeadTy == elemTy && actualTailTy == .list elemTy then
+              let headBinder := sanitizeRustIdent "head" (nameLeaf headName)
+              let tailBinder := sanitizeRustIdent "tail" (nameLeaf tailName)
+              let bodyExpr ← translateExpr (none :: none :: typeCtx)
+                (some { name := tailBinder, ty := .list elemTy } :: some { name := headBinder, ty := elemTy } :: locals)
+                expected
+                body
+              pure (headBinder, tailBinder, bodyExpr)
+            else
+              throwError "List.casesOn cons branch binders must lower to element/list runtime types"
+        | _ => unsupported consCase
+    | _ => unsupported consCase
+
+  translateListCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType)
+      (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: _motive :: discrExpr :: nilExpr :: consExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let discr ← translateExpr typeCtx locals (some (.list elemTy)) discrExpr
+        let nilBranch ← translateExpr typeCtx locals expected nilExpr
+        let (headBinder, tailBinder, consBody) ←
+          translateListConsBranch typeCtx locals expected elemTy consExpr
+        let emptyCheck := .eq .u32 (.listLength elemTy discr) (.litU32 0)
+        let headValue := .call "__runtime_list_head_clone" [.list elemTy] (.option elemTy) [discr]
+        let tailValue := .call "__runtime_list_tail_clone" [.list elemTy] (.list elemTy) [discr]
+        let consBranch := .matchOption headValue nilBranch headBinder (.letIn tailBinder tailValue consBody)
+        pure <| .ite emptyCheck nilBranch consBranch
+    | _ => unsupported e
 
   translateBoolCasesOn (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match args with
@@ -1452,12 +1520,24 @@ where
         pure (.closureApply binder argTy retTy arg bodyExpr)
     | _, _ => unsupported fnExpr
 
+  translatePatternMatchHelperApp? (typeCtx : TypeCtx) (locals : LocalCtx)
+      (expected : Option RType) (helperName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    match (← getEnv).find? helperName with
+    | some (.defnInfo defInfo) =>
+        let unfolded ← Core.betaReduce (mkAppN defInfo.value args.toArray)
+        return some (← translateExpr typeCtx locals expected unfolded)
+    | _ => return none
+
   translateApp (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) : CoreM SurfaceExpr := do
     let fn := e.getAppFn
     let args := e.getAppArgs.toList
     match fn with
     | .const n _ =>
-        if n == ``ite then
+        if isPatternMatchHelper n then
+          match (← translatePatternMatchHelperApp? typeCtx locals expected n args) with
+          | some expr => return expr
+          | none => unsupported e
+        else if n == ``ite then
           match args with
           | _ty :: cond :: _dec :: thenExpr :: elseExpr :: [] =>
               return .ite (← translateExpr typeCtx locals (some .bool) cond) (← translateExpr typeCtx locals expected thenExpr) (← translateExpr typeCtx locals expected elseExpr)
@@ -1604,6 +1684,10 @@ where
           translateBoolRec typeCtx locals expected e args
         else if isNamedRecursor n "casesOn" && nameParent n == ``Option then
           translateOptionCasesOn typeCtx locals expected e args
+        else if isNamedRecursor n "casesOn" && nameParent n == ``List then
+          translateListCasesOn typeCtx locals expected e args
+        else if isNamedRecursor n "casesOn" && nameParent n == ``Nat then
+          translateNatCasesOn typeCtx locals expected e args
         else if isNamedRecursor n "casesOn" && nameParent n == ``Prod then
           translateProdCasesOn typeCtx locals expected e args
         else if isNamedRecursor n "rec" && nameParent n == ``Option then

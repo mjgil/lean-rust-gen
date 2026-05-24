@@ -88,6 +88,11 @@ pub extern "C" fn lrc_subtype_val_u32(x: u32) -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_nat_pred_or_zero_u32(n: u32) -> u32 {
+    crate::nat_pred_or_zero_u32(n)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_inc_twice_u32(x: u32) -> u32 {
     crate::inc_twice_u32(x)
 }
@@ -95,6 +100,11 @@ pub extern "C" fn lrc_inc_twice_u32(x: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn lrc_closure_env_apply_add_delta_u32(delta: u32, x: u32) -> u32 {
     crate::closure_env_apply_add_delta_u32(delta, x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_nat_two_step_or_zero_u32(n: u32) -> u32 {
+    crate::nat_two_step_or_zero_u32(n)
 }
 
 #[no_mangle]

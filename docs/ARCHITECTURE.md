@@ -552,6 +552,23 @@ checked `u64` to `u32` casts. Those functions are enforced by
 `rust/tests/generated.rs`, `rust/tests/next20_completion.rs`,
 `rust/target-validation.txt`, and the exhaustive target interpreter.
 
+## Next-20 pattern-matrix lowering completion
+
+Task 37 now uses the real extractor path for more than metadata. `LeanRustCore.Extract`
+recognizes elaborated `List.casesOn` and `Nat.casesOn` directly: list matches
+lower to `SurfaceExpr.ite` plus `list_head_clone`/`list_tail_clone` helper
+calls, while nat matches lower to `SurfaceExpr.ite` plus predecessor `let`
+bindings.
+
+This keeps Bool/Option/product/closed-enum branches on
+`SurfaceExpr.matchPattern`, but it extends real equation-compiler coverage to
+`List.nil`, `List.cons`, `Nat.zero`, and `Nat.succ` without introducing a new
+runtime-only bypass. The new exported examples live in
+`LeanRustCore.PatternCompilerExamples`, the positive corpus now covers list,
+nat, and tree-shaped pattern cases, and the release gates enforce the emitted
+Rust shapes through `rust/tests/pattern_matrix_completion.rs`,
+`scripts/check-next-20-completion.py`, and `rust/target-validation.txt`.
+
 ## Next-20 Std lowering completion
 
 Task 43 now distinguishes extractor-backed Std lowering from runtime-only
