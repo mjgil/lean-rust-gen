@@ -303,13 +303,13 @@
       "generated_examples": ["rust/target-validation.txt", "rust/coverage-dashboard.json"],
       "diagnostics": ["remaining-complete-generated-semantics"]
       } },
-    { "feature": "remaining-preservation-skeleton", "status": "supported-complete", "examples": ["Preservation.obligations", "docs/PRESERVATION.md"],
+    { "feature": "remaining-preservation-proved-lemmas", "status": "supported-complete", "examples": ["Preservation.obligations", "Preservation.extraction_metadata_preserved", "docs/PRESERVATION.md"],
       "evidence": {
       "implementation": ["LeanRustCore/Preservation.lean"],
       "tests": ["rust/tests/remaining_completion.rs", "scripts/check-remaining-completion.py"],
       "docs": ["docs/PRESERVATION.md", "docs/ARCHITECTURE.md"],
       "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
-      "diagnostics": ["remaining-preservation-skeleton"]
+      "diagnostics": ["remaining-preservation-proved-lemmas"]
       } },
     { "feature": "remaining-property-generators", "status": "supported-complete", "examples": ["PropertyGenerators.families", "docs/PROPERTY_GENERATORS.md"],
       "evidence": {

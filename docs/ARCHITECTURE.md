@@ -249,6 +249,23 @@ That policy is enforced by the validator crate's ownership scanner and by
 `rust/tests/parser_validation.rs`, so ad-hoc `&T`, `&mut T`, or lifetime-bearing
 forms in emitted Rust fail the release gates.
 
+## Newly completed: representative preservation lemmas
+
+`LeanRustCore.Preservation` no longer stops at seam ownership metadata. It now
+proves representative preservation lemmas for:
+
+- extraction metadata,
+- dependent erasure runtime carriers,
+- checked Surface typing,
+- checked Surface evaluation,
+- target-validation snapshot lowering,
+- direct-lane safe-subset Rust emission, and
+- emitted-subset target semantics.
+
+The remaining-completion gate reads those theorem names directly from the Lean
+source and from the generated proof report, so deleting a theorem or reverting
+to seam metadata alone breaks release validation.
+
 ## Newly completed: Rust identifier hygiene and parser-backed validation
 
 `LeanRustCore.RustHygiene` is now the single place that maps source names to

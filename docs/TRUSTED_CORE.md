@@ -272,3 +272,22 @@ semantics, preservation obligations, property generators, feature-complete
 coverage, CI release matrix, and crate publishing/versioning. These gates are
 aggregated by `LeanRustCore.RemainingCompletion` and checked by
 `scripts/check-remaining-completion.py`.
+
+The preservation portion is now split deliberately into two classes of evidence:
+
+- proved Lean theorems in `LeanRustCore.Preservation`:
+  `extraction_metadata_preserved`,
+  `dependent_erasure_runtime_carriers_preserved`,
+  `checked_surface_typing_preserved`,
+  `checked_surface_evaluation_preserved`,
+  `target_lowering_snapshot_preserved`,
+  `safe_subset_emission_preserved`, and
+  `emitted_subset_target_semantics_preserved`.
+- regression-tested facts outside the Lean proof boundary:
+  parser validation over generated Rust,
+  target-interpreter execution against compiled Rust,
+  coverage-dashboard evidence derivation, and
+  property/fuzz-style randomized validation.
+
+This means the trusted-core docs now separate what is proved in Lean from what
+is only tested. The release gates require both classes to stay present.

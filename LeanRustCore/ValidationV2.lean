@@ -325,13 +325,13 @@ def coverageEntries : List CoverageEntry := [
     ["docs/SEMANTICS.md", "docs/ARCHITECTURE.md"]
     ["rust/target-validation.txt", "rust/coverage-dashboard.json"]
     ["remaining-complete-generated-semantics"],
-  mkEntry "remaining-preservation-skeleton" "supported-complete"
-    ["Preservation.obligations", "docs/PRESERVATION.md"]
+  mkEntry "remaining-preservation-proved-lemmas" "supported-complete"
+    ["Preservation.obligations", "Preservation.extraction_metadata_preserved", "docs/PRESERVATION.md"]
     ["LeanRustCore/Preservation.lean"]
     ["rust/tests/remaining_completion.rs", "scripts/check-remaining-completion.py"]
     ["docs/PRESERVATION.md", "docs/ARCHITECTURE.md"]
     ["rust/proof-report.json", "rust/coverage-dashboard.json"]
-    ["remaining-preservation-skeleton"],
+    ["remaining-preservation-proved-lemmas"],
   mkEntry "remaining-property-generators" "supported-complete"
     ["PropertyGenerators.families", "docs/PROPERTY_GENERATORS.md"]
     ["LeanRustCore/PropertyGenerators.lean", "crates/runtime/src/property_generators.rs"]

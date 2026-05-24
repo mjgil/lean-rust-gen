@@ -68,7 +68,20 @@ def check_lean_modules() -> None:
         "LeanRustCore/PureDoNotation.lean": ["ExceptT(StateM)", "allPureDoLoweringsComplete", "pure_do_completion_gate"],
         "LeanRustCore/IOBoundary.lean": ["ControlledIOOp", "allIOPoliciesComplete", "io_boundary_completion_gate"],
         "LeanRustCore/CompleteSemantics.lean": ["TargetGrammarHead", "TargetValue", "TargetTerm", "evalTargetTerm", "representativeSemanticChecks", "semanticCoverageComplete", "complete_semantics_completion_gate"],
-        "LeanRustCore/Preservation.lean": ["PreservationSeam", "preservationSkeletonComplete", "preservation_skeleton_completion_gate"],
+        "LeanRustCore/Preservation.lean": [
+            "PreservationSeam",
+            "preservationLemmasComplete",
+            "preservationSkeletonComplete",
+            "extraction_metadata_preserved",
+            "dependent_erasure_runtime_carriers_preserved",
+            "checked_surface_typing_preserved",
+            "checked_surface_evaluation_preserved",
+            "target_lowering_snapshot_preserved",
+            "safe_subset_emission_preserved",
+            "emitted_subset_target_semantics_preserved",
+            "preservation_lemmas_completion_gate",
+            "preservation_skeleton_completion_gate",
+        ],
         "LeanRustCore/PropertyGenerators.lean": ["GeneratorFamily", "allGeneratorsComplete", "property_generators_completion_gate"],
         "LeanRustCore/CoverageCompletion.lean": ["CoverageDenominator", "coverageCompletionComplete", "coverage_completion_gate"],
         "LeanRustCore/CIRelease.lean": ["CIMatrixEntry", "macos", "ci_release_completion_gate"],
@@ -197,7 +210,7 @@ def check_reports_and_dashboard() -> None:
         "remaining-pure-do-notation",
         "remaining-controlled-io-boundary",
         "remaining-complete-generated-semantics",
-        "remaining-preservation-skeleton",
+        "remaining-preservation-proved-lemmas",
         "remaining-property-generators",
         "remaining-feature-complete-coverage",
         "remaining-ci-release-matrix",
@@ -222,6 +235,18 @@ def check_reports_and_dashboard() -> None:
     ]:
         require(policy.get(key) is True, f"proof policy missing {key}")
 
+    fact_names = {fact["name"] for fact in proof.get("facts", [])}
+    for name in [
+        "extraction_metadata_preserved",
+        "dependent_erasure_runtime_carriers_preserved",
+        "checked_surface_typing_preserved",
+        "checked_surface_evaluation_preserved",
+        "target_lowering_snapshot_preserved",
+        "safe_subset_emission_preserved",
+        "emitted_subset_target_semantics_preserved",
+    ]:
+        require(name in fact_names, f"proof report missing preservation fact {name}")
+
     metrics = {metric["denominator"]: metric for metric in coverage.get("metrics", [])}
     for denominator in [
         "checklist_rows_41_63",
@@ -241,7 +266,7 @@ def check_reports_and_dashboard() -> None:
         "remaining-pure-do-notation",
         "remaining-controlled-io-boundary",
         "remaining-complete-semantics",
-        "remaining-preservation-skeleton",
+        "remaining-preservation-proved-lemmas",
         "remaining-property-generators",
         "remaining-feature-complete-dashboard",
         "remaining-ci-release-matrix",
@@ -276,6 +301,28 @@ def check_docs_and_release() -> None:
         "fn(u32) -> u32",
     ]:
         require(needle in semantics, f"docs/SEMANTICS.md missing {needle}")
+
+    preservation = read("docs/PRESERVATION.md")
+    for needle in [
+        "extraction_metadata_preserved",
+        "dependent_erasure_runtime_carriers_preserved",
+        "checked_surface_typing_preserved",
+        "checked_surface_evaluation_preserved",
+        "target_lowering_snapshot_preserved",
+        "safe_subset_emission_preserved",
+        "emitted_subset_target_semantics_preserved",
+        "proved Lean theorems",
+    ]:
+        require(needle in preservation, f"docs/PRESERVATION.md missing {needle}")
+
+    trusted_core = read("docs/TRUSTED_CORE.md")
+    for needle in [
+        "proved Lean theorems",
+        "regression-tested facts",
+        "safe_subset_emission_preserved",
+        "emitted_subset_target_semantics_preserved",
+    ]:
+        require(needle in trusted_core, f"docs/TRUSTED_CORE.md missing {needle}")
 
     workflow = read(".github/workflows/ci.yml")
     ci_script = read("scripts/check-ci-e2e.sh")

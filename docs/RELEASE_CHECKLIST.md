@@ -78,6 +78,10 @@ controlled IO boundary metadata, complete target semantics, preservation
 obligations, property generators, feature-complete coverage, CI matrix metadata,
 and publishing/versioning metadata.
 
+For preservation, that gate now requires the named Lean theorems in
+`LeanRustCore.Preservation`, their proof-report facts, and the docs split that
+separates proved lemmas from regression-tested facts.
+
 The final-16 gate now also enforces evidence-derived coverage rows:
 `rust/coverage-dashboard.json` must carry nonempty `implementation`, `tests`,
 `docs`, `generated_examples`, and `diagnostics` lists for every supported

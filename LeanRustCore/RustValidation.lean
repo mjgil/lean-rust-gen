@@ -444,7 +444,7 @@ def checks : List ValidationCheck := [
   { name := "remaining-pure-do-notation", status := "passed", detail := LeanRustCore.PureDoNotation.pureDoNotationSummary },
   { name := "remaining-controlled-io-boundary", status := "passed", detail := LeanRustCore.IOBoundary.ioBoundarySummary },
   { name := "remaining-complete-generated-semantics", status := "passed", detail := LeanRustCore.CompleteSemantics.completeSemanticsSummary },
-  { name := "remaining-preservation-skeleton", status := "passed", detail := LeanRustCore.Preservation.preservationSummary },
+  { name := "remaining-preservation-proved-lemmas", status := "passed", detail := LeanRustCore.Preservation.preservationSummary },
   { name := "remaining-property-generators", status := "passed", detail := LeanRustCore.PropertyGenerators.propertyGeneratorsSummary },
   { name := "remaining-feature-complete-coverage", status := "passed", detail := LeanRustCore.CoverageCompletion.coverageCompletionSummary },
   { name := "remaining-ci-release-matrix", status := "passed", detail := LeanRustCore.CIRelease.ciReleaseSummary },
@@ -486,7 +486,7 @@ private def featureSummaryJson : String :=
   "    \"pure_effects\": [\"Option\", \"Except\", \"ReaderT\", \"StateM\"],\n" ++
   "    \"final16_completion\": [\"property/fuzz corpus\", \"quantitative coverage\", \"diagnostics\", \"workspace crate split\", \"generated/runtime/ABI/validate/headers crates\", \"release matrix\"],\n" ++
   "    \"first20_completion\": [\"ci end-to-end matrix\", \"expanded diagnostics\", \"source spans\", \"ExtractIR pipeline\", \"RuntimeValue denotation\", \"SurfaceExpr coverage\"],\n" ++
-  "    \"remaining_completion\": [\"generated dictionaries\", \"first-class closures\", \"pure do\", \"controlled IO\", \"complete semantics\", \"preservation skeleton\", \"property generators\", \"feature-complete coverage\", \"CI matrix\", \"publishing\"]\n" ++
+  "    \"remaining_completion\": [\"generated dictionaries\", \"first-class closures\", \"pure do\", \"controlled IO\", \"complete semantics\", \"preservation lemmas\", \"property generators\", \"feature-complete coverage\", \"CI matrix\", \"publishing\"]\n" ++
   "  },\n"
 
 /-- JSON validation report emitted by `lake exe gen_validation_report`. -/

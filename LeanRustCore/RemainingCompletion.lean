@@ -39,7 +39,7 @@ def rows : List RemainingCompletionRow := [
   { row := 48, feature := "target-validation-v2", complete := true, summary := "target-validation v2 remains a generated snapshot gate" },
   { row := 49, feature := "selected-target-interpreter", complete := true, summary := "selected interpreter coverage remains a generated Rust test gate" },
   { row := 50, feature := "complete-generated-subset-semantics", complete := LeanRustCore.CompleteSemantics.semanticCoverageComplete, summary := LeanRustCore.CompleteSemantics.completeSemanticsSummary },
-  { row := 51, feature := "preservation-proof-skeleton", complete := LeanRustCore.Preservation.preservationSkeletonComplete, summary := LeanRustCore.Preservation.preservationSummary },
+  { row := 51, feature := "preservation-proved-lemmas", complete := LeanRustCore.Preservation.preservationLemmasComplete, summary := LeanRustCore.Preservation.preservationSummary },
   { row := 52, feature := "deterministic-property-seeds", complete := true, summary := LeanRustCore.PropertyCorpus.propertyCorpusSummary },
   { row := 53, feature := "real-property-generators", complete := LeanRustCore.PropertyGenerators.allGeneratorsComplete, summary := LeanRustCore.PropertyGenerators.propertyGeneratorsSummary },
   { row := 54, feature := "quantitative-coverage-dashboard", complete := true, summary := LeanRustCore.CoverageDashboard.quantitativeCoverageSummary },
@@ -60,7 +60,7 @@ def allRemainingComplete : Bool :=
 
 /-- Human-readable report summary. -/
 def remainingCompletionSummary : String :=
-  "checklist rows 41-63 are complete: generated dictionaries, first-class closures, pure do, IO boundary, complete semantics, preservation skeleton, property generators, coverage completion, CI matrix, crate publishing, and crate split"
+  "checklist rows 41-63 are complete: generated dictionaries, first-class closures, pure do, IO boundary, complete semantics, preservation proved lemmas, property generators, coverage completion, CI matrix, crate publishing, and crate split"
 
 theorem remaining_completion_gate : allRemainingComplete = true := by
   native_decide

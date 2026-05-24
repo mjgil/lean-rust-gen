@@ -3,10 +3,19 @@ use lean_rust_core_validate::{
     eval_target_term, generate_target_term_cases, generated_terms_are_well_typed,
     minimize_target_term, target_term_head, RecursiveTree, TargetTerm, TargetValue,
 };
+use std::fs;
+use std::path::PathBuf;
 
 const PROOF_REPORT: &str = include_str!("../proof-report.json");
 const VALIDATION_REPORT: &str = include_str!("../validation-report.json");
 const COVERAGE_DASHBOARD: &str = include_str!("../coverage-dashboard.json");
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("workspace root")
+        .to_path_buf()
+}
 
 #[test]
 fn remaining_rows_reports_and_dashboard_are_complete() {
@@ -35,7 +44,7 @@ fn remaining_rows_reports_and_dashboard_are_complete() {
         "remaining-pure-do-notation",
         "remaining-controlled-io-boundary",
         "remaining-complete-generated-semantics",
-        "remaining-preservation-skeleton",
+        "remaining-preservation-proved-lemmas",
         "remaining-property-generators",
         "remaining-feature-complete-coverage",
         "remaining-ci-release-matrix",
@@ -91,6 +100,64 @@ fn remaining_runtime_features_are_exercised() {
         vec![0, 1, 2, 41, 42, u32::MAX]
     );
     assert_eq!(container_property_values_u32()[2], vec![1, 2, u32::MAX]);
+}
+
+#[test]
+fn remaining_preservation_theorems_are_named_and_documented() {
+    for theorem in [
+        "extraction_metadata_preserved",
+        "dependent_erasure_runtime_carriers_preserved",
+        "checked_surface_typing_preserved",
+        "checked_surface_evaluation_preserved",
+        "target_lowering_snapshot_preserved",
+        "safe_subset_emission_preserved",
+        "emitted_subset_target_semantics_preserved",
+    ] {
+        assert!(
+            PROOF_REPORT.contains(theorem),
+            "proof report missing theorem fact {theorem}"
+        );
+    }
+
+    let preservation =
+        fs::read_to_string(repo_root().join("LeanRustCore/Preservation.lean")).expect("lean file");
+    for theorem in [
+        "extraction_metadata_preserved",
+        "dependent_erasure_runtime_carriers_preserved",
+        "checked_surface_typing_preserved",
+        "checked_surface_evaluation_preserved",
+        "target_lowering_snapshot_preserved",
+        "safe_subset_emission_preserved",
+        "emitted_subset_target_semantics_preserved",
+        "preservation_lemmas_completion_gate",
+    ] {
+        assert!(
+            preservation.contains(theorem),
+            "missing preservation theorem {theorem}"
+        );
+    }
+
+    let docs =
+        fs::read_to_string(repo_root().join("docs/PRESERVATION.md")).expect("preservation docs");
+    for needle in [
+        "proved Lean theorems",
+        "safe_subset_emission_preserved",
+        "emitted_subset_target_semantics_preserved",
+    ] {
+        assert!(
+            docs.contains(needle),
+            "missing preservation doc text {needle}"
+        );
+    }
+
+    let trusted =
+        fs::read_to_string(repo_root().join("docs/TRUSTED_CORE.md")).expect("trusted core docs");
+    for needle in ["proved Lean theorems", "regression-tested facts"] {
+        assert!(
+            trusted.contains(needle),
+            "missing trusted-core text {needle}"
+        );
+    }
 }
 
 #[test]
