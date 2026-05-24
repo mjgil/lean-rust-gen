@@ -44,6 +44,10 @@ def emitRuntimeCall? (name : String) (args : List String) : Option String :=
   | "__runtime_u32_preconditioned_mod", [a, b] => some s!"crate::runtime::u32_preconditioned_mod({a}, {b}).map_err(String::from)"
   | "__runtime_u64_to_u32_checked", [x] => some s!"crate::runtime::u64_to_u32_checked({x})"
   | "__runtime_list_head_clone", [xs] => some s!"crate::runtime::list_head_clone(&({xs}))"
+  | "__runtime_list_head_or_default_u32", [xs, fallback] =>
+      some s!"crate::runtime::list_head_or_default_u32(&({xs}), {fallback})"
+  | "__runtime_list_second_or_default_u32", [xs, fallback] =>
+      some s!"crate::runtime::list_second_or_default_u32(&({xs}), {fallback})"
   | "__runtime_list_tail_clone", [xs] => some s!"crate::runtime::list_tail_clone(&({xs}))"
   | "__runtime_list_prepend_u32", [head, xs] => some s!"crate::runtime::list_prepend_u32({head}, {xs})"
   | "__runtime_list_reverse_u32", [xs] => some s!"crate::runtime::list_reverse_u32({xs})"

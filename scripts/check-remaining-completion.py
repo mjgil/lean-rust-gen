@@ -31,6 +31,7 @@ def check_required_files() -> None:
         "LeanRustCore/TypeclassDictionaries.lean",
         "LeanRustCore/TypeclassDictionaryExamples.lean",
         "LeanRustCore/FirstClassClosures.lean",
+        "LeanRustCore/ClosureLoweringExamples.lean",
         "LeanRustCore/PureDoNotation.lean",
         "LeanRustCore/IOBoundary.lean",
         "LeanRustCore/CompleteSemantics.lean",
@@ -43,6 +44,7 @@ def check_required_files() -> None:
         "scripts/check-ci-e2e.sh",
         "docs/TYPECLASS_DICTIONARIES.md",
         "docs/FIRST_CLASS_CLOSURES.md",
+        "docs/CLOSURE_CONVERSION.md",
         "docs/PURE_DO_NOTATION.md",
         "docs/IO_BOUNDARY.md",
         "docs/SEMANTICS.md",
@@ -52,6 +54,7 @@ def check_required_files() -> None:
         "docs/PUBLISHING.md",
         "CHANGELOG.md",
         "rust/tests/remaining_completion.rs",
+        "rust/tests/closure_lowering.rs",
         "rust/tests/typeclass_dictionaries.rs",
         "rust/tests/target_interpreter.rs",
         "corpus/positive/generated_dict_beq.expected.json",
@@ -59,6 +62,12 @@ def check_required_files() -> None:
         "corpus/positive/generated_dict_add.expected.json",
         "corpus/positive/generated_dict_default.expected.json",
         "corpus/positive/generated_dict_to_string.expected.json",
+        "corpus/positive/stored_closure_apply.expected.json",
+        "corpus/positive/returned_closure_apply.expected.json",
+        "corpus/positive/passed_closure_apply.expected.json",
+        "corpus/positive/stored_multi_closure_apply.expected.json",
+        "corpus/positive/returned_multi_closure_apply.expected.json",
+        "corpus/positive/passed_multi_closure_apply.expected.json",
     ]
     for path in required:
         require((ROOT / path).exists(), f"missing remaining-completion artifact {path}")
@@ -178,6 +187,7 @@ def check_rust_runtime_and_validate() -> None:
     for needle in [
         "remaining_rows_reports_and_dashboard_are_complete",
         "remaining_runtime_features_are_exercised",
+        "remaining_source_level_closure_lowerings_are_exercised",
         "remaining_validate_semantics_cover_representative_values",
         "remaining_property_generators_are_randomized_and_shrinkable",
         "dictionary_add_u32",
@@ -204,6 +214,18 @@ def check_rust_runtime_and_validate() -> None:
             needle in target_interpreter,
             f"target interpreter exhaustive coverage missing {needle}",
         )
+
+    closure_test = read("rust/tests/closure_lowering.rs")
+    for needle in [
+        "source_level_closure_lowerings_cover_stored_returned_passed_and_multiarg_cases",
+        "stored_closure_apply_u32",
+        "returned_closure_apply_u32",
+        "passed_closure_apply_u32",
+        "stored_multi_closure_apply_u32",
+        "returned_multi_closure_apply_u32",
+        "passed_multi_closure_apply_u32",
+    ]:
+        require(needle in closure_test, f"closure lowering test missing {needle}")
 
     abi = "\n".join(
         [
@@ -349,10 +371,64 @@ def check_dictionary_docs_and_corpus() -> None:
         )
 
 
+def check_closure_docs_and_corpus() -> None:
+    docs = read("docs/FIRST_CLASS_CLOSURES.md")
+    conversion = read("docs/CLOSURE_CONVERSION.md")
+    for needle in [
+        "stored_closure_apply_u32",
+        "returned_closure_apply_u32",
+        "passed_closure_apply_u32",
+        "stored_multi_closure_apply_u32",
+        "returned_multi_closure_apply_u32",
+        "passed_multi_closure_apply_u32",
+    ]:
+        require(needle in docs, f"docs/FIRST_CLASS_CLOSURES.md missing {needle}")
+        require(needle in conversion, f"docs/CLOSURE_CONVERSION.md missing {needle}")
+
+    exported_examples = read("LeanRustCore/Examples.lean")
+    helper_examples = read("LeanRustCore/ClosureLoweringExamples.lean")
+    for needle in [
+        "stored_closure_apply_u32",
+        "returned_closure_apply_u32",
+        "passed_closure_apply_u32",
+        "stored_multi_closure_apply_u32",
+        "returned_multi_closure_apply_u32",
+        "passed_multi_closure_apply_u32",
+    ]:
+        require(needle in exported_examples, f"LeanRustCore/Examples.lean missing {needle}")
+    for needle in [
+        "apply_closure_u32",
+        "make_add_delta_u32",
+        "apply_binary_closure_u32",
+        "make_add_pair_u32",
+    ]:
+        require(needle in helper_examples, f"LeanRustCore/ClosureLoweringExamples.lean missing {needle}")
+
+    for fixture_name in [
+        "stored_closure_apply.expected.json",
+        "returned_closure_apply.expected.json",
+        "passed_closure_apply.expected.json",
+        "stored_multi_closure_apply.expected.json",
+        "returned_multi_closure_apply.expected.json",
+        "passed_multi_closure_apply.expected.json",
+    ]:
+        fixture = json_file(f"corpus/positive/{fixture_name}")
+        require(fixture.get("expected_status") == "supported", f"{fixture_name} must be supported")
+        require(
+            "scripts/check-remaining-completion.py" in fixture.get("tests", []),
+            f"{fixture_name} missing remaining completion gate",
+        )
+        require(
+            "docs/CLOSURE_CONVERSION.md" in fixture.get("documentation", []),
+            f"{fixture_name} missing closure conversion docs",
+        )
+
+
 def check_docs_and_release() -> None:
     for path in [
         "docs/TYPECLASS_DICTIONARIES.md",
         "docs/FIRST_CLASS_CLOSURES.md",
+        "docs/CLOSURE_CONVERSION.md",
         "docs/PURE_DO_NOTATION.md",
         "docs/IO_BOUNDARY.md",
         "docs/SEMANTICS.md",
@@ -441,6 +517,7 @@ def main() -> None:
     check_rust_runtime_and_validate()
     check_reports_and_dashboard()
     check_dictionary_docs_and_corpus()
+    check_closure_docs_and_corpus()
     check_docs_and_release()
     check_scripts()
 

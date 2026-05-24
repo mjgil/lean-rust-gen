@@ -181,6 +181,14 @@ pub fn list_head_clone<T: Clone>(xs: &[T]) -> Option<T> {
     xs.first().cloned()
 }
 
+pub fn list_head_or_default_u32(xs: &[u32], default: u32) -> u32 {
+    xs.first().copied().unwrap_or(default)
+}
+
+pub fn list_second_or_default_u32(xs: &[u32], default: u32) -> u32 {
+    xs.get(1).copied().unwrap_or(default)
+}
+
 pub fn list_tail_clone<T: Clone>(xs: &[T]) -> Vec<T> {
     xs.get(1..).unwrap_or(&[]).to_vec()
 }

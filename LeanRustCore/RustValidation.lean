@@ -259,7 +259,7 @@ def checks : List ValidationCheck := [
   {
     name := "limited-higher-order-function-pointer",
     status := "passed",
-    detail := "unary function-typed arguments lower to safe Rust fn-pointer arguments and SurfaceExpr.callValue nodes; closures remain a future closure-conversion layer"
+    detail := "non-capturing exported function values remain safe unary fn-pointer arguments, while supported captured closures are normalized away before emission into first-order let chains"
   },
 
   {

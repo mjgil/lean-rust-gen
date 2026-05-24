@@ -1,0 +1,9 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "positive",
+  "source": "LeanRustCore.Examples.returned_closure_apply_u32",
+  "expected_status": "supported",
+  "required_features": ["first-class-closure-lowering"],
+  "tests": ["rust/tests/closure_lowering.rs", "rust/tests/target_interpreter.rs", "scripts/check-remaining-completion.py"],
+  "documentation": ["docs/FIRST_CLASS_CLOSURES.md", "docs/CLOSURE_CONVERSION.md", "docs/ARCHITECTURE.md"]
+}

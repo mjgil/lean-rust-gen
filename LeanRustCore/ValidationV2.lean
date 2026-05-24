@@ -298,11 +298,11 @@ def coverageEntries : List CoverageEntry := [
     ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/generated_dict_beq.expected.json", "corpus/positive/generated_dict_compare.expected.json", "corpus/positive/generated_dict_add.expected.json", "corpus/positive/generated_dict_default.expected.json", "corpus/positive/generated_dict_to_string.expected.json"]
     ["remaining-typeclass-dictionaries"],
   mkEntry "remaining-first-class-closures" "supported-complete"
-    ["FirstClassClosures.closureObjects", "StoredClosureU32", "docs/FIRST_CLASS_CLOSURES.md"]
-    ["LeanRustCore/FirstClassClosures.lean", "crates/runtime/src/lib.rs"]
-    ["rust/tests/remaining_completion.rs", "scripts/check-remaining-completion.py"]
-    ["docs/FIRST_CLASS_CLOSURES.md", "docs/ARCHITECTURE.md"]
-    ["rust/proof-report.json", "rust/coverage-dashboard.json"]
+    ["FirstClassClosures.closureObjects", "StoredClosureU32", "ClosureLoweringExamples.make_add_pair_u32", "docs/FIRST_CLASS_CLOSURES.md", "docs/CLOSURE_CONVERSION.md"]
+    ["LeanRustCore/FirstClassClosures.lean", "LeanRustCore/ClosureLoweringExamples.lean", "LeanRustCore/Extract.lean", "crates/runtime/src/lib.rs"]
+    ["rust/tests/remaining_completion.rs", "rust/tests/closure_lowering.rs", "rust/tests/target_interpreter.rs", "scripts/check-remaining-completion.py"]
+    ["docs/FIRST_CLASS_CLOSURES.md", "docs/CLOSURE_CONVERSION.md", "docs/ARCHITECTURE.md"]
+    ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/stored_closure_apply.expected.json", "corpus/positive/returned_closure_apply.expected.json", "corpus/positive/passed_closure_apply.expected.json", "corpus/positive/stored_multi_closure_apply.expected.json", "corpus/positive/returned_multi_closure_apply.expected.json", "corpus/positive/passed_multi_closure_apply.expected.json"]
     ["remaining-first-class-closures"],
   mkEntry "remaining-pure-do-notation" "supported-complete"
     ["PureDoNotation.lowerings", "Option/Except/State/Reader/ExceptT", "docs/PURE_DO_NOTATION.md"]

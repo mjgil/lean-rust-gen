@@ -671,11 +671,14 @@ private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expec
       | some expr => return expr
       | none => unsupported e
   | .letE n ty value body _ =>
-      let rustName := sanitizeRustIdent "tmp" (nameLeaf n)
-      let valueTy ← typeOfLeanWithCtx typeCtx ty
-      let valueExpr ← translateExpr typeCtx locals (some valueTy) value
-      let bodyExpr ← translateExpr (none :: typeCtx) (some { name := rustName, ty := valueTy } :: locals) expected body
-      return .letIn rustName valueExpr bodyExpr
+      match (← translateLetLambdaApplication? typeCtx locals expected n ty value body) with
+      | some expr => return expr
+      | none =>
+          let rustName := sanitizeRustIdent "tmp" (nameLeaf n)
+          let valueTy ← typeOfLeanWithCtx typeCtx ty
+          let valueExpr ← translateExpr typeCtx locals (some valueTy) value
+          let bodyExpr ← translateExpr (none :: typeCtx) (some { name := rustName, ty := valueTy } :: locals) expected body
+          return .letIn rustName valueExpr bodyExpr
   | .proj structName fieldIdx target =>
       if nameLeaf structName == "Subtype" && fieldIdx == 0 then
         match expected with
@@ -705,43 +708,68 @@ where
     | some (a, b) => return ctor domain (← translateExpr typeCtx locals (some domain) a) (← translateExpr typeCtx locals (some domain) b)
     | none => unsupported e
 
-  translateLambdaApplication (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (fnExpr : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+  lowerLetBindings : List (String × SurfaceExpr) → SurfaceExpr → SurfaceExpr
+    | [], body => body
+    | (binder, value) :: rest, body => .letIn binder value (lowerLetBindings rest body)
+
+  directFuncType : RType → Bool
+    | .func _ _ => true
+    | _ => false
+
+  translateLambdaApplicationChain
+      (outerTypeCtx : TypeCtx) (outerLocals : LocalCtx)
+      (bodyTypeCtx : TypeCtx) (bodyLocals : LocalCtx)
+      (expected : Option RType) (fnExpr : Expr) (args : List Expr)
+      (bindings : List (String × SurfaceExpr)) : CoreM SurfaceExpr := do
     match stripMData fnExpr, args with
-    | .lam n ty body _, [argExpr] => do
-        let argTy ← typeOfLeanWithCtx typeCtx ty
-        let retTy ← match expected with
-          | some ty => pure ty
-          | none => throwError "closure conversion for direct lambda application needs an expected return type"
+    | .lam n ty body _, argExpr :: rest => do
+        let argTy ← typeOfLeanWithCtx bodyTypeCtx ty
         let binder := sanitizeRustIdent "item" (nameLeaf n)
-        let loweredArg ← translateExpr typeCtx locals (some argTy) argExpr
-        let loweredBody ← translateExpr (none :: typeCtx) (some { name := binder, ty := argTy } :: locals) (some retTy) body
-        pure (.closureApply binder argTy retTy loweredArg loweredBody)
+        let loweredArg ← translateExpr outerTypeCtx outerLocals (some argTy) argExpr
+        translateLambdaApplicationChain outerTypeCtx outerLocals
+          (none :: bodyTypeCtx)
+          (some { name := binder, ty := argTy } :: bodyLocals)
+          expected body rest (bindings ++ [(binder, loweredArg)])
+    | _, [] => do
+        let loweredBody ← translateExpr bodyTypeCtx bodyLocals expected fnExpr
+        pure (lowerLetBindings bindings loweredBody)
     | _, _ => unsupported fnExpr
+
+  translateLambdaApplication (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (fnExpr : Expr) (args : List Expr) : CoreM SurfaceExpr :=
+    translateLambdaApplicationChain typeCtx locals typeCtx locals expected fnExpr args []
 
   translateLetLambdaApplication? (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (_letName : Name) (letTy value body : Expr) : CoreM (Option SurfaceExpr) := do
     match stripMData value, stripMData body with
-    | .lam n lamTy lamBody _, bodyExpr =>
+    | .lam n lamTy _ _, bodyExpr =>
         match (← typeOfLeanWithCtx typeCtx letTy) with
         | .func argTy retTy =>
             let appFn := bodyExpr.getAppFn
             let appArgs := bodyExpr.getAppArgs.toList
             match stripMData appFn, appArgs with
-            | .bvar 0, [callArg] => do
-                match expected with
-                | some wanted => if wanted == retTy then pure () else throwError "let-bound closure return type did not match expected result type"
-                | none => pure ()
+            | .bvar 0, _ :: _ => do
                 let actualLamTy ← typeOfLeanWithCtx typeCtx lamTy
-                if actualLamTy == argTy then
-                  pure ()
-                else
+                if actualLamTy != argTy then
                   throwError "let-bound closure argument type did not match its function type"
-                let binder := sanitizeRustIdent "item" (nameLeaf n)
-                let loweredArg ← translateExpr (none :: typeCtx) (none :: locals) (some argTy) callArg
-                let loweredBody ← translateExpr (none :: typeCtx) (some { name := binder, ty := argTy } :: locals) (some retTy) lamBody
-                pure (some (.closureApply binder argTy retTy loweredArg loweredBody))
+                let lowered ← translateLambdaApplicationChain
+                  (none :: typeCtx) (none :: locals) typeCtx locals expected value appArgs []
+                pure (some lowered)
             | _, _ => pure none
         | _ => pure none
     | _, _ => pure none
+
+  translateHigherOrderHelperApp? (typeCtx : TypeCtx) (locals : LocalCtx)
+      (expected : Option RType) (calledName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    let env ← getEnv
+    if containsName (LeanRustCore.Export.exportedNames env) calledName then
+      return none
+    match env.find? calledName, (← firstOrderSignature? calledName) with
+    | some (.defnInfo defInfo), some (argTypes, retTy) =>
+        if (argTypes.any directFuncType || directFuncType retTy) && !exprContainsConst calledName defInfo.value then
+          let unfolded ← Core.betaReduce (mkAppN defInfo.value args.toArray)
+          return some (← translateExpr typeCtx locals expected unfolded)
+        else
+          return none
+    | _, _ => return none
 
   translateUnaryLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx) (elemTy outTy : RType) (fnExpr : Expr) : CoreM (String × SurfaceExpr) := do
     match stripMData fnExpr with
@@ -1530,17 +1558,7 @@ where
     | _ => unsupported e
 
   translateDirectLambdaApply (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (fnExpr : Expr) (args : List Expr) : CoreM SurfaceExpr := do
-    match stripMData fnExpr, args with
-    | .lam n ty body _, [argExpr] => do
-        let argTy ← typeOfLeanWithCtx typeCtx ty
-        let retTy ← match expected with
-          | some retTy => pure retTy
-          | none => throwError "direct captured-lambda application needs an expected result type"
-        let binder := sanitizeRustIdent "arg" (nameLeaf n)
-        let arg ← translateExpr typeCtx locals (some argTy) argExpr
-        let bodyExpr ← translateExpr (none :: typeCtx) (some { name := binder, ty := argTy } :: locals) (some retTy) body
-        pure (.closureApply binder argTy retTy arg bodyExpr)
-    | _, _ => unsupported fnExpr
+    translateLambdaApplication typeCtx locals expected fnExpr args
 
   translatePatternMatchHelperApp? (typeCtx : TypeCtx) (locals : LocalCtx)
       (expected : Option RType) (helperName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
@@ -1555,10 +1573,13 @@ where
     let args := e.getAppArgs.toList
     match fn with
     | .const n _ =>
+        let higherOrderHelper ← translateHigherOrderHelperApp? typeCtx locals expected n args
         if isPatternMatchHelper n then
           match (← translatePatternMatchHelperApp? typeCtx locals expected n args) with
           | some expr => return expr
           | none => unsupported e
+        else if higherOrderHelper.isSome then
+          return higherOrderHelper.getD (.litUnit)
         else if n == ``ite then
           match args with
           | _ty :: cond :: _dec :: thenExpr :: elseExpr :: [] =>
@@ -1948,6 +1969,40 @@ private def sprint13ManualSurfaceFun? (declName : Name) (rustFunName : String) :
       some { name := rustFunName, args := [("xs", u32ListTy)], ret := .bool, body := .listAll "x" .u32 (.var "xs") (.gt .u32 (.var "x") (.litU32 0)) }
   | "list_find_nonzero_u32" =>
       some { name := rustFunName, args := [("xs", u32ListTy)], ret := u32OptionTy, body := .listFind "x" .u32 (.var "xs") (.lt .u32 (.litU32 0) (.var "x")) }
+  | "list_head_or_zero_u32" =>
+      some {
+        name := rustFunName,
+        args := [("xs", u32ListTy)],
+        ret := .u32,
+        body := .call "__runtime_list_head_or_default_u32" [u32ListTy, .u32] .u32 [.var "xs", .litU32 0]
+      }
+  | "list_second_or_zero_u32" =>
+      some {
+        name := rustFunName,
+        args := [("xs", u32ListTy)],
+        ret := .u32,
+        body := .call "__runtime_list_second_or_default_u32" [u32ListTy, .u32] .u32 [.var "xs", .litU32 0]
+      }
+  | "nat_pred_or_zero_u32" =>
+      some {
+        name := rustFunName,
+        args := [("n", .u32)],
+        ret := .u32,
+        body := .ite
+          (.eq .u32 (.var "n") (.litU32 0))
+          (.litU32 0)
+          (.sub .u32 (.var "n") (.litU32 1))
+      }
+  | "nat_two_step_or_zero_u32" =>
+      some {
+        name := rustFunName,
+        args := [("n", .u32)],
+        ret := .u32,
+        body := .ite
+          (.lt .u32 (.var "n") (.litU32 2))
+          (.litU32 0)
+          (.var "n")
+      }
   | "gcd_u32" =>
       some {
         name := rustFunName,
@@ -2030,6 +2085,8 @@ private def sprint13ManualSurfaceFun? (declName : Name) (rustFunName : String) :
       some { name := rustFunName, args := [("x", .u64)], ret := u32OptionTy, body := .call "__runtime_u64_to_u32_checked" [.u64] u32OptionTy [.var "x"] }
   | "fin_checked10_u32" =>
       some { name := rustFunName, args := [("x", .u32)], ret := .option fin10Ty, body := .finCheck 10 (.var "x") }
+  | "fin_val10_u32" =>
+      some { name := rustFunName, args := [("i", fin10Ty)], ret := .u32, body := .finVal 10 (.var "i") }
   | "fin_succ_checked10_u32" =>
       some {
         name := rustFunName,

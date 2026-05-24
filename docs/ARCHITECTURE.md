@@ -243,7 +243,10 @@ Rust policy is stricter than the runtime helper policy:
 - generated Rust emits no explicit lifetimes,
 - the only admitted reference expressions are temporary shared operand borrows
   used for exact `num_bigint::BigUint` / `num_bigint::BigInt` arithmetic and
-  comparison operators.
+  comparison operators, plus audited read-only borrows into runtime helpers
+  such as `list_head_clone`, `list_head_or_default_u32`,
+  `list_second_or_default_u32`, `list_tail_clone`, `array_get_u32`,
+  `string_append`, `string_length_chars`, and `string_contains_char`.
 
 That policy is enforced by the validator crate's ownership scanner and by
 `rust/tests/parser_validation.rs`, so ad-hoc `&T`, `&mut T`, or lifetime-bearing
@@ -474,7 +477,19 @@ checked with `cargo test --features ffi`.
 
 ## Sprint 13-14 closure lane
 
-Captured values are represented explicitly before emission. The safe direct lane now has two first-order encodings: environment structs for closure conversion and enum/apply-function pairs for finite defunctionalization. Both encodings remain monomorphic and avoid Rust `unsafe`, trait objects, and dynamic dispatch.
+Captured values are represented explicitly before emission. The safe direct lane
+now has three first-order closure paths:
+
+- helper-normalized let chains for supported stored, returned, passed, and
+  multi-argument captured closures,
+- environment structs for explicit closure-converted environments, and
+- enum/apply-function pairs for finite defunctionalization.
+
+All three paths remain monomorphic and avoid Rust `unsafe`, trait objects, and
+dynamic dispatch. The closure release gates now require source examples for
+stored/returned/passed closures, positive corpus fixtures, generated execution
+tests, target-interpreter dispatch, and the docs in
+`docs/FIRST_CLASS_CLOSURES.md` plus `docs/CLOSURE_CONVERSION.md`.
 
 ## Sprint 3-6: general pattern and recursion lowering
 

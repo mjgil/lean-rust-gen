@@ -46,6 +46,7 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[0])?,
         ))),
         "subtype_inc_u32" => Ok(v_u32(subtype_inc_u32(as_u32(&args[0])?))),
+        "fin_val10_u32" => Ok(v_u32(fin_val10_u32(as_u32(&args[0])?))),
         "step_amount_plus_one_or" => Ok(v_u32(step_amount_plus_one_or(
             as_step(&args[0])?,
             as_u32(&args[1])?,
@@ -139,6 +140,8 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_even_node(&args[1])?,
         ))),
         "list_find_nonzero_u32" => Ok(v_option_u32(list_find_nonzero_u32(as_vec_u32(&args[0])?))),
+        "list_head_or_zero_u32" => Ok(v_u32(list_head_or_zero_u32(as_vec_u32(&args[0])?))),
+        "list_second_or_zero_u32" => Ok(v_u32(list_second_or_zero_u32(as_vec_u32(&args[0])?))),
         "list_reverse_first_or_u32" => Ok(v_u32(list_reverse_first_or_u32(
             as_vec_u32(&args[0])?,
             as_u32(&args[1])?,
@@ -160,6 +163,36 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         "closure_env_apply_add_delta_u32" => Ok(v_u32(closure_env_apply_add_delta_u32(
             as_u32(&args[0])?,
             as_u32(&args[1])?,
+        ))),
+        "stored_closure_apply_u32" => Ok(v_u32(stored_closure_apply_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "stored_multi_closure_apply_u32" => Ok(v_u32(stored_multi_closure_apply_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+            as_u32(&args[2])?,
+            as_u32(&args[3])?,
+        ))),
+        "returned_closure_apply_u32" => Ok(v_u32(returned_closure_apply_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "returned_multi_closure_apply_u32" => Ok(v_u32(returned_multi_closure_apply_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+            as_u32(&args[2])?,
+            as_u32(&args[3])?,
+        ))),
+        "passed_closure_apply_u32" => Ok(v_u32(passed_closure_apply_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "passed_multi_closure_apply_u32" => Ok(v_u32(passed_multi_closure_apply_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+            as_u32(&args[2])?,
+            as_u32(&args[3])?,
         ))),
         "option_bind_inc_u32" => Ok(v_option_u32(option_bind_inc_u32(as_option_u32(&args[0])?))),
         "ord_compare_u32" => Ok(v_ordering(ord_compare_u32(
@@ -255,17 +288,12 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[1])?,
             as_u32(&args[2])?,
         ))),
-        "list_head_or_zero_u32" => Ok(v_u32(list_head_or_zero_u32(as_vec_u32(&args[0])?))),
-        "list_second_or_zero_u32" => Ok(v_u32(list_second_or_zero_u32(as_vec_u32(&args[0])?))),
-        "nat_pred_or_zero_u32" => Ok(v_u32(nat_pred_or_zero_u32(as_u32(&args[0])?))),
-        "nat_two_step_or_zero_u32" => Ok(v_u32(nat_two_step_or_zero_u32(as_u32(&args[0])?))),
         "option_map_inc_u32" => Ok(v_option_u32(option_map_inc_u32(as_option_u32(&args[0])?))),
         "pair_box_make_u32_string" => Ok(v_pairbox_u32_string(pair_box_make_u32_string(
             as_u32(&args[0])?,
             as_string(&args[1])?,
         ))),
         "echo_sum_u32" => Ok(v_result_u32_u32(echo_sum_u32(as_result_u32_u32(&args[0])?))),
-        "fin_val10_u32" => Ok(v_u32(fin_val10_u32(as_u32(&args[0])?))),
         "to_string_u32" => Ok(v_string(to_string_u32(as_u32(&args[0])?))),
         "generated_dict_default_u32" => Ok(v_u32(generated_dict_default_u32(as_unit(&args[0])?))),
         "generated_dict_to_string_u32" => {
@@ -278,11 +306,7 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_option_u32(&args[0])?,
             as_u32(&args[1])?,
         ))),
-        "option_do_inc_u32" => Ok(v_option_u32(option_do_inc_u32(as_option_u32(&args[0])?))),
         "echo_i32" => Ok(v_i32(echo_i32(as_i32(&args[0])?))),
-        "except_do_inc_u32" => Ok(v_result_u32_u32(except_do_inc_u32(as_result_u32_u32(
-            &args[0],
-        )?))),
         "result_map_ok_inc_u32" => Ok(v_result_u32_u32(result_map_ok_inc_u32(as_result_u32_u32(
             &args[0],
         )?))),
@@ -344,6 +368,8 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         "tagged_missing_u32" => Ok(v_tagged_u32(tagged_missing_u32(as_unit(&args[0])?))),
         "echo_u32" => Ok(v_u32(echo_u32(as_u32(&args[0])?))),
         "nat_sum_to_u32" => Ok(v_u32(nat_sum_to_u32(as_u32(&args[0])?))),
+        "nat_pred_or_zero_u32" => Ok(v_u32(nat_pred_or_zero_u32(as_u32(&args[0])?))),
+        "nat_two_step_or_zero_u32" => Ok(v_u32(nat_two_step_or_zero_u32(as_u32(&args[0])?))),
         "gcd_u32" => Ok(v_u32(gcd_u32(as_u32(&args[0])?, as_u32(&args[1])?))),
         "reverse_accum_u32" => Ok(v_vec_u32(reverse_accum_u32(
             as_vec_u32(&args[0])?,
@@ -396,6 +422,16 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         "auto_identity_u32" => Ok(v_u32(auto_identity_u32(as_u32(&args[0])?))),
         "inc_twice_u32" => Ok(v_u32(inc_twice_u32(as_u32(&args[0])?))),
         "helper_chain_u32" => Ok(v_u32(helper_chain_u32(as_u32(&args[0])?))),
+        "make_add_pair_u32" => Ok(v_u32(make_add_pair_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+            as_u32(&args[2])?,
+            as_u32(&args[3])?,
+        ))),
+        "make_add_delta_u32" => Ok(v_u32(make_add_delta_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
         "auto_option_default_step" => Ok(v_step(auto_option_default_step(
             as_option_step(&args[0])?,
             as_step(&args[1])?,

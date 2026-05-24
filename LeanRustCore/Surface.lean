@@ -1344,6 +1344,23 @@ mutual
               match evaluatedArgs with
               | [head, .list tail] => pure (.list (head :: tail))
               | _ => evalError .unsupportedType "list_prepend_u32 expected (u32, List<u32>)"
+            else if name == "__runtime_list_head_or_default_u32" &&
+                argTypes == [.list .u32, .u32] &&
+                ret == .u32 then
+              match evaluatedArgs with
+              | [.list xs, .u32 fallback] =>
+                  match xs with
+                  | [] => pure (.u32 fallback)
+                  | .u32 head :: _ => pure (.u32 head)
+                  | _ => evalError .unsupportedType "list_head_or_default_u32 expected List<u32>"
+              | _ => evalError .unsupportedType "list_head_or_default_u32 expected (List<u32>, u32)"
+            else if name == "__runtime_list_second_or_default_u32" &&
+                argTypes == [.list .u32, .u32] &&
+                ret == .u32 then
+              match evaluatedArgs with
+              | [.list (.u32 _ :: .u32 second :: _), .u32 _] => pure (.u32 second)
+              | [.list _, .u32 fallback] => pure (.u32 fallback)
+              | _ => evalError .unsupportedType "list_second_or_default_u32 expected (List<u32>, u32)"
             else if name == "__runtime_tree_sum_worklist_u32" &&
                 argTypes == [.enum "BinaryTreeU32" [
                   ("leaf", []),

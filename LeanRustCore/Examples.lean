@@ -1,4 +1,5 @@
 import LeanRustCore.IR
+import LeanRustCore.ClosureLoweringExamples
 import LeanRustCore.EmitRust
 import LeanRustCore.Extract
 import LeanRustCore.NumericExamples
@@ -10,6 +11,7 @@ import LeanRustCore.TypedIRExamples
 namespace LeanRustCore.Examples
 
 open LeanRustCore
+open LeanRustCore.ClosureLoweringExamples
 open LeanRustCore.Extract
 
 /-!
@@ -36,16 +38,6 @@ inductive Step where
 
 structure Boxed (α : Type) where
   value : α
-
-/-- Explicit closure-converted environment used by the Sprint 13-14 examples. -/
-structure AddDeltaU32Env where
-  delta : UInt32
-
-/-- Finite defunctionalized family for selected UInt32 unary functions. -/
-inductive U32FnCase where
-  | inc
-  | double
-  | add (delta : UInt32)
 
 inductive BinaryTreeU32 where
   | leaf
@@ -447,6 +439,32 @@ def state_tick_u32 (s : UInt32) : UInt32 × UInt32 :=
 @[rust_export]
 def closure_apply_capture_u32 (delta x : UInt32) : UInt32 :=
   (fun y => y + delta) x
+
+@[rust_export]
+def stored_closure_apply_u32 (delta x : UInt32) : UInt32 :=
+  let f := fun y => y + delta
+  f x
+
+@[rust_export]
+def stored_multi_closure_apply_u32 (a b x y : UInt32) : UInt32 :=
+  let f := fun p q => p + q + a + b
+  f x y
+
+@[rust_export]
+def returned_closure_apply_u32 (delta x : UInt32) : UInt32 :=
+  make_add_delta_u32 delta x
+
+@[rust_export]
+def returned_multi_closure_apply_u32 (a b x y : UInt32) : UInt32 :=
+  make_add_pair_u32 a b x y
+
+@[rust_export]
+def passed_closure_apply_u32 (delta x : UInt32) : UInt32 :=
+  apply_closure_u32 (fun y => y + delta) x
+
+@[rust_export]
+def passed_multi_closure_apply_u32 (a b x y : UInt32) : UInt32 :=
+  apply_binary_closure_u32 (fun p q => p + q + a + b) x y
 
 @[rust_export]
 def closure_env_apply_add_delta_u32 (delta x : UInt32) : UInt32 :=

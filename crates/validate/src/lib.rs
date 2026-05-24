@@ -370,7 +370,7 @@ mod tests {
         let proof = parse_proof_report(PROOF_REPORT_JSON).unwrap();
         assert_eq!(
             proof.policy.closure_conversion,
-            "explicit-environment-structs"
+            "helper-normalized-let-chains-and-explicit-environment-structs"
         );
         assert!(proof.policy.extract_ir_pipeline);
 
@@ -429,7 +429,7 @@ mod tests {
     fn validates_generated_ownership_policy() {
         let validation =
             validate_generated_ownership(include_str!("../../../rust/src/generated.rs")).unwrap();
-        assert_eq!(validation.approved_reference_exprs, 20);
+        assert_eq!(validation.approved_reference_exprs, 16);
         assert!(validation.violations.is_empty());
     }
 

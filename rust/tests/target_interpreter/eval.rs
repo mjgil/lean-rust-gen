@@ -3,20 +3,11 @@ use lean_rust_core_validate::TargetValidationFunction;
 
 use super::matchers::{match_enum_bindings, match_pattern_bindings};
 use super::model::{
-    as_binary_tree_u32, as_bool, as_char, as_even_node, as_expr_u32, as_odd_node, as_option_u32,
-    as_string, as_u32, as_u64, as_vec_rosetree_u32, as_vec_u32, Env, FunctionMap, UnaryFnU32,
-    Value,
+    as_binary_tree_u32, as_bool, as_even_node, as_expr_u32, as_odd_node, as_option_u32, as_string,
+    as_u32, as_vec_rosetree_u32, as_vec_u32, Env, FunctionMap, UnaryFnU32, Value,
 };
 use super::parse::{call_payload, split_top_args, split_top_level};
-use lean_rust_core_generated::recursion_helpers::tree_sum_worklist_u32 as helper_tree_sum_worklist_u32;
-use lean_rust_core_generated::runtime::{
-    array_get_u32, dictionary_add_u32, dictionary_beq_u32, dictionary_compare_u32,
-    dictionary_default_u32, dictionary_to_string_u32, list_head_clone, list_prepend_u32,
-    list_reverse_u32, list_tail_clone, string_append, string_contains_char, string_length_chars,
-    u32_checked_add, u32_checked_div, u32_checked_mod, u32_checked_sub, u32_preconditioned_div,
-    u32_preconditioned_mod, u32_saturating_add, u32_saturating_sub, u64_to_u32_checked, ADD_U32,
-    BEQ_U32, DEFAULT_U32, ORD_U32, TO_STRING_U32,
-};
+use super::runtime_calls::eval_runtime_call;
 
 pub fn eval_target_function(
     functions: &FunctionMap,
@@ -174,148 +165,8 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
             .iter()
             .map(|arg| eval_expr(functions, arg, env))
             .collect::<Result<Vec<_>, _>>()?;
-        match args[0] {
-            "__runtime_u32_checked_add" => {
-                return Ok(Value::OptionU32(u32_checked_add(
-                    as_u32(&values[0])?,
-                    as_u32(&values[1])?,
-                )))
-            }
-            "__runtime_u32_checked_sub" => {
-                return Ok(Value::OptionU32(u32_checked_sub(
-                    as_u32(&values[0])?,
-                    as_u32(&values[1])?,
-                )))
-            }
-            "__runtime_u32_checked_div" => {
-                return Ok(Value::OptionU32(u32_checked_div(
-                    as_u32(&values[0])?,
-                    as_u32(&values[1])?,
-                )))
-            }
-            "__runtime_u32_checked_mod" => {
-                return Ok(Value::OptionU32(u32_checked_mod(
-                    as_u32(&values[0])?,
-                    as_u32(&values[1])?,
-                )))
-            }
-            "__runtime_u32_saturating_add" => {
-                return Ok(Value::U32(u32_saturating_add(
-                    as_u32(&values[0])?,
-                    as_u32(&values[1])?,
-                )))
-            }
-            "__runtime_u32_saturating_sub" => {
-                return Ok(Value::U32(u32_saturating_sub(
-                    as_u32(&values[0])?,
-                    as_u32(&values[1])?,
-                )))
-            }
-            "__runtime_u32_preconditioned_div" => {
-                return Ok(Value::ResultU32String(
-                    u32_preconditioned_div(as_u32(&values[0])?, as_u32(&values[1])?)
-                        .map_err(String::from),
-                ))
-            }
-            "__runtime_u32_preconditioned_mod" => {
-                return Ok(Value::ResultU32String(
-                    u32_preconditioned_mod(as_u32(&values[0])?, as_u32(&values[1])?)
-                        .map_err(String::from),
-                ))
-            }
-            "__runtime_u64_to_u32_checked" => {
-                return Ok(Value::OptionU32(u64_to_u32_checked(as_u64(&values[0])?)))
-            }
-            "__runtime_list_head_clone" => {
-                return match &values[0] {
-                    Value::VecU32(values) => Ok(Value::OptionU32(list_head_clone(values))),
-                    other => Err(format!(
-                        "unsupported __runtime_list_head_clone target {other:?}"
-                    )),
-                }
-            }
-            "__runtime_list_tail_clone" => {
-                return match &values[0] {
-                    Value::VecU32(values) => Ok(Value::VecU32(list_tail_clone(values))),
-                    Value::VecRoseTreeU32(values) => {
-                        Ok(Value::VecRoseTreeU32(list_tail_clone(values)))
-                    }
-                    other => Err(format!(
-                        "unsupported __runtime_list_tail_clone target {other:?}"
-                    )),
-                }
-            }
-            "__runtime_list_prepend_u32" => {
-                return Ok(Value::VecU32(list_prepend_u32(
-                    as_u32(&values[0])?,
-                    as_vec_u32(&values[1])?,
-                )))
-            }
-            "__runtime_list_reverse_u32" => {
-                return Ok(Value::VecU32(list_reverse_u32(as_vec_u32(&values[0])?)))
-            }
-            "__runtime_tree_sum_worklist_u32" => {
-                return Ok(Value::U32(helper_tree_sum_worklist_u32(
-                    as_binary_tree_u32(&values[0])?,
-                )))
-            }
-            "__runtime_array_get_u32" => {
-                return Ok(Value::OptionU32(array_get_u32(
-                    &as_vec_u32(&values[0])?,
-                    as_u32(&values[1])? as usize,
-                )))
-            }
-            "__runtime_string_append" => {
-                return Ok(Value::String(string_append(
-                    as_string(&values[0])?,
-                    &as_string(&values[1])?,
-                )))
-            }
-            "__runtime_string_length_chars" => {
-                return Ok(Value::U32(
-                    string_length_chars(&as_string(&values[0])?) as u32
-                ))
-            }
-            "__runtime_string_contains_char" => {
-                return Ok(Value::Bool(string_contains_char(
-                    &as_string(&values[0])?,
-                    as_char(&values[1])?,
-                )))
-            }
-            "__runtime_dictionary_beq_u32_const" => {
-                return Ok(Value::Bool(dictionary_beq_u32(
-                    BEQ_U32,
-                    as_u32(&values[0])?,
-                    as_u32(&values[1])?,
-                )))
-            }
-            "__runtime_dictionary_compare_u32_const" => {
-                let ordering =
-                    match dictionary_compare_u32(ORD_U32, as_u32(&values[0])?, as_u32(&values[1])?)
-                    {
-                        std::cmp::Ordering::Less => Ordering::Lt,
-                        std::cmp::Ordering::Equal => Ordering::Eq,
-                        std::cmp::Ordering::Greater => Ordering::Gt,
-                    };
-                return Ok(Value::Ordering(ordering));
-            }
-            "__runtime_dictionary_add_u32_const" => {
-                return Ok(Value::U32(dictionary_add_u32(
-                    ADD_U32,
-                    as_u32(&values[0])?,
-                    as_u32(&values[1])?,
-                )))
-            }
-            "__runtime_dictionary_default_u32_const" => {
-                return Ok(Value::U32(dictionary_default_u32(DEFAULT_U32)))
-            }
-            "__runtime_dictionary_to_string_u32_const" => {
-                return Ok(Value::String(dictionary_to_string_u32(
-                    TO_STRING_U32,
-                    as_u32(&values[0])?,
-                )))
-            }
-            _ => {}
+        if let Some(result) = eval_runtime_call(args[0], &values) {
+            return result;
         }
         let function = functions
             .get(args[0])

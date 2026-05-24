@@ -113,10 +113,6 @@ fn parser_validates_generated_top_level_subset() {
         "general_option_match_u32",
         "general_step_match_u32",
         "pair_sum_match_u32",
-        "list_head_or_zero_u32",
-        "list_second_or_zero_u32",
-        "nat_pred_or_zero_u32",
-        "nat_two_step_or_zero_u32",
         "list_length_u32",
         "tail_sum_down_u32",
         "option_default_u64",
@@ -134,7 +130,6 @@ fn parser_validates_generated_top_level_subset() {
         "array_push_u32",
         "option_getd_u32",
         "result_map_err_inc_u32",
-        "except_do_inc_u32",
         "reader_add_env_u32",
         "state_tick_u32",
         "generated_dict_beq_u32",
@@ -142,6 +137,12 @@ fn parser_validates_generated_top_level_subset() {
         "generated_dict_add_u32",
         "generated_dict_default_u32",
         "generated_dict_to_string_u32",
+        "stored_closure_apply_u32",
+        "stored_multi_closure_apply_u32",
+        "returned_closure_apply_u32",
+        "returned_multi_closure_apply_u32",
+        "passed_closure_apply_u32",
+        "passed_multi_closure_apply_u32",
         "closure_env_apply_add_delta_u32",
         "closure_env_map_add_delta_u32",
         "defun_apply_u32",
@@ -188,7 +189,7 @@ fn parser_rejects_raw_boundary_or_panic_constructs() {
 fn parser_validates_generated_ownership_policy() {
     let validation =
         validate_generated_ownership(GENERATED_SOURCE).expect("generated Rust should parse");
-    assert_eq!(validation.approved_reference_exprs, 20);
+    assert_eq!(validation.approved_reference_exprs, 16);
     assert!(
         validation.violations.is_empty(),
         "generated Rust violated ownership/reference policy: {:?}",

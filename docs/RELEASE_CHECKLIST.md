@@ -90,6 +90,13 @@ fixtures `corpus/positive/generated_dict_*.expected.json`, and the Rust test
 `generated_dict_default_u32`, and `generated_dict_to_string_u32` lower to
 explicit runtime dictionary constants.
 
+For first-class closure lowering, that same gate now requires the helper module
+`LeanRustCore.ClosureLoweringExamples`, the positive corpus fixtures
+`corpus/positive/*closure*.expected.json`, the compiled execution checks in
+`rust/tests/closure_lowering.rs`, and exhaustive compiled dispatch coverage in
+`rust/tests/target_interpreter.rs`. The docs must also include both
+`docs/FIRST_CLASS_CLOSURES.md` and `docs/CLOSURE_CONVERSION.md`.
+
 For preservation, that gate now requires the named Lean theorems in
 `LeanRustCore.Preservation`, their proof-report facts, and the docs split that
 separates proved lemmas from regression-tested facts.

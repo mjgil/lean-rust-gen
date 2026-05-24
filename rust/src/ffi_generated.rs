@@ -103,8 +103,18 @@ pub extern "C" fn lrc_inc_twice_u32(x: u32) -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_passed_multi_closure_apply_u32(a: u32, b: u32, x: u32, y: u32) -> u32 {
+    crate::passed_multi_closure_apply_u32(a, b, x, y)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_closure_env_apply_add_delta_u32(delta: u32, x: u32) -> u32 {
     crate::closure_env_apply_add_delta_u32(delta, x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_stored_closure_apply_u32(delta: u32, x: u32) -> u32 {
+    crate::stored_closure_apply_u32(delta, x)
 }
 
 #[no_mangle]
@@ -182,6 +192,11 @@ pub extern "C" fn lrc_general_bool_match_u32(flag: u32, when_true: u32, when_fal
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_stored_multi_closure_apply_u32(a: u32, b: u32, x: u32, y: u32) -> u32 {
+    crate::stored_multi_closure_apply_u32(a, b, x, y)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_fin_val10_u32(i: u32) -> u32 {
     crate::fin_val10_u32(i)
 }
@@ -199,6 +214,11 @@ pub extern "C" fn lrc_echo_i32(x: i32) -> i32 {
 #[no_mangle]
 pub extern "C" fn lrc_helper_chain_u32(x: u32) -> u32 {
     crate::helper_chain_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_passed_closure_apply_u32(delta: u32, x: u32) -> u32 {
+    crate::passed_closure_apply_u32(delta, x)
 }
 
 #[no_mangle]
@@ -230,6 +250,11 @@ pub unsafe extern "C" fn lrc_result_err_u32(
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_returned_multi_closure_apply_u32(a: u32, b: u32, x: u32, y: u32) -> u32 {
+    crate::returned_multi_closure_apply_u32(a, b, x, y)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_tail_sum_down_u32(n: u32) -> u32 {
     crate::tail_sum_down_u32(n)
 }
@@ -237,6 +262,11 @@ pub extern "C" fn lrc_tail_sum_down_u32(n: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn lrc_echo_u32(x: u32) -> u32 {
     crate::echo_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_returned_closure_apply_u32(delta: u32, x: u32) -> u32 {
+    crate::returned_closure_apply_u32(delta, x)
 }
 
 #[no_mangle]
@@ -295,4 +325,14 @@ pub extern "C" fn lrc_generic_identity__u32(x: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn lrc_helper_inc_fixed(x: u32) -> u32 {
     crate::helper_inc_fixed(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_make_add_pair_u32(a: u32, b: u32, _hyg81: u32, _hyg83: u32) -> u32 {
+    crate::make_add_pair_u32(a, b, _hyg81, _hyg83)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_make_add_delta_u32(delta: u32, _hyg53: u32) -> u32 {
+    crate::make_add_delta_u32(delta, _hyg53)
 }

@@ -8,6 +8,8 @@ mod matchers;
 mod model;
 #[path = "target_interpreter/parse.rs"]
 mod parse;
+#[path = "target_interpreter/runtime_calls.rs"]
+mod runtime_calls;
 
 use dispatch::dispatch_compiled_function;
 use eval::eval_target_function;

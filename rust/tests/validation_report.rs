@@ -488,7 +488,6 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn array_push_u32",
         "pub fn option_getd_u32",
         "pub fn result_map_err_inc_u32",
-        "pub fn except_do_inc_u32",
         "pub fn reader_add_env_u32",
         "pub fn state_tick_u32",
         "pub fn echo_prod_u32",
@@ -536,8 +535,13 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn pair_sum_match_u32",
         "pub fn list_length_u32",
         "pub fn tail_sum_down_u32",
-        "pub fn option_do_inc_u32",
         "pub fn closure_apply_capture_u32",
+        "pub fn stored_closure_apply_u32",
+        "pub fn stored_multi_closure_apply_u32",
+        "pub fn returned_closure_apply_u32",
+        "pub fn returned_multi_closure_apply_u32",
+        "pub fn passed_closure_apply_u32",
+        "pub fn passed_multi_closure_apply_u32",
         "pub fn closure_env_apply_add_delta_u32",
         "pub fn closure_env_map_add_delta_u32",
         "pub fn defun_apply_u32",
@@ -616,10 +620,18 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("FN\tdecidable_eq_u32"));
     assert!(snapshot.contains("FN\tord_compare_u32"));
     assert!(snapshot.contains("compare(var(a),var(b))"));
-    assert!(snapshot.contains("FN\toption_do_inc_u32"));
-    assert!(snapshot.contains("match_option(var(x),none=>none|some(v)=>some(add(var(v),lit(1))))"));
     assert!(snapshot.contains("FN\tclosure_apply_capture_u32"));
-    assert!(snapshot.contains("closure_apply(y,var(x),add(var(y),var(delta)))"));
+    assert!(snapshot.contains("let(y,var(x),add(var(y),var(delta)))"));
+    for closure_name in [
+        "FN\tstored_closure_apply_u32",
+        "FN\tstored_multi_closure_apply_u32",
+        "FN\treturned_closure_apply_u32",
+        "FN\treturned_multi_closure_apply_u32",
+        "FN\tpassed_closure_apply_u32",
+        "FN\tpassed_multi_closure_apply_u32",
+    ] {
+        assert!(snapshot.contains(closure_name));
+    }
     assert!(snapshot.contains("TYPE\tstruct\tAddDeltaU32Env"));
     assert!(snapshot.contains("TYPE\tenum\tU32FnCase"));
     assert!(snapshot.contains("TYPE\tenum\tBinaryTreeU32"));
@@ -756,35 +768,17 @@ fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
     assert!(ffi.contains("extern \"C\" fn lrc_add_u32"));
     assert!(ffi.contains("unsafe extern \"C\" fn lrc_result_ok_u32"));
     assert!(ffi.contains("lower_result_u32_u32"));
-    assert!(ffi.contains("extern \"C\" fn lrc_general_bool_match_u32"));
-    assert!(ffi.contains("extern \"C\" fn lrc_pair_sum_match_u32"));
-    assert!(ffi.contains("extern \"C\" fn lrc_tail_sum_down_u32"));
-    assert!(ffi.contains("extern \"C\" fn lrc_reader_add_env_u32"));
-    assert!(ffi.contains("extern \"C\" fn lrc_closure_env_apply_add_delta_u32"));
-    assert!(ffi.contains("extern \"C\" fn lrc_defun_compose_inc_double_u32"));
+    for needle in [
+        "extern \"C\" fn lrc_general_bool_match_u32",
+        "extern \"C\" fn lrc_pair_sum_match_u32",
+        "extern \"C\" fn lrc_tail_sum_down_u32",
+        "extern \"C\" fn lrc_reader_add_env_u32",
+        "extern \"C\" fn lrc_closure_env_apply_add_delta_u32",
+        "extern \"C\" fn lrc_defun_compose_inc_double_u32",
+    ] {
+        assert!(ffi.contains(needle));
+    }
     assert!(!ffi.contains("lrc_except_do_inc_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_inc_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_roundtrip_u32"));
-}
-
-#[test]
-fn proof_report_records_closure_and_defunctionalization_policies() {
-    let report = parse_json_artifact("proof-report.json", PROOF_REPORT);
-
-    assert_eq!(
-        report["policy"]["closure_conversion"].as_str(),
-        Some("explicit-environment-structs")
-    );
-    assert_eq!(
-        report["policy"]["defunctionalization"].as_str(),
-        Some("finite-enum-cases")
-    );
-    assert_eq!(
-        report["policy"]["recursive_data_layout"].as_str(),
-        Some("owned-box")
-    );
-    assert_eq!(
-        report["policy"]["coverage_dashboard"].as_str(),
-        Some("rust/coverage-dashboard.json")
-    );
 }

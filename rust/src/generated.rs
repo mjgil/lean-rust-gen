@@ -152,7 +152,7 @@ pub fn checked_add_u32(a: u32, b: u32) -> Option<u32> {
 }
 
 pub fn reverse_accum_u32(xs: Vec<u32>, acc: Vec<u32>) -> Vec<u32> {
-    if (xs).len() as u32 == 0 {
+    if ((xs).len() as u32) == (0) {
         acc
     } else {
         match crate::runtime::list_head_clone(&(xs)) {
@@ -217,7 +217,7 @@ pub fn unsupported_higher_order_u32(f: fn(u32) -> u32, x: u32) -> u32 {
 }
 
 pub fn is_nonzero_u32(x: u32) -> bool {
-    if x == 0 {
+    if (x) == (0) {
         false
     } else {
         true
@@ -225,17 +225,7 @@ pub fn is_nonzero_u32(x: u32) -> bool {
 }
 
 pub fn list_head_or_zero_u32(xs: Vec<u32>) -> u32 {
-    if (xs).len() as u32 == 0 {
-        0
-    } else {
-        match crate::runtime::list_head_clone(&(xs)) {
-            None => 0,
-            Some(_hyg1703) => {
-                let _hyg1704 = crate::runtime::list_tail_clone(&(xs));
-                _hyg1703
-            }
-        }
-    }
+    crate::runtime::list_head_or_default_u32(&(xs), 0)
 }
 
 pub fn pair_choice_left_u32_string(x: u32) -> PairchoiceU32String {
@@ -305,7 +295,7 @@ pub fn tree_node_u32(left: BinaryTreeU32, value: u32, right: BinaryTreeU32) -> B
 }
 
 pub fn decidable_eq_u32(a: u32, b: u32) -> bool {
-    a == b
+    (a) == (b)
 }
 
 pub fn tree_sum_worklist_u32(t: BinaryTreeU32) -> u32 {
@@ -321,11 +311,11 @@ pub fn rose_branch_u32(value: u32, children: Vec<RoseTreeU32>) -> RoseTreeU32 {
 
 pub fn list_reverse_first_or_u32(xs: Vec<u32>, fallback: u32) -> u32 {
     {
-        let mut _hyg1673: u32 = fallback;
+        let mut _hyg1638: u32 = fallback;
         for x in crate::runtime::list_reverse_u32(xs) {
-            _hyg1673 = x;
+            _hyg1638 = x;
         }
-        _hyg1673
+        _hyg1638
     }
 }
 
@@ -349,10 +339,10 @@ pub fn pair_box_swap_u32_string(pair: PairboxU32String) -> PairboxStringU32 {
 }
 
 pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
-    if x < lo {
+    if (x) < (lo) {
         lo
     } else {
-        if x > hi {
+        if (x) > (hi) {
             hi
         } else {
             x
@@ -411,33 +401,13 @@ pub fn expr_eval_u32(e: ExprU32) -> u32 {
 }
 
 pub fn list_second_or_zero_u32(xs: Vec<u32>) -> u32 {
-    if (xs).len() as u32 == 0 {
-        0
-    } else {
-        match crate::runtime::list_head_clone(&(xs)) {
-            None => 0,
-            Some(_hyg1738) => {
-                let _hyg1739 = crate::runtime::list_tail_clone(&(xs));
-                if (_hyg1739).len() as u32 == 0 {
-                    0
-                } else {
-                    match crate::runtime::list_head_clone(&(_hyg1739)) {
-                        None => 0,
-                        Some(_hyg1740) => {
-                            let _hyg1741 = crate::runtime::list_tail_clone(&(_hyg1739));
-                            _hyg1740
-                        }
-                    }
-                }
-            }
-        }
-    }
+    crate::runtime::list_second_or_default_u32(&(xs), 0)
 }
 
 pub fn list_find_nonzero_u32(xs: Vec<u32>) -> Option<u32> {
     {
         for x in xs {
-            if 0 < x {
+            if (0) < (x) {
                 return Some(x);
             }
         }
@@ -446,7 +416,7 @@ pub fn list_find_nonzero_u32(xs: Vec<u32>) -> Option<u32> {
 }
 
 pub fn nat_pred_or_zero_u32(n: u32) -> u32 {
-    if n == 0 {
+    if (n) == (0) {
         0
     } else {
         (n).wrapping_sub(1)
@@ -457,7 +427,7 @@ pub fn list_any_nonzero_u32(xs: Vec<u32>) -> bool {
     {
         let mut __lrc_any = false;
         for x in xs {
-            if x > 0 {
+            if (x) > (0) {
                 __lrc_any = true;
                 break;
             }
@@ -492,6 +462,10 @@ pub fn checked_mod_u32(a: u32, b: u32) -> Option<u32> {
     crate::runtime::u32_checked_mod(a, b)
 }
 
+pub fn passed_multi_closure_apply_u32(a: u32, b: u32, x: u32, y: u32) -> u32 {
+    (((x).wrapping_add(y)).wrapping_add(a)).wrapping_add(b)
+}
+
 pub fn choose_by_enum(choice: Choice, left: u32, right: u32) -> u32 {
     match choice {
         Choice::First => left,
@@ -517,6 +491,13 @@ pub fn closure_env_apply_add_delta_u32(delta: u32, x: u32) -> u32 {
     }
 }
 
+pub fn stored_closure_apply_u32(delta: u32, x: u32) -> u32 {
+    {
+        let y = x;
+        (y).wrapping_add(delta)
+    }
+}
+
 pub fn option_bind_inc_u32(x: Option<u32>) -> Option<u32> {
     match x {
         None => None::<u32>,
@@ -535,34 +516,24 @@ pub fn ord_compare_u32(a: u32, b: u32) -> Ordering {
 }
 
 pub fn nat_two_step_or_zero_u32(n: u32) -> u32 {
-    if n == 0 {
+    if (n) < (2) {
         0
     } else {
-        {
-            let _hyg1784 = (n).wrapping_sub(1);
-            if _hyg1784 == 0 {
-                0
-            } else {
-                {
-                    let _hyg1785 = (_hyg1784).wrapping_sub(1);
-                    (_hyg1785).wrapping_add(2)
-                }
-            }
-        }
+        n
     }
 }
 
 pub fn gcd_u32(a: u32, b: u32) -> u32 {
-    if a == 0 {
+    if (a) == (0) {
         b
     } else {
-        if b == 0 {
+        if (b) == (0) {
             a
         } else {
-            if a == b {
+            if (a) == (b) {
                 a
             } else {
-                if a < b {
+                if (a) < (b) {
                     gcd_u32(a, (b).wrapping_sub(a))
                 } else {
                     gcd_u32((a).wrapping_sub(b), b)
@@ -579,7 +550,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg2733) => fallback,
+        PairchoiceU32String::Right(_hyg2802) => fallback,
     }
 }
 
@@ -595,7 +566,7 @@ pub fn list_filter_nonzero_u32(xs: Vec<u32>) -> Vec<u32> {
     {
         let mut __lrc_out = Vec::new();
         for x in xs {
-            if x > 0 {
+            if (x) > (0) {
                 __lrc_out.push(x);
             }
         }
@@ -659,7 +630,7 @@ pub fn bounded_proof_value_u32(b: BoundedProof) -> u32 {
 pub fn bounded_bump_u32(x: u32) -> u32 {
     {
         let y = (x).wrapping_add(1);
-        if y > 10 {
+        if (y) > (10) {
             10
         } else {
             y
@@ -779,6 +750,16 @@ pub fn echo_sum_u32(x: Result<u32, u32>) -> Result<u32, u32> {
     x
 }
 
+pub fn stored_multi_closure_apply_u32(a: u32, b: u32, x: u32, y: u32) -> u32 {
+    {
+        let p = x;
+        {
+            let q = y;
+            (((p).wrapping_add(q)).wrapping_add(a)).wrapping_add(b)
+        }
+    }
+}
+
 pub fn fin_val10_u32(i: u32) -> u32 {
     i
 }
@@ -814,22 +795,8 @@ pub fn general_option_match_u32(x: Option<u32>, fallback: u32) -> u32 {
     }
 }
 
-pub fn option_do_inc_u32(x: Option<u32>) -> Option<u32> {
-    match x {
-        None => None::<u32>,
-        Some(v) => Some((v).wrapping_add(1)),
-    }
-}
-
 pub fn echo_i32(x: i32) -> i32 {
     x
-}
-
-pub fn except_do_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
-    match x {
-        Err(__lrc_err) => Err::<_, u32>(__lrc_err),
-        Ok(v) => Ok((v).wrapping_add(1)),
-    }
 }
 
 pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32> {
@@ -848,6 +815,10 @@ pub fn list_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
 
 pub fn echo_array_u32(xs: Vec<u32>) -> Vec<u32> {
     xs
+}
+
+pub fn passed_closure_apply_u32(delta: u32, x: u32) -> u32 {
+    (x).wrapping_add(delta)
 }
 
 pub fn tagged_default_u32(t: TaggedU32, fallback: u32) -> u32 {
@@ -904,7 +875,7 @@ pub fn array_push_u32(xs: Vec<u32>, x: u32) -> Vec<u32> {
 }
 
 pub fn max_u32(a: u32, b: u32) -> u32 {
-    if a < b {
+    if (a) < (b) {
         b
     } else {
         a
@@ -1052,7 +1023,7 @@ pub fn list_all_nonzero_u32(xs: Vec<u32>) -> bool {
     {
         let mut __lrc_all = true;
         for x in xs {
-            if !(x > 0) {
+            if !((x) > (0)) {
                 __lrc_all = false;
                 break;
             }
@@ -1085,7 +1056,7 @@ pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64 {
 }
 
 pub fn generic_beq_u32(a: u32, b: u32) -> bool {
-    a == b
+    (a) == (b)
 }
 
 pub fn generic_choose__point(flag: bool, when_true: Point, when_false: Point) -> Point {
@@ -1111,6 +1082,14 @@ pub fn helper_inc_fixed(x: u32) -> u32 {
     (x).wrapping_add(1)
 }
 
+pub fn make_add_pair_u32(a: u32, b: u32, _hyg81: u32, _hyg83: u32) -> u32 {
+    (((_hyg81).wrapping_add(_hyg83)).wrapping_add(a)).wrapping_add(b)
+}
+
+pub fn make_add_delta_u32(delta: u32, _hyg53: u32) -> u32 {
+    (_hyg53).wrapping_add(delta)
+}
+
 pub fn auto_choose_point(flag: bool, left: Point, right: Point) -> Point {
     generic_choose__point(flag, left, right)
 }
@@ -1127,12 +1106,20 @@ pub fn helper_chain_u32(x: u32) -> u32 {
     helper_inc_fixed(helper_inc_fixed(x))
 }
 
+pub fn returned_multi_closure_apply_u32(a: u32, b: u32, x: u32, y: u32) -> u32 {
+    make_add_pair_u32(a, b, x, y)
+}
+
 pub fn auto_option_default_step(x: Option<Step>, fallback: Step) -> Step {
     generic_option_default__step(x, fallback)
 }
 
+pub fn returned_closure_apply_u32(delta: u32, x: u32) -> u32 {
+    make_add_delta_u32(delta, x)
+}
+
 pub fn mutual_even_u32(n: u32) -> bool {
-    if n == 0 {
+    if (n) == (0) {
         true
     } else {
         mutual_odd_u32((n).wrapping_sub(1))
@@ -1140,7 +1127,7 @@ pub fn mutual_even_u32(n: u32) -> bool {
 }
 
 pub fn mutual_odd_u32(n: u32) -> bool {
-    if n == 0 {
+    if (n) == (0) {
         false
     } else {
         mutual_even_u32((n).wrapping_sub(1))

@@ -271,12 +271,12 @@
       "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/generated_dict_beq.expected.json", "corpus/positive/generated_dict_compare.expected.json", "corpus/positive/generated_dict_add.expected.json", "corpus/positive/generated_dict_default.expected.json", "corpus/positive/generated_dict_to_string.expected.json"],
       "diagnostics": ["remaining-typeclass-dictionaries"]
       } },
-    { "feature": "remaining-first-class-closures", "status": "supported-complete", "examples": ["FirstClassClosures.closureObjects", "StoredClosureU32", "docs/FIRST_CLASS_CLOSURES.md"],
+    { "feature": "remaining-first-class-closures", "status": "supported-complete", "examples": ["FirstClassClosures.closureObjects", "StoredClosureU32", "ClosureLoweringExamples.make_add_pair_u32", "docs/FIRST_CLASS_CLOSURES.md", "docs/CLOSURE_CONVERSION.md"],
       "evidence": {
-      "implementation": ["LeanRustCore/FirstClassClosures.lean", "crates/runtime/src/lib.rs"],
-      "tests": ["rust/tests/remaining_completion.rs", "scripts/check-remaining-completion.py"],
-      "docs": ["docs/FIRST_CLASS_CLOSURES.md", "docs/ARCHITECTURE.md"],
-      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
+      "implementation": ["LeanRustCore/FirstClassClosures.lean", "LeanRustCore/ClosureLoweringExamples.lean", "LeanRustCore/Extract.lean", "crates/runtime/src/lib.rs"],
+      "tests": ["rust/tests/remaining_completion.rs", "rust/tests/closure_lowering.rs", "rust/tests/target_interpreter.rs", "scripts/check-remaining-completion.py"],
+      "docs": ["docs/FIRST_CLASS_CLOSURES.md", "docs/CLOSURE_CONVERSION.md", "docs/ARCHITECTURE.md"],
+      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/stored_closure_apply.expected.json", "corpus/positive/returned_closure_apply.expected.json", "corpus/positive/passed_closure_apply.expected.json", "corpus/positive/stored_multi_closure_apply.expected.json", "corpus/positive/returned_multi_closure_apply.expected.json", "corpus/positive/passed_multi_closure_apply.expected.json"],
       "diagnostics": ["remaining-first-class-closures"]
       } },
     { "feature": "remaining-pure-do-notation", "status": "supported-complete", "examples": ["PureDoNotation.lowerings", "Option/Except/State/Reader/ExceptT", "docs/PURE_DO_NOTATION.md"],

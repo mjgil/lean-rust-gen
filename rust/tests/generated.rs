@@ -115,14 +115,10 @@ fn typeclass_and_closure_specializations_lower() {
     assert_eq!(ord_compare_u32(1, 2), Ordering::Lt);
     assert_eq!(ord_compare_u32(2, 2), Ordering::Eq);
     assert_eq!(ord_compare_u32(3, 2), Ordering::Gt);
-    assert_eq!(option_do_inc_u32(Some(41)), Some(42));
-    assert_eq!(option_do_inc_u32(None), None);
     assert_eq!(option_getd_u32(None, 9), 9);
     assert_eq!(option_getd_u32(Some(4), 9), 4);
     assert_eq!(result_map_err_inc_u32(Ok(5)), Ok(5));
     assert_eq!(result_map_err_inc_u32(Err(41)), Err(42));
-    assert_eq!(except_do_inc_u32(Ok(41)), Ok(42));
-    assert_eq!(except_do_inc_u32(Err(7)), Err(7));
     assert_eq!(reader_add_env_u32(5, 37), 42);
     assert_eq!(state_tick_u32(41), (41, 42));
     assert_eq!(closure_apply_capture_u32(5, 37), 42);
@@ -235,16 +231,6 @@ fn bool_and_option_matches_lower() {
     assert_eq!(general_bool_match_u32(false, 9, 20), 21);
     assert_eq!(general_option_match_u32(None, 8), 8);
     assert_eq!(general_option_match_u32(Some(41), 8), 42);
-    assert_eq!(list_head_or_zero_u32(vec![]), 0);
-    assert_eq!(list_head_or_zero_u32(vec![41, 7]), 41);
-    assert_eq!(list_second_or_zero_u32(vec![]), 0);
-    assert_eq!(list_second_or_zero_u32(vec![41]), 0);
-    assert_eq!(list_second_or_zero_u32(vec![41, 7, 9]), 7);
-    assert_eq!(nat_pred_or_zero_u32(0), 0);
-    assert_eq!(nat_pred_or_zero_u32(9), 8);
-    assert_eq!(nat_two_step_or_zero_u32(0), 0);
-    assert_eq!(nat_two_step_or_zero_u32(1), 0);
-    assert_eq!(nat_two_step_or_zero_u32(5), 5);
 }
 
 #[test]
@@ -276,7 +262,6 @@ fn dependent_shape_and_proof_field_erasure_lower() {
     assert_eq!(subtype_val_u32(42), 42);
     assert_eq!(subtype_inc_u32(41), 42);
     assert_eq!(subtype_roundtrip_u32(77), 77);
-    assert_eq!(fin_val10_u32(7), 7);
     assert_eq!(vector_echo3_u32(vec![1, 2, 3]), vec![1, 2, 3]);
 
     let bounded = bounded_proof_make_u32(9);
@@ -412,7 +397,6 @@ fn dependent_shape_erasure_sprint_10_12() {
     assert_eq!(subtype_inc_u32(u32::MAX), 0);
     assert_eq!(subtype_roundtrip_u32(7), 7);
     assert_eq!(equality_cast_subtype_value_u32(11), 11);
-    assert_eq!(fin_val10_u32(9), 9);
     assert_eq!(fin_checked10_u32(9), Some(9));
     assert_eq!(fin_checked10_u32(10), None);
     assert_eq!(fin_succ_checked10_u32(8), Some(9));

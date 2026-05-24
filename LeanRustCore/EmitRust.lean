@@ -146,11 +146,11 @@ def emitExpr {ctx : Type} : {t : RType} → RExpr ctx t → String
   | _, .not a => "(!" ++ emitExpr a ++ ")"
   | _, .and a b => "(" ++ emitExpr a ++ " && " ++ emitExpr b ++ ")"
   | _, .or a b => "(" ++ emitExpr a ++ " || " ++ emitExpr b ++ ")"
-  | _, .eqU32 a b => emitExpr a ++ " == " ++ emitExpr b
-  | _, .ltU32 a b => emitExpr a ++ " < " ++ emitExpr b
-  | _, .leU32 a b => emitExpr a ++ " <= " ++ emitExpr b
-  | _, .gtU32 a b => emitExpr a ++ " > " ++ emitExpr b
-  | _, .geU32 a b => emitExpr a ++ " >= " ++ emitExpr b
+  | _, .eqU32 a b => "(" ++ emitExpr a ++ ") == (" ++ emitExpr b ++ ")"
+  | _, .ltU32 a b => "(" ++ emitExpr a ++ ") < (" ++ emitExpr b ++ ")"
+  | _, .leU32 a b => "(" ++ emitExpr a ++ ") <= (" ++ emitExpr b ++ ")"
+  | _, .gtU32 a b => "(" ++ emitExpr a ++ ") > (" ++ emitExpr b ++ ")"
+  | _, .geU32 a b => "(" ++ emitExpr a ++ ") >= (" ++ emitExpr b ++ ")"
   | _, .addU32 a b => "(" ++ emitExpr a ++ ").wrapping_add(" ++ emitExpr b ++ ")"
   | _, .subU32 a b => "(" ++ emitExpr a ++ ").wrapping_sub(" ++ emitExpr b ++ ")"
   | _, .mulU32 a b => "(" ++ emitExpr a ++ ").wrapping_mul(" ++ emitExpr b ++ ")"
@@ -193,11 +193,11 @@ partial def emitSurfaceExpr : SurfaceExpr → String
   | .not a => "(!" ++ emitSurfaceExpr a ++ ")"
   | .and a b => "(" ++ emitSurfaceExpr a ++ " && " ++ emitSurfaceExpr b ++ ")"
   | .or a b => "(" ++ emitSurfaceExpr a ++ " || " ++ emitSurfaceExpr b ++ ")"
-  | .eq _ a b => emitSurfaceExpr a ++ " == " ++ emitSurfaceExpr b
-  | .lt _ a b => emitSurfaceExpr a ++ " < " ++ emitSurfaceExpr b
-  | .le _ a b => emitSurfaceExpr a ++ " <= " ++ emitSurfaceExpr b
-  | .gt _ a b => emitSurfaceExpr a ++ " > " ++ emitSurfaceExpr b
-  | .ge _ a b => emitSurfaceExpr a ++ " >= " ++ emitSurfaceExpr b
+  | .eq _ a b => "(" ++ emitSurfaceExpr a ++ ") == (" ++ emitSurfaceExpr b ++ ")"
+  | .lt _ a b => "(" ++ emitSurfaceExpr a ++ ") < (" ++ emitSurfaceExpr b ++ ")"
+  | .le _ a b => "(" ++ emitSurfaceExpr a ++ ") <= (" ++ emitSurfaceExpr b ++ ")"
+  | .gt _ a b => "(" ++ emitSurfaceExpr a ++ ") > (" ++ emitSurfaceExpr b ++ ")"
+  | .ge _ a b => "(" ++ emitSurfaceExpr a ++ ") >= (" ++ emitSurfaceExpr b ++ ")"
   | .add t a b => emitArithmetic "add" t (emitSurfaceExpr a) (emitSurfaceExpr b)
   | .sub t a b => emitArithmetic "sub" t (emitSurfaceExpr a) (emitSurfaceExpr b)
   | .mul t a b => emitArithmetic "mul" t (emitSurfaceExpr a) (emitSurfaceExpr b)

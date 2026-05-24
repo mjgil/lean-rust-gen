@@ -1,4 +1,5 @@
 use lean_rust_core_generated::runtime::*;
+use lean_rust_core_generated::*;
 use lean_rust_core_validate::{
     eval_target_term, generate_target_term_cases, generated_terms_are_well_typed,
     minimize_target_term, target_term_head, RecursiveTree, TargetTerm, TargetValue,
@@ -100,6 +101,16 @@ fn remaining_runtime_features_are_exercised() {
         vec![0, 1, 2, 41, 42, u32::MAX]
     );
     assert_eq!(container_property_values_u32()[2], vec![1, 2, u32::MAX]);
+}
+
+#[test]
+fn remaining_source_level_closure_lowerings_are_exercised() {
+    assert_eq!(stored_closure_apply_u32(5, 37), 42);
+    assert_eq!(returned_closure_apply_u32(5, 37), 42);
+    assert_eq!(passed_closure_apply_u32(5, 37), 42);
+    assert_eq!(stored_multi_closure_apply_u32(1, 4, 30, 7), 42);
+    assert_eq!(returned_multi_closure_apply_u32(1, 4, 30, 7), 42);
+    assert_eq!(passed_multi_closure_apply_u32(1, 4, 30, 7), 42);
 }
 
 #[test]

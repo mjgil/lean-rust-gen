@@ -20,6 +20,6 @@ structure ClosureEnvironmentShape where
 
 /-- Human-readable policy string recorded in generated validation/proof reports. -/
 def closureConversionSummary : String :=
-  "captured unary lambdas lower either to immediate closure-apply SurfaceExpr nodes or to explicit first-order environment structs; escaping or stored dynamic closures remain rejected"
+  "captured unary and multi-argument lambdas lower through helper-normalized let chains, immediate application lowering, or explicit first-order environment structs; mutation-sensitive or ambient-effect closure classes remain rejected"
 
 end LeanRustCore.ClosureConversion

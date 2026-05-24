@@ -14,5 +14,18 @@ Supported shapes:
 | captured delta closure | `U32ClosureObject::AddDelta` | supported |
 | `FnMut`/`FnOnce` mutation | diagnostic | unsupported by default |
 
-Completion requires runtime tests for returned/stored/composed closures and docs
-for the ownership and mutation policy.
+Source-level extracted closures now have a second layer on top of that runtime
+support. Stored, returned, passed, and multi-argument captured closures are
+accepted when they normalize to first-order let chains before Rust emission:
+
+- `stored_closure_apply_u32`
+- `returned_closure_apply_u32`
+- `passed_closure_apply_u32`
+- `stored_multi_closure_apply_u32`
+- `returned_multi_closure_apply_u32`
+- `passed_multi_closure_apply_u32`
+
+`docs/CLOSURE_CONVERSION.md` records the lowering strategy per source closure
+class. Completion for this feature now requires the runtime closure-object
+tests, the generated closure-lowering tests, target-interpreter coverage, and
+the remaining-completion corpus gate.

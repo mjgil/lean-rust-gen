@@ -192,7 +192,7 @@ def reportJson : String :=
   "    \"tail_recursion_loop_lowering\": true,\n" ++
   "    \"target_validation_snapshot\": \"" ++ LeanRustCore.TargetValidation.targetValidationFormat ++ "\",\n" ++
   "    \"ffi_wrappers_feature_gated\": true,\n" ++
-  "    \"closure_conversion\": \"explicit-environment-structs\",\n" ++
+  "    \"closure_conversion\": \"helper-normalized-let-chains-and-explicit-environment-structs\",\n" ++
   "    \"defunctionalization\": \"finite-enum-cases\",\n" ++
   "    \"dependent_shape_erasure\": \"Subtype/Fin/Vector/proof-field carriers\",\n" ++
   "    \"corpus_harness\": true,\n" ++
