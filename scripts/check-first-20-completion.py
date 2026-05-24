@@ -12,6 +12,10 @@ import pathlib
 import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+TEMPLATE_RE = re.compile(
+    r'\{\s*code := "(LRC\d{3})", severity := \.(\w+), construct := "([^"]+)", '
+    r'nextFeature := "([^"]+)", documentation := "([^"]+)", requiresSpan := (true|false) \}'
+)
 
 
 def read(path: str) -> str:
@@ -28,6 +32,21 @@ def json_file(path: str):
         return json.loads(read(path))
     except json.JSONDecodeError as exc:
         raise SystemExit(f"{path} is not valid JSON: {exc}") from exc
+
+
+def parse_diagnostic_templates() -> dict[str, dict[str, object]]:
+    templates: dict[str, dict[str, object]] = {}
+    for match in TEMPLATE_RE.finditer(read("LeanRustCore/Diagnostics.lean")):
+        code, severity, construct, next_feature, documentation, requires_span = match.groups()
+        templates[code] = {
+            "severity": severity,
+            "construct": construct,
+            "next_feature": next_feature,
+            "documentation": documentation,
+            "requires_span": requires_span == "true",
+        }
+    require(len(templates) == 14, "Diagnostics.lean must define 14 LRC templates")
+    return templates
 
 
 def check_required_files() -> None:
@@ -147,6 +166,7 @@ def check_diagnostics() -> None:
 
 
 def check_corpus() -> None:
+    templates = parse_diagnostic_templates()
     kinds = {
         "corpus/positive": "positive",
         "corpus/negative": "negative",
@@ -162,8 +182,26 @@ def check_corpus() -> None:
             require(data.get("tests"), f"{fixture} lacks tests")
             require(data.get("documentation"), f"{fixture} lacks documentation")
             if kind != "positive":
-                require(str(data.get("diagnostic_code", "")).startswith("LRC"), f"{fixture} lacks diagnostic code")
-                require(data.get("source_span_required") is True, f"{fixture} must require source span")
+                code = str(data.get("diagnostic_code", ""))
+                require(code in templates, f"{fixture} uses unknown diagnostic code {code}")
+                template = templates[code]
+                require(
+                    data.get("source_span_required") is template["requires_span"],
+                    f"{fixture} must match requiresSpan={template['requires_span']} for {code}",
+                )
+                require(
+                    data.get("next_feature") == template["next_feature"],
+                    f"{fixture} must use next_feature {template['next_feature']}",
+                )
+                expected_status = "error" if template["severity"] == "error" else "unsupported"
+                require(
+                    data.get("expected_status") == expected_status,
+                    f"{fixture} must use expected_status {expected_status}",
+                )
+                require(
+                    template["documentation"] in data.get("documentation", []),
+                    f"{fixture} must reference {template['documentation']}",
+                )
 
 
 def check_reports() -> None:

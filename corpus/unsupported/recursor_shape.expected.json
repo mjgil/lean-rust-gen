@@ -1,0 +1,12 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "unsupported",
+  "source": "Corpus.Unsupported.recursorShape",
+  "expected_status": "unsupported",
+  "diagnostic_code": "LRC006",
+  "source_span_required": true,
+  "next_feature": "general recursion lowering",
+  "extractor_branch": "extract-regular-unsupported-export",
+  "tests": ["scripts/check-next-20-completion.py", "rust/tests/next20_completion.rs"],
+  "documentation": ["docs/DIAGNOSTICS.md#lrc006", "docs/DIAGNOSTICS.md#extractor-fallback-branches"]
+}

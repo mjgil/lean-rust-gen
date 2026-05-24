@@ -76,7 +76,7 @@ def coverageEntries : List CoverageEntry := [
   { feature := "coverage-dashboard", status := "supported", examples := ["rust/coverage-dashboard.json"] },
   { feature := "property-fuzz-corpus", status := "supported-deterministic-seeds", examples := ["PropertyCorpus.seedFamilies", "corpus/property/seeds.json", "rust/tests/final16_property_coverage.rs"] },
   { feature := "quantitative-coverage-dashboard", status := "supported-metrics", examples := ["CoverageDashboard.metrics", "explicit denominators", "docs/COVERAGE.md"] },
-  { feature := "user-facing-diagnostics", status := "supported-stable-codes", examples := ["Diagnostics.templates", "LRC001-LRC005", "docs/DIAGNOSTICS.md"] },
+  { feature := "user-facing-diagnostics", status := "supported-stable-codes", examples := ["Diagnostics.templates", "LRC001-LRC014", "docs/DIAGNOSTICS.md"] },
   { feature := "rust-workspace-crate-split", status := "supported-workspace", examples := ["lean-rust-core-generated", "lean-rust-core-runtime", "lean-rust-core-abi", "lean-rust-core-validate", "lean-rust-core-headers"] },
   { feature := "release-acceptance-matrix", status := "supported-scripted-gates", examples := ["ReleaseMatrix.gates", "scripts/check-final-16-completion.py", "docs/RELEASE_CHECKLIST.md"] },
   { feature := "first20-completion", status := "supported-complete", examples := ["ExtractIR", "RuntimeValue", "SurfaceExpr coverage", "expanded diagnostics", "source spans", "CI e2e matrix"] },
@@ -86,9 +86,10 @@ def coverageEntries : List CoverageEntry := [
   { feature := "expanded-diagnostics", status := "supported", examples := ["LRC001-LRC014", "SourceRange", "instanceHasRequiredSpan"] },
   { feature := "source-span-diagnostics", status := "supported", examples := ["SourceSpan", "sourceSpanSummary", "instanceHasRequiredSpan"] },
   { feature := "runtime-denotation-model", status := "supported", examples := ["RuntimeValue", "runtimeValueHasType", "runtimeDenotationSummary"] },
-  { feature := "expanded-diagnostic-coverage", status := "supported", examples := ["LRC001-LRC013", "SourceRange", "instanceHasRequiredSpan"] },
+  { feature := "expanded-diagnostic-coverage", status := "supported", examples := ["LRC001-LRC014", "SourceRange", "instanceHasRequiredSpan"] },
   { feature := "ci-end-to-end-matrix", status := "supported-scripted-gates", examples := ["scripts/check-ci-e2e.sh", "linux+macos workflow matrix"] },
   { feature := "next20-completion", status := "supported-complete", examples := ["rows 21-40", "scripts/check-next-20-completion.py", "rust/tests/next20_completion.rs"] },
+  { feature := "next20-diagnostic-corpus", status := "supported-complete", examples := ["corpus/negative", "corpus/unsupported", "extract-regular-unsupported-export", "docs/DIAGNOSTICS.md"] },
   { feature := "parameterized-data-monomorphization", status := "supported-complete", examples := ["GenericEmission.monomorphizeDataShape", "ParameterizedData.substituteTypeVars", "docs/GENERICS.md"] },
   { feature := "rust-generic-policy", status := "supported-final-policy", examples := ["GenericPolicy.finalRustGenericPolicySummary", "LRC009", "docs/GENERICS.md"] },
   { feature := "complete-numeric-semantics", status := "supported-complete", examples := ["NumericSemantics.rules", "runtime numeric helpers", "docs/NUMERIC_SEMANTICS.md"] },
@@ -143,6 +144,6 @@ def coverageDashboardJson : String :=
 
 /-- Human-readable validation-v2 summary. -/
 def validationV2Summary : String :=
-  "target-validation v2 records box/deref fingerprints, completed rows 21-40 numeric/generic/dependent-erasure/recursive-layout/ownership/pattern-matrix/recursion-analysis/Std/typeclass coverage, first-20 ExtractIR/runtime-denotation/SurfaceExpr-coverage/diagnostic/source-span/CI coverage, and remaining rows 41-63 dictionary/closure/pure-do/IO/semantics/preservation/generator/coverage/CI/publishing coverage; rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
+  "target-validation v2 records box/deref fingerprints, completed rows 21-40 numeric/generic/dependent-erasure/recursive-layout/diagnostic-corpus/ownership/pattern-matrix/recursion-analysis/Std/typeclass coverage, first-20 ExtractIR/runtime-denotation/SurfaceExpr-coverage/diagnostic/source-span/CI coverage, and remaining rows 41-63 dictionary/closure/pure-do/IO/semantics/preservation/generator/coverage/CI/publishing coverage; rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
 
 end LeanRustCore.ValidationV2

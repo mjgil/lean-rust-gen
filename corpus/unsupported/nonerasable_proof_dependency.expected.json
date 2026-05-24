@@ -1,0 +1,11 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "unsupported",
+  "source": "Corpus.Unsupported.nonerasableProofDependency",
+  "expected_status": "unsupported",
+  "diagnostic_code": "LRC008",
+  "source_span_required": true,
+  "next_feature": "dependent erasure proof classifier",
+  "tests": ["scripts/check-next-20-completion.py", "rust/tests/next20_completion.rs"],
+  "documentation": ["docs/DIAGNOSTICS.md#lrc008"]
+}

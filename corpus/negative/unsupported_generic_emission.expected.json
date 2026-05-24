@@ -1,0 +1,12 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "negative",
+  "source": "Corpus.Negative.unsupportedGenericEmission",
+  "expected_status": "unsupported",
+  "diagnostic_code": "LRC013",
+  "source_span_required": true,
+  "next_feature": "Rust generic emission policy",
+  "extractor_branch": "extract-mono-unsupported-export",
+  "tests": ["scripts/check-next-20-completion.py", "rust/tests/next20_completion.rs"],
+  "documentation": ["docs/DIAGNOSTICS.md#lrc013", "docs/DIAGNOSTICS.md#extractor-fallback-branches"]
+}

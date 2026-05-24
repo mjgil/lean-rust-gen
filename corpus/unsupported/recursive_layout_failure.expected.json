@@ -1,0 +1,11 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "unsupported",
+  "source": "Corpus.Unsupported.recursiveLayoutFailure",
+  "expected_status": "unsupported",
+  "diagnostic_code": "LRC011",
+  "source_span_required": true,
+  "next_feature": "recursive inductive SCC layout",
+  "tests": ["scripts/check-next-20-completion.py", "rust/tests/next20_completion.rs"],
+  "documentation": ["docs/DIAGNOSTICS.md#lrc011"]
+}

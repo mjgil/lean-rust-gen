@@ -181,6 +181,9 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
         check.name == "next20-base-type-universe" && check.status == ValidationCheckStatus::Passed
     }));
     assert!(validation.checks.iter().any(|check| {
+        check.name == "next20-diagnostic-corpus" && check.status == ValidationCheckStatus::Passed
+    }));
+    assert!(validation.checks.iter().any(|check| {
         check.name == "surface-expr-node-coverage" && check.status == ValidationCheckStatus::Passed
     }));
     assert!(validation.checks.iter().any(|check| {
@@ -242,7 +245,15 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
     assert!(coverage
         .entries
         .iter()
+        .any(|entry| entry.feature == "next20-diagnostic-corpus"));
+    assert!(coverage
+        .entries
+        .iter()
         .any(|entry| entry.feature == "extract-ir-pipeline"));
+    assert!(coverage
+        .entries
+        .iter()
+        .any(|entry| entry.feature == "expanded-diagnostic-coverage"));
     assert!(coverage
         .entries
         .iter()

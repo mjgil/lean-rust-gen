@@ -1,4 +1,6 @@
 use std::collections::BTreeSet;
+use std::fs;
+use std::path::PathBuf;
 
 use lean_rust_core_generated::runtime::*;
 use num_bigint::{BigInt, BigUint};
@@ -6,6 +8,24 @@ use num_bigint::{BigInt, BigUint};
 const VALIDATION_REPORT: &str = include_str!("../validation-report.json");
 const PROOF_REPORT: &str = include_str!("../proof-report.json");
 const COVERAGE_DASHBOARD: &str = include_str!("../coverage-dashboard.json");
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("workspace root")
+        .to_path_buf()
+}
+
+fn expected_fixture_files(directory: &str) -> Vec<PathBuf> {
+    let path = repo_root().join(directory);
+    let mut entries = fs::read_dir(path)
+        .expect("fixture directory")
+        .filter_map(|entry| entry.ok().map(|item| item.path()))
+        .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some("json"))
+        .collect::<Vec<_>>();
+    entries.sort();
+    entries
+}
 
 #[test]
 fn next20_reports_mark_rows_21_40_complete() {
@@ -23,6 +43,7 @@ fn next20_reports_mark_rows_21_40_complete() {
         "next20-numeric-semantics",
         "next20-dependent-erasure",
         "next20-recursive-discovery",
+        "next20-diagnostic-corpus",
         "next20-ownership-policy",
         "next20-pattern-matrix",
         "next20-recursion-analysis",
@@ -61,6 +82,88 @@ fn next20_reports_mark_rows_21_40_complete() {
         .filter_map(|metric| metric["denominator"].as_str())
         .collect::<BTreeSet<_>>();
     assert!(metrics.contains("checklist_rows_21_40"));
+}
+
+#[test]
+fn next20_diagnostic_corpus_covers_all_rejection_paths() {
+    let mut codes = BTreeSet::new();
+    let mut branches = BTreeSet::new();
+    for directory in ["corpus/negative", "corpus/unsupported"] {
+        for fixture in expected_fixture_files(directory) {
+            let source = fs::read_to_string(&fixture).expect("fixture JSON");
+            let value: serde_json::Value =
+                serde_json::from_str(&source).expect("valid fixture JSON");
+            let tests = value["tests"]
+                .as_array()
+                .expect("tests array")
+                .iter()
+                .filter_map(|item| item.as_str())
+                .collect::<BTreeSet<_>>();
+            assert!(tests.contains("scripts/check-next-20-completion.py"));
+            assert!(tests.contains("rust/tests/next20_completion.rs"));
+
+            let docs = value["documentation"]
+                .as_array()
+                .expect("documentation array")
+                .iter()
+                .filter_map(|item| item.as_str())
+                .collect::<BTreeSet<_>>();
+            let code = value["diagnostic_code"]
+                .as_str()
+                .expect("diagnostic code")
+                .to_owned();
+            let doc_anchor = format!("docs/DIAGNOSTICS.md#{}", code.to_lowercase());
+            assert!(docs.contains(doc_anchor.as_str()));
+            let expected_status = if code == "LRC005" {
+                "error"
+            } else {
+                "unsupported"
+            };
+            assert_eq!(
+                value["expected_status"].as_str(),
+                Some(expected_status),
+                "wrong expected status for {code}"
+            );
+            codes.insert(code);
+
+            if let Some(branch) = value["extractor_branch"].as_str() {
+                branches.insert(branch.to_owned());
+            }
+        }
+    }
+
+    let expected_codes = (1..=14)
+        .map(|idx| format!("LRC{idx:03}"))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(codes, expected_codes);
+    assert_eq!(
+        branches,
+        BTreeSet::from([
+            String::from("extract-regular-unsupported-export"),
+            String::from("extract-mono-unsupported-export"),
+            String::from("auto-helper-fixpoint-fuel"),
+            String::from("auto-generated-specs-fixpoint-fuel"),
+        ])
+    );
+
+    let diagnostics =
+        fs::read_to_string(repo_root().join("docs/DIAGNOSTICS.md")).expect("diagnostics doc");
+    for idx in 1..=14 {
+        let code = format!("LRC{idx:03}");
+        let marker = format!("## {code}");
+        let start = diagnostics.find(&marker).expect("diagnostic section");
+        let rest = &diagnostics[start + marker.len()..];
+        let end = rest.find("\n## ").unwrap_or(rest.len());
+        let section = &rest[..end];
+        assert!(
+            section.to_lowercase().contains("example"),
+            "missing example for {code}"
+        );
+        assert!(
+            section.contains("```lean"),
+            "missing Lean example for {code}"
+        );
+    }
 }
 
 #[test]

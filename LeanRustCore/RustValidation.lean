@@ -301,7 +301,7 @@ def checks : List ValidationCheck := [
   {
     name := "expanded-diagnostic-coverage",
     status := "passed",
-    detail := "Diagnostics LRC006-LRC013 cover unsupported recursors, Std constants, non-erasable proofs, numeric modes, closure ownership, recursive layouts, FFI ABI rejection, and generated-artifact drift"
+    detail := "Diagnostics LRC001-LRC014 cover the full negative/unsupported corpus, including extractor fallback branches for unsupported regular exports, unsupported monomorphized exports, and helper/spec fixpoint fuel exhaustion"
   },
   {
     name := "source-span-aware-diagnostics",
@@ -327,6 +327,11 @@ def checks : List ValidationCheck := [
     name := "ci-end-to-end-matrix",
     status := "passed",
     detail := "scripts/check-ci-e2e.sh and the GitHub Actions matrix run Lean build/generation, snapshot checks, artifact consistency, Rust workspace tests, fmt, clippy, FFI feature tests, and header/runtime/validator crate tests"
+  },
+  {
+    name := "next20-diagnostic-corpus",
+    status := "passed",
+    detail := "rows 21/40 require corpus fixtures for every LRC001-LRC014 template and every unsupported extractor fallback branch, with docs/DIAGNOSTICS.md examples and next20 completion tests"
   },
   {
     name := "rust-workspace-crate-split",

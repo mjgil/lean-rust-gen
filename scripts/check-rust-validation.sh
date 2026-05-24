@@ -59,6 +59,7 @@ grep -q '"name": "rust-identifier-hygiene"' "$validation_report"
 grep -q '"name": "syn-parser-backed-validation"' "$validation_report"
 grep -q '"name": "json-artifact-parse-validation"' "$validation_report"
 grep -q '"name": "expanded-diagnostic-coverage"' "$validation_report"
+grep -q '"name": "next20-diagnostic-corpus"' "$validation_report"
 grep -q '"name": "compatibility-report-output-consistency"' "$validation_report"
 grep -q '"name": "payload-enum-match-lowering"' "$validation_report"
 grep -q '"name": "general-pattern-compiler"' "$validation_report"
@@ -238,6 +239,7 @@ grep -q '"name": "extract-ir-mandatory-stage"' "$validation_report"
 grep -q '"name": "runtime-denotation-model"' "$validation_report"
 grep -q '"name": "surface-expr-node-coverage"' "$validation_report"
 grep -q '"name": "ci-end-to-end-matrix"' "$validation_report"
+grep -q 'next20_diagnostic_corpus_covers_all_rejection_paths' rust/tests/next20_completion.rs
 grep -q 'first_twenty_completion_metadata_is_present' rust/tests/first20_completion.rs
 grep -q 'expanded_diagnostics_and_corpus_are_complete' rust/tests/first20_completion.rs
 grep -q 'surface_expr_constructor_coverage_is_exhaustive' rust/tests/first20_completion.rs

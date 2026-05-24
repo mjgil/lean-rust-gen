@@ -4,8 +4,19 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+TEMPLATE_RE = re.compile(
+    r'\{\s*code := "(LRC\d{3})", severity := \.(\w+), construct := "([^"]+)", '
+    r'nextFeature := "([^"]+)", documentation := "([^"]+)", requiresSpan := (true|false) \}'
+)
+EXTRACTOR_BRANCHES = {
+    "extract-regular-unsupported-export",
+    "extract-mono-unsupported-export",
+    "auto-helper-fixpoint-fuel",
+    "auto-generated-specs-fixpoint-fuel",
+}
 
 
 def read(path: str) -> str:
@@ -24,6 +35,21 @@ def load_json(path: str):
         raise SystemExit(f"{path} is not valid JSON: {exc}") from exc
 
 
+def parse_diagnostic_templates() -> dict[str, dict[str, object]]:
+    templates: dict[str, dict[str, object]] = {}
+    for match in TEMPLATE_RE.finditer(read("LeanRustCore/Diagnostics.lean")):
+        code, severity, construct, next_feature, documentation, requires_span = match.groups()
+        templates[code] = {
+            "severity": severity,
+            "construct": construct,
+            "next_feature": next_feature,
+            "documentation": documentation,
+            "requires_span": requires_span == "true",
+        }
+    require(len(templates) == 14, "Diagnostics.lean must define exactly 14 LRC templates")
+    return templates
+
+
 def check_files() -> None:
     required = [
         "LeanRustCore/GenericEmission.lean",
@@ -40,6 +66,7 @@ def check_files() -> None:
         "docs/GENERICS.md",
         "docs/NUMERIC_SEMANTICS.md",
         "docs/DEPENDENT_ERASURE.md",
+        "docs/DIAGNOSTICS.md",
         "docs/RECURSIVE_DATA.md",
         "docs/OWNERSHIP.md",
         "docs/PATTERN_COMPILER.md",
@@ -90,10 +117,51 @@ def check_runtime_and_tests() -> None:
     test = read("rust/tests/next20_completion.rs")
     for needle in [
         "next20_reports_mark_rows_21_40_complete",
+        "next20_diagnostic_corpus_covers_all_rejection_paths",
         "next20_runtime_helpers_cover_numeric_std_and_layouts",
         "u32_checked_div", "RcTreeU32", "ArenaTreeU32", "list_append_u32", "list_partition_nonzero_u32",
     ]:
         require(needle in test, f"next20 test missing {needle}")
+
+
+def check_diagnostic_corpus() -> None:
+    templates = parse_diagnostic_templates()
+    fixtures = list((ROOT / "corpus/negative").glob("*.expected.json")) + list(
+        (ROOT / "corpus/unsupported").glob("*.expected.json")
+    )
+    require(fixtures, "diagnostic corpus must include negative or unsupported fixtures")
+    seen_codes: set[str] = set()
+    seen_branches: set[str] = set()
+    for fixture in fixtures:
+        rel = str(fixture.relative_to(ROOT))
+        data = load_json(rel)
+        code = data.get("diagnostic_code")
+        require(code in templates, f"{rel} uses unknown diagnostic code {code}")
+        template = templates[code]
+        require(data.get("next_feature") == template["next_feature"], f"{rel} has wrong next_feature")
+        require(
+            data.get("source_span_required") is template["requires_span"],
+            f"{rel} must match requiresSpan={template['requires_span']} for {code}",
+        )
+        expected_status = "error" if template["severity"] == "error" else "unsupported"
+        require(data.get("expected_status") == expected_status, f"{rel} must use expected_status {expected_status}")
+        require(
+            template["documentation"] in data.get("documentation", []),
+            f"{rel} must reference {template['documentation']}",
+        )
+        tests = set(data.get("tests", []))
+        require("scripts/check-next-20-completion.py" in tests, f"{rel} must include next-20 script coverage")
+        require("rust/tests/next20_completion.rs" in tests, f"{rel} must include next-20 Rust coverage")
+        seen_codes.add(code)
+        branch = data.get("extractor_branch")
+        if branch is not None:
+            require(branch in EXTRACTOR_BRANCHES, f"{rel} uses unknown extractor branch {branch}")
+            seen_branches.add(branch)
+    require(seen_codes == set(templates), f"diagnostic corpus must cover {sorted(templates)}; saw {sorted(seen_codes)}")
+    require(
+        seen_branches == EXTRACTOR_BRANCHES,
+        f"diagnostic corpus must cover extractor branches {sorted(EXTRACTOR_BRANCHES)}; saw {sorted(seen_branches)}",
+    )
 
 
 def check_docs() -> None:
@@ -105,6 +173,17 @@ def check_docs() -> None:
         require("implementation requirements" in text, f"{path} must include implementation requirements")
         require("tests required" in text, f"{path} must include test requirements")
         require("documentation" in text or "document" in text, f"{path} must include documentation requirements")
+    diagnostics = read("docs/DIAGNOSTICS.md")
+    for idx in range(1, 15):
+        code = f"LRC{idx:03d}"
+        start = diagnostics.find(f"## {code}")
+        require(start != -1, f"docs/DIAGNOSTICS.md missing section for {code}")
+        next_start = diagnostics.find("\n## ", start + 1)
+        section = diagnostics[start : next_start if next_start != -1 else len(diagnostics)]
+        require("example" in section.lower(), f"docs/DIAGNOSTICS.md section for {code} needs an example")
+        require("```lean" in section, f"docs/DIAGNOSTICS.md section for {code} needs a Lean example")
+    for branch in EXTRACTOR_BRANCHES:
+        require(branch in diagnostics, f"docs/DIAGNOSTICS.md must describe {branch}")
 
 
 def check_reports() -> None:
@@ -115,6 +194,7 @@ def check_reports() -> None:
     for check in [
         "next20-base-type-universe", "next20-parameterized-data", "next20-generic-policy",
         "next20-numeric-semantics", "next20-dependent-erasure", "next20-recursive-discovery",
+        "next20-diagnostic-corpus",
         "next20-ownership-policy", "next20-pattern-matrix", "next20-recursion-analysis",
         "next20-std-implementation", "next20-typeclass-specialization",
     ]:
@@ -130,6 +210,7 @@ def check_reports() -> None:
     entries = {entry["feature"] for entry in coverage.get("entries", [])}
     for entry in [
         "next20-completion", "parameterized-data-monomorphization", "rust-generic-policy",
+        "next20-diagnostic-corpus",
         "complete-numeric-semantics", "complete-dependent-erasure", "recursive-discovery-layouts",
         "ownership-borrowing-policy", "pattern-matrix-compiler", "recursion-analysis-lowering",
         "std-lowering-implementation", "typeclass-specialization-complete",
@@ -155,6 +236,7 @@ def main() -> None:
     check_files()
     check_lean_modules()
     check_runtime_and_tests()
+    check_diagnostic_corpus()
     check_docs()
     check_reports()
     check_scripts()

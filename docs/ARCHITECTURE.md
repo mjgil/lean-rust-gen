@@ -173,6 +173,27 @@ surface layer: it enumerates every `SurfaceExpr` constructor, runs
 `typeOfExpected` and `evalSurfaceExpr` coverage for each node, and is enforced
 by the first-20 completion gate plus `rust/tests/first20_completion.rs`.
 
+## Newly completed: full diagnostic corpus coverage
+
+`LeanRustCore.Diagnostics.templates` remains the single source of truth for
+stable `LRC001` through `LRC014` user-facing diagnostics, but the completion
+gates now do more than check string presence. The negative and unsupported
+corpus directories contain at least one fixture for every diagnostic template,
+the fixture metadata must match each template's `nextFeature`,
+`documentation`, and `requiresSpan` contract, and
+`rust/tests/next20_completion.rs` plus `scripts/check-next-20-completion.py`
+verify that the corpus also covers the four explicit extractor fallback
+branches:
+
+- `extract-regular-unsupported-export`
+- `extract-mono-unsupported-export`
+- `auto-helper-fixpoint-fuel`
+- `auto-generated-specs-fixpoint-fuel`
+
+This closes the remaining "unsupported path drift" gap: if a future edit drops a
+diagnostic code, changes a span requirement, or removes an extractor rejection
+branch from the checked corpus/docs, the next-20 gate fails before release.
+
 ## Newly completed: Rust identifier hygiene and parser-backed validation
 
 `LeanRustCore.RustHygiene` is now the single place that maps source names to

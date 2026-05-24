@@ -41,6 +41,19 @@ source-span metadata, corpus fixtures, generated report metadata, the mandatory
 `rust/extract-ir.txt` snapshot, and the docs required for every feature in rows
 1 through 20.
 
+## Next-20 gate
+
+The next-20 implementation gate must also pass before release:
+
+```bash
+scripts/check-next-20-completion.py
+```
+
+It verifies the rows 21 through 40 feature modules and docs, plus complete
+diagnostic corpus coverage for `LRC001` through `LRC014`, per-template
+`requiresSpan`/`nextFeature` metadata, the four explicit extractor fallback
+branches, and the Rust completion test that scans the checked corpus fixtures.
+
 ## Remaining rows 41-63 gate
 
 The release matrix now includes `scripts/check-remaining-completion.py`, which
