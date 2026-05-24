@@ -287,12 +287,12 @@
       "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
       "diagnostics": ["remaining-pure-do-notation"]
       } },
-    { "feature": "remaining-controlled-io-boundary", "status": "supported-complete", "examples": ["IOBoundary.policies", "ControlledIoProgram", "docs/IO_BOUNDARY.md"],
+    { "feature": "remaining-controlled-io-boundary", "status": "supported-complete", "examples": ["IOBoundary.policies", "IOBoundary.generatedBoundaryExports", "ControlledIoProgram", "io_boundary_transcript", "eio_boundary_transcript", "docs/IO_BOUNDARY.md"],
       "evidence": {
-      "implementation": ["LeanRustCore/IOBoundary.lean", "crates/runtime/src/lib.rs"],
-      "tests": ["rust/tests/remaining_completion.rs", "scripts/check-remaining-completion.py"],
+      "implementation": ["LeanRustCore/IOBoundary.lean", "LeanRustCore/ControlledIOExamples.lean", "LeanRustCore/ControlledIOExtraction.lean", "LeanRustCore/Extract.lean", "crates/runtime/src/lib.rs"],
+      "tests": ["rust/tests/remaining_completion.rs", "rust/tests/generated.rs", "rust/tests/target_interpreter.rs", "scripts/check-remaining-completion.py"],
       "docs": ["docs/IO_BOUNDARY.md", "docs/ARCHITECTURE.md"],
-      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
+      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json", "rust/src/generated.rs", "rust/target-validation.txt", "corpus/positive/io_boundary_transcript.expected.json", "corpus/positive/eio_boundary_transcript.expected.json"],
       "diagnostics": ["remaining-controlled-io-boundary"]
       } },
     { "feature": "remaining-complete-semantics", "status": "supported-complete", "examples": ["CompleteSemantics.coverage", "validate::TargetTerm", "docs/SEMANTICS.md"],

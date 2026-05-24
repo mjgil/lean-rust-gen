@@ -3,6 +3,7 @@ import LeanRustCore.EmitRust
 import LeanRustCore.Export
 import LeanRustCore.DependentErasure
 import LeanRustCore.ExtractIR
+import LeanRustCore.ControlledIOExtraction
 
 import LeanRustCore.ClosureConversion
 namespace LeanRustCore.Extract
@@ -3040,6 +3041,19 @@ private def specialMonoSurfaceFun? (declName : Name) (rustFunName : String) (typ
 /-- Extract one ordinary Lean definition into the mandatory ExtractIR stage. -/
 def extractDeclAs (declName : Name) (rustFunName : String) (typeArgs : List RType) : CoreM LeanRustCore.ExtractIR.ExtractDecl := do
   if typeArgs.isEmpty then
+    match LeanRustCore.ControlledIOExtraction.specialControlledIOSurfaceFun? declName rustFunName with
+    | some f =>
+        match checkSurfaceFun f with
+        | .ok checked =>
+            return {
+              source := toString declName,
+              rustName := checked.name,
+              args := checked.args,
+              ret := checked.ret,
+              body := .surface checked.body
+            }
+        | .error report => throwError "manual controlled IO fixture failed surface type check: {report.detail}"
+    | none => pure ()
     match sprint13ManualSurfaceFun? declName rustFunName with
     | some f =>
         match checkSurfaceFun f with
@@ -3166,6 +3180,8 @@ private def diagnosticFeatures (d : ExportDiagnostic) : List String :=
     ["recursive-owned-box-data"]
   else if d.detail == "exported-monadic-bind-specialization" then
     ["pure-do-notation"]
+  else if d.detail == "exported-controlled-io-boundary" then
+    ["controlled-io-boundary"]
   else if d.detail == "explicit-monomorphized-export" || d.detail == "auto-monomorphized-export" then
     ["generic-monomorphization"]
   else if d.detail == "auto-helper-export" then
@@ -3178,6 +3194,8 @@ private def diagnosticFeatures (d : ExportDiagnostic) : List String :=
 private def diagnosticNextFeature (d : ExportDiagnostic) : Option String :=
   if d.rustName == "unsupported_higher_order_u32" then
     some "closure-conversion"
+  else if d.rustName == "io_effect" then
+    some "controlled IO boundary"
   else
     none
 
@@ -3748,6 +3766,11 @@ private def monadicSpecializationExport (declName : Name) : Bool :=
   leaf == "except_state_seq_right_u32" ||
   leaf == "except_state_seq_left_u32"
 
+private def controlledIOExport (declName : Name) : Bool :=
+  let leaf := nameLeaf declName
+  leaf == "io_boundary_transcript" ||
+  leaf == "eio_boundary_transcript"
+
 private def closureConversionExport (declName : Name) : Bool :=
   let leaf := nameLeaf declName
   leaf == "closure_apply_capture_u32" ||
@@ -3806,6 +3829,8 @@ private def regularSupportedDetail (declName : Name) : CoreM String := do
     pure "exported-generated-typeclass-dictionary"
   else if monadicSpecializationExport declName then
     pure "exported-monadic-bind-specialization"
+  else if controlledIOExport declName then
+    pure "exported-controlled-io-boundary"
   else if closureConversionExport declName then
     pure "exported-closure-conversion"
   else if defunctionalizedExport declName then

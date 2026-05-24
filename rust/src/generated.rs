@@ -570,7 +570,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg3431) => fallback,
+        PairchoiceU32String::Right(_hyg3454) => fallback,
     }
 }
 
@@ -613,6 +613,16 @@ pub fn nested_payload_value_or_u32_string(payload: NestedpayloadU32String, fallb
         None => fallback,
         Some(value) => value,
     }
+}
+
+pub fn eio_boundary_transcript(line: String, key: String, timestamp: u32) -> String {
+    crate::runtime::string_append(
+        crate::runtime::string_append(
+            crate::runtime::string_append(String::from("print:"), &(line)),
+            &(crate::runtime::string_append(String::from("|read-env:"), &(key))),
+        ),
+        &(crate::runtime::string_append(String::from("|time:"), &((timestamp).to_string()))),
+    )
 }
 
 pub fn add_u64(a: u64, b: u64) -> u64 {
@@ -851,6 +861,16 @@ pub fn option_do_inc_u32(x: Option<u32>) -> Option<u32> {
         None => None::<u32>,
         Some(v) => Some((v).wrapping_add(1)),
     }
+}
+
+pub fn io_boundary_transcript(line: String, key: String, timestamp: u32) -> String {
+    crate::runtime::string_append(
+        crate::runtime::string_append(
+            crate::runtime::string_append(String::from("print:"), &(line)),
+            &(crate::runtime::string_append(String::from("|read-env:"), &(key))),
+        ),
+        &(crate::runtime::string_append(String::from("|time:"), &((timestamp).to_string()))),
+    )
 }
 
 pub fn echo_i32(x: i32) -> i32 {

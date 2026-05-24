@@ -263,6 +263,8 @@ def extractedDeclarationAssertions : List RustAssertion := [
   assertion "except_state_seq_right_u32(Ok(40), 2)" "(Ok(3u32), 2u32)",
   assertion "except_state_seq_left_u32(Err(7), 2)" "(Err(7u32), 2u32)",
   assertion "except_state_seq_left_u32(Ok(40), 2)" "(Ok(40u32), 3u32)",
+  assertion "io_boundary_transcript(String::from(\"hello\"), String::from(\"HOME\"), 42)" (surfaceExpected "io_boundary_transcript" [vString "hello", vString "HOME", vU32 42]),
+  assertion "eio_boundary_transcript(String::from(\"hello\"), String::from(\"HOME\"), 42)" (surfaceExpected "eio_boundary_transcript" [vString "hello", vString "HOME", vU32 42]),
   assertion "result_map_err_inc_u32(Err(41))" "Err(42u32)",
   assertion "reader_add_env_u32(5, 37)" "42u32",
   assertion "state_tick_u32(41)" "(41u32, 42u32)",

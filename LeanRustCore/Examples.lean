@@ -5,6 +5,7 @@ import LeanRustCore.Extract
 import LeanRustCore.NumericExamples
 import LeanRustCore.ParameterizedExamples
 import LeanRustCore.RecursionExamples
+import LeanRustCore.ControlledIOExamples
 import LeanRustCore.TypeclassDictionaryExamples
 import LeanRustCore.TypedIRExamples
 
@@ -501,6 +502,14 @@ def except_state_seq_left_u32 (input : Except UInt32 UInt32) (s : UInt32) :
       let current ← get
       set (current + 1)
       pure (current + 1) : ExceptT UInt32 (StateM UInt32) UInt32)) s
+
+@[rust_export]
+def io_boundary_transcript (line key : String) (timestamp : UInt32) : IO String :=
+  LeanRustCore.ControlledIOExamples.io_boundary_transcript line key timestamp
+
+@[rust_export]
+def eio_boundary_transcript (line key : String) (timestamp : UInt32) : EIO Empty String :=
+  LeanRustCore.ControlledIOExamples.eio_boundary_transcript line key timestamp
 
 @[rust_export]
 def reader_add_env_u32 (env x : UInt32) : UInt32 :=

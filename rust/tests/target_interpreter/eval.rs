@@ -54,6 +54,9 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
             other => return Err(format!("unsupported bool literal {other}")),
         }));
     }
+    if let Some(inner) = call_payload(expr, "string") {
+        return Ok(Value::String(decode_target_string(inner)));
+    }
     if expr == "none" {
         return Ok(Value::OptionU32(None));
     }
@@ -408,6 +411,22 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
         };
     }
     Err(format!("unsupported target fingerprint expression: {expr}"))
+}
+
+fn decode_target_string(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    let mut chars = input.chars();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            match chars.next() {
+                Some(escaped) => out.push(escaped),
+                None => out.push('\\'),
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+    out
 }
 
 fn eval_add(left: Value, right: Value) -> Result<Value, String> {

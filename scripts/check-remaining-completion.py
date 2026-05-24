@@ -34,6 +34,8 @@ def check_required_files() -> None:
         "LeanRustCore/ClosureLoweringExamples.lean",
         "LeanRustCore/PureDoNotation.lean",
         "LeanRustCore/IOBoundary.lean",
+        "LeanRustCore/ControlledIOExamples.lean",
+        "LeanRustCore/ControlledIOExtraction.lean",
         "LeanRustCore/CompleteSemantics.lean",
         "LeanRustCore/Preservation.lean",
         "LeanRustCore/PropertyGenerators.lean",
@@ -78,6 +80,8 @@ def check_required_files() -> None:
         "corpus/positive/state_do_tick.expected.json",
         "corpus/positive/state_seq_right.expected.json",
         "corpus/positive/state_seq_left.expected.json",
+        "corpus/positive/io_boundary_transcript.expected.json",
+        "corpus/positive/eio_boundary_transcript.expected.json",
     ]
     for path in required:
         require((ROOT / path).exists(), f"missing remaining-completion artifact {path}")
@@ -99,7 +103,8 @@ def check_lean_modules() -> None:
         ],
         "LeanRustCore/FirstClassClosures.lean": ["closureObjects", "StoredClosureU32", "allClosureObjectsComplete", "closure_object_completion_gate"],
         "LeanRustCore/PureDoNotation.lean": ["ExceptT(StateM)", "allPureDoLoweringsComplete", "pure_do_completion_gate"],
-        "LeanRustCore/IOBoundary.lean": ["ControlledIOOp", "allIOPoliciesComplete", "io_boundary_completion_gate"],
+        "LeanRustCore/IOBoundary.lean": ["ControlledIOOp", "generatedBoundaryExports", "allIOPoliciesComplete", "io_boundary_completion_gate"],
+        "LeanRustCore/ControlledIOExamples.lean": ["io_boundary_transcript", "eio_boundary_transcript", "controlled_io_print_line", "controlled_eio_print_line"],
         "LeanRustCore/CompleteSemantics.lean": ["TargetGrammarHead", "TargetValue", "TargetTerm", "evalTargetTerm", "representativeSemanticChecks", "semanticCoverageComplete", "complete_semantics_completion_gate"],
         "LeanRustCore/Preservation.lean": [
             "PreservationSeam",
@@ -132,6 +137,7 @@ def check_lean_modules() -> None:
         "FirstClassClosures",
         "PureDoNotation",
         "IOBoundary",
+        "ControlledIOExamples",
         "CompleteSemantics",
         "Preservation",
         "PropertyGenerators",
@@ -198,10 +204,13 @@ def check_rust_runtime_and_validate() -> None:
         "remaining_rows_reports_and_dashboard_are_complete",
         "remaining_runtime_features_are_exercised",
         "remaining_pure_do_generated_examples_cover_bind_and_seq_shapes",
+        "remaining_controlled_io_generated_examples_are_exercised",
         "remaining_source_level_closure_lowerings_are_exercised",
         "remaining_validate_semantics_cover_representative_values",
         "remaining_property_generators_are_randomized_and_shrinkable",
         "dictionary_add_u32",
+        "io_boundary_transcript",
+        "eio_boundary_transcript",
         "closure_apply_stored",
         "ControlledIoProgram",
     ]:
@@ -490,6 +499,41 @@ def check_pure_do_docs_and_corpus() -> None:
         )
 
 
+def check_controlled_io_docs_and_corpus() -> None:
+    docs = read("docs/IO_BOUNDARY.md")
+    architecture = read("docs/ARCHITECTURE.md")
+    examples = read("LeanRustCore/ControlledIOExamples.lean")
+
+    for needle in [
+        "io_boundary_transcript",
+        "eio_boundary_transcript",
+        "controlled_io_print_line",
+        "controlled_io_read_env",
+        "controlled_io_monotonic_time",
+        "LRC004",
+        "transcript",
+    ]:
+        require(
+            needle in docs or needle in architecture or needle in examples,
+            f"controlled IO coverage missing {needle}",
+        )
+
+    for fixture_name in [
+        "io_boundary_transcript.expected.json",
+        "eio_boundary_transcript.expected.json",
+    ]:
+        fixture = json_file(f"corpus/positive/{fixture_name}")
+        require(fixture.get("expected_status") == "supported", f"{fixture_name} must be supported")
+        require(
+            "scripts/check-remaining-completion.py" in fixture.get("tests", []),
+            f"{fixture_name} missing remaining completion gate",
+        )
+        require(
+            "docs/IO_BOUNDARY.md" in fixture.get("documentation", []),
+            f"{fixture_name} missing IO-boundary docs",
+        )
+
+
 def check_docs_and_release() -> None:
     for path in [
         "docs/TYPECLASS_DICTIONARIES.md",
@@ -585,6 +629,7 @@ def main() -> None:
     check_dictionary_docs_and_corpus()
     check_closure_docs_and_corpus()
     check_pure_do_docs_and_corpus()
+    check_controlled_io_docs_and_corpus()
     check_docs_and_release()
     check_scripts()
 

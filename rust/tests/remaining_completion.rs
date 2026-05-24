@@ -104,6 +104,19 @@ fn remaining_runtime_features_are_exercised() {
 }
 
 #[test]
+fn remaining_controlled_io_generated_examples_are_exercised() {
+    let expected = String::from("print:hello|read-env:HOME|time:42");
+    assert_eq!(
+        io_boundary_transcript(String::from("hello"), String::from("HOME"), 42),
+        expected
+    );
+    assert_eq!(
+        eio_boundary_transcript(String::from("hello"), String::from("HOME"), 42),
+        String::from("print:hello|read-env:HOME|time:42")
+    );
+}
+
+#[test]
 fn remaining_pure_do_generated_examples_cover_bind_and_seq_shapes() {
     assert_eq!(option_do_inc_u32(Some(41)), Some(42));
     assert_eq!(option_seq_right_u32(Some(5)), Some(41));

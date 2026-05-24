@@ -16,6 +16,7 @@ import LeanRustCore.StdExamples
 import LeanRustCore.Lowering
 import LeanRustCore.ChimeraBoundary
 import LeanRustCore.Examples
+import LeanRustCore.ControlledIOExamples
 import LeanRustCore.RecursionExamples
 import LeanRustCore.TargetValidation
 import LeanRustCore.BoundaryExport

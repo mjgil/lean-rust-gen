@@ -1,7 +1,7 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
 TYPE_COUNT	18
-FN_COUNT	189
+FN_COUNT	191
 TYPE	struct	RoseTreeU32	value:u32,children:Vec<RoseTreeU32>
 TYPE	struct	PairboxStringU32	left:String,right:u32
 TYPE	struct	BoundedProof	value:u32
@@ -93,13 +93,14 @@ FN	ord_compare_u32	a:u32,b:u32	Ordering	compare(var(a),var(b))
 FN	nat_two_step_or_zero_u32	n:u32	u32	if(lt(var(n),lit(2)),lit(0),var(n))
 FN	gcd_u32	a:u32,b:u32	u32	if(eq(var(a),lit(0)),var(b),if(eq(var(b),lit(0)),var(a),if(eq(var(a),var(b)),var(a),if(lt(var(a),var(b)),call(gcd_u32,var(a),sub(var(b),var(a))),call(gcd_u32,sub(var(a),var(b)),var(b))))))
 FN	defun_compose_inc_double_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Double),call(defun_apply_u32,enum(U32FnCase::Inc),var(x)))
-FN	pair_choice_default_u32_string	choice:PairchoiceU32String,fallback:u32	u32	match_pattern(var(choice),PairchoiceU32String::Left(varpat(value))=>var(value)|PairchoiceU32String::Right(varpat(_hyg3431))=>var(fallback))
+FN	pair_choice_default_u32_string	choice:PairchoiceU32String,fallback:u32	u32	match_pattern(var(choice),PairchoiceU32String::Left(varpat(value))=>var(value)|PairchoiceU32String::Right(varpat(_hyg3454))=>var(fallback))
 FN	add_u32	a:u32,b:u32	u32	add(var(a),var(b))
 FN	reader_seq_left_u32	env:u32	u32	let(__reader_seq_left_1,var(env),let(__reader_seq_left_ignore_2,lit(41),var(__reader_seq_left_1)))
 FN	repr_u32	x:u32	String	repr(u32,var(x))
 FN	list_filter_nonzero_u32	xs:Vec<u32>	Vec<u32>	list_filter(x,var(xs),gt(var(x),lit(0)))
 FN	point_x	p:Point	u32	field(var(p),x)
 FN	nested_payload_value_or_u32_string	payload:NestedpayloadU32String,fallback:u32	u32	match_pattern(field(var(payload),primary),None=>var(fallback)|Some(varpat(value))=>var(value))
+FN	eio_boundary_transcript	line:String,key:String,timestamp:u32	String	call(__runtime_string_append,call(__runtime_string_append,call(__runtime_string_append,string(print:),var(line)),call(__runtime_string_append,string(\|read-env:),var(key))),call(__runtime_string_append,string(\|time:),to_string(u32,var(timestamp))))
 FN	add_u64	a:u64,b:u64	u64	add(var(a),var(b))
 FN	reader_seq_right_u32	env:u32,x:u32	u32	let(__reader_seq_right_2,var(env),add(var(x),lit(1)))
 FN	boxed_u32	x:u32	BoxedU32	struct(BoxedU32,value=var(x))
@@ -142,6 +143,7 @@ FN	point_y	p:Point	u32	field(var(p),y)
 FN	preconditioned_mod_u32	a:u32,b:u32	Result<u32, String>	call(__runtime_u32_preconditioned_mod,var(a),var(b))
 FN	general_option_match_u32	x:Option<u32>,fallback:u32	u32	match_pattern(var(x),None=>var(fallback)|Some(varpat(value))=>add(var(value),lit(1)))
 FN	option_do_inc_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(v)=>some(add(var(v),lit(1))))
+FN	io_boundary_transcript	line:String,key:String,timestamp:u32	String	call(__runtime_string_append,call(__runtime_string_append,call(__runtime_string_append,string(print:),var(line)),call(__runtime_string_append,string(\|read-env:),var(key))),call(__runtime_string_append,string(\|time:),to_string(u32,var(timestamp))))
 FN	echo_i32	x:i32	i32	var(x)
 FN	except_do_inc_u32	x:Result<u32, u32>	Result<u32, u32>	match_enum(var(x),Err(__lrc_err)=>err(var(__lrc_err))|Ok(v)=>ok(add(var(v),lit(1))))
 FN	result_ok_none_u32	_x:()	Result<Option<u32>, u32>	ok(none)

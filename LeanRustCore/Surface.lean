@@ -1354,6 +1354,12 @@ mutual
               match evaluatedArgs with
               | [head, .list tail] => pure (.list (head :: tail))
               | _ => evalError .unsupportedType "list_prepend_u32 expected (u32, List<u32>)"
+            else if name == "__runtime_string_append" &&
+                argTypes == [.string, .string] &&
+                ret == .string then
+              match evaluatedArgs with
+              | [.string left, .string right] => pure (.string (left ++ right))
+              | _ => evalError .unsupportedType "string_append expected (String, String)"
             else if name == "__runtime_list_head_or_default_u32" &&
                 argTypes == [.list .u32, .u32] &&
                 ret == .u32 then

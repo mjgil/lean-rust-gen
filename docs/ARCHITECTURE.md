@@ -660,3 +660,30 @@ after the final state application into explicit `(Result value err, state)`
 carriers, including lifted `get`/`set` state operations, `Ok`/`Err`
 short-circuiting in bind and applicative sequencing, and first-order partial
 applications such as `except_state_input_u32 input`.
+
+## Remaining controlled-IO extraction completion
+
+Task 54 is no longer runtime-metadata-only. The repo now keeps the explicit
+runtime boundary model in `crates/runtime::ControlledIoProgram`, but the direct
+generated lane also admits a narrow extractor-backed source slice through
+`LeanRustCore.ControlledIOExamples`.
+
+The admitted source shapes are the exported Lean declarations
+`LeanRustCore.ControlledIOExamples.io_boundary_transcript` and
+`LeanRustCore.ControlledIOExamples.eio_boundary_transcript`. Their source types
+are `IO String` and `EIO Empty String`, but the extractor routes them through
+`LeanRustCore.ControlledIOExtraction.specialControlledIOSurfaceFun?` into
+deterministic transcript-string `SurfaceFun` bodies before the mandatory
+`ExtractIR` and Rust-emission stages.
+
+That means the generated Rust API stays pure and deterministic:
+
+- `io_boundary_transcript(String, String, u32) -> String`
+- `eio_boundary_transcript(String, String, u32) -> String`
+
+The transcript format is fixed to
+`print:<line>|read-env:<key>|time:<timestamp>`. This preserves the controlled
+boundary contract without exposing host IO, ambient environment reads, or task
+scheduling in the default lane. Ambient effects such as `IO.FS.readFile`,
+arbitrary `IO` / `EIO`, and `Task` remain in the `LRC004` rejection path and
+are still covered by the unsupported corpus.

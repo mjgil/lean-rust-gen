@@ -141,6 +141,14 @@ fn typeclass_and_closure_specializations_lower() {
     assert_eq!(except_state_seq_right_u32(Ok(40), 2), (Ok(3), 2));
     assert_eq!(except_state_seq_left_u32(Err(7), 2), (Err(7), 2));
     assert_eq!(except_state_seq_left_u32(Ok(40), 2), (Ok(40), 3));
+    assert_eq!(
+        io_boundary_transcript(String::from("hello"), String::from("HOME"), 42),
+        String::from("print:hello|read-env:HOME|time:42")
+    );
+    assert_eq!(
+        eio_boundary_transcript(String::from("hello"), String::from("HOME"), 42),
+        String::from("print:hello|read-env:HOME|time:42")
+    );
     assert_eq!(result_map_err_inc_u32(Ok(5)), Ok(5));
     assert_eq!(result_map_err_inc_u32(Err(41)), Err(42));
     assert_eq!(reader_add_env_u32(5, 37), 42);

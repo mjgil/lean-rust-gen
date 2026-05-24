@@ -429,7 +429,7 @@ mod tests {
     fn validates_generated_ownership_policy() {
         let validation =
             validate_generated_ownership(include_str!("../../../rust/src/generated.rs")).unwrap();
-        assert_eq!(validation.approved_reference_exprs, 16);
+        assert_eq!(validation.approved_reference_exprs, 26);
         assert!(validation.violations.is_empty());
     }
 

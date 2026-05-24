@@ -30,6 +30,12 @@ def policies : List ControlledIOPolicy := [
   { op := .monotonicTime, rustShape := "read supplied deterministic timestamp seed", deterministicTest := "crates/runtime::controlled_io_boundary_is_transcript_based", documentation := "docs/IO_BOUNDARY.md" }
 ]
 
+/-- Extractor-backed exported boundary examples admitted by Task 54. -/
+def generatedBoundaryExports : List String := [
+  "io_boundary_transcript",
+  "eio_boundary_transcript"
+]
+
 def policyComplete (policy : ControlledIOPolicy) : Bool :=
   policy.deterministicTest != "" && policy.documentation == "docs/IO_BOUNDARY.md"
 
@@ -38,7 +44,7 @@ def allIOPoliciesComplete : Bool :=
 
 /-- Human-readable report summary. -/
 def ioBoundarySummary : String :=
-  "controlled IO is explicit and transcript-based; the default lane remains pure, and arbitrary IO/EIO/Task/external effects are rejected"
+  "controlled IO is explicit and transcript-based; exported io_boundary_transcript and eio_boundary_transcript lower to deterministic transcript strings, the default lane remains pure, and arbitrary IO/EIO/Task/external effects are rejected"
 
 theorem io_boundary_completion_gate : allIOPoliciesComplete = true := by
   rfl

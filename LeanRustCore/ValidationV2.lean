@@ -312,11 +312,11 @@ def coverageEntries : List CoverageEntry := [
     ["rust/proof-report.json", "rust/coverage-dashboard.json"]
     ["remaining-pure-do-notation"],
   mkEntry "remaining-controlled-io-boundary" "supported-complete"
-    ["IOBoundary.policies", "ControlledIoProgram", "docs/IO_BOUNDARY.md"]
-    ["LeanRustCore/IOBoundary.lean", "crates/runtime/src/lib.rs"]
-    ["rust/tests/remaining_completion.rs", "scripts/check-remaining-completion.py"]
+    ["IOBoundary.policies", "IOBoundary.generatedBoundaryExports", "ControlledIoProgram", "io_boundary_transcript", "eio_boundary_transcript", "docs/IO_BOUNDARY.md"]
+    ["LeanRustCore/IOBoundary.lean", "LeanRustCore/ControlledIOExamples.lean", "LeanRustCore/ControlledIOExtraction.lean", "LeanRustCore/Extract.lean", "crates/runtime/src/lib.rs"]
+    ["rust/tests/remaining_completion.rs", "rust/tests/generated.rs", "rust/tests/target_interpreter.rs", "scripts/check-remaining-completion.py"]
     ["docs/IO_BOUNDARY.md", "docs/ARCHITECTURE.md"]
-    ["rust/proof-report.json", "rust/coverage-dashboard.json"]
+    ["rust/proof-report.json", "rust/coverage-dashboard.json", "rust/src/generated.rs", "rust/target-validation.txt", "corpus/positive/io_boundary_transcript.expected.json", "corpus/positive/eio_boundary_transcript.expected.json"]
     ["remaining-controlled-io-boundary"],
   mkEntry "remaining-complete-semantics" "supported-complete"
     ["CompleteSemantics.coverage", "validate::TargetTerm", "docs/SEMANTICS.md"]

@@ -33,6 +33,16 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         ))),
         "option_identity_u32" => Ok(v_option_u32(option_identity_u32(as_option_u32(&args[0])?))),
         "echo_string" => Ok(v_string(echo_string(as_string(&args[0])?))),
+        "io_boundary_transcript" => Ok(v_string(io_boundary_transcript(
+            as_string(&args[0])?,
+            as_string(&args[1])?,
+            as_u32(&args[2])?,
+        ))),
+        "eio_boundary_transcript" => Ok(v_string(eio_boundary_transcript(
+            as_string(&args[0])?,
+            as_string(&args[1])?,
+            as_u32(&args[2])?,
+        ))),
         "echo_char" => Ok(v_char(echo_char(as_char(&args[0])?))),
         "exact_nat_add" => Ok(v_nat(exact_nat_add(as_nat(&args[0])?, as_nat(&args[1])?))),
         "expr_lit_u32" => Ok(v_expr_u32(expr_lit_u32(as_u32(&args[0])?))),

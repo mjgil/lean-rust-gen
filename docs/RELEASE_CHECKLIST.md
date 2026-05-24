@@ -78,7 +78,7 @@ arithmetic plus the audited helper borrows for `list_head_clone`,
 
 The release matrix now includes `scripts/check-remaining-completion.py`, which
 checks generated dictionaries, first-class closures, pure do-notation,
-controlled IO boundary metadata, complete target semantics, preservation
+controlled IO boundary exports, complete target semantics, preservation
 obligations, property generators, feature-complete coverage, CI matrix metadata,
 and publishing/versioning metadata.
 
@@ -93,6 +93,16 @@ explicit runtime dictionary constants.
 For first-class closure lowering, that same gate now requires the helper module
 `LeanRustCore.ClosureLoweringExamples`, the positive corpus fixtures
 `corpus/positive/*closure*.expected.json`, the compiled execution checks in
+`rust/tests/closure_lowering.rs`, and the target-interpreter coverage for the
+stored/returned/passed closure exports.
+
+For controlled IO extraction, that gate now requires
+`LeanRustCore.ControlledIOExamples`, the extraction override module
+`LeanRustCore.ControlledIOExtraction`, the positive corpus fixtures
+`corpus/positive/io_boundary_transcript.expected.json` and
+`corpus/positive/eio_boundary_transcript.expected.json`, and the generated /
+differential / target-interpreter checks for
+`io_boundary_transcript` and `eio_boundary_transcript`.
 `rust/tests/closure_lowering.rs`, and exhaustive compiled dispatch coverage in
 `rust/tests/target_interpreter.rs`. The docs must also include both
 `docs/FIRST_CLASS_CLOSURES.md` and `docs/CLOSURE_CONVERSION.md`.
