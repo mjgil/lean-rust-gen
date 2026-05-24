@@ -1,6 +1,6 @@
 FORMAT	lean-rust-core.extract-ir.v1
 ARCH	direct-lean-emits-rust
-FN_COUNT	173
+FN_COUNT	175
 IR-FN	inhabited_default_u32	_x:()	u32	surface(LeanRustCore.SurfaceExpr.defaultValue \(LeanRustCore.RType.u32\))
 IR-FN	array_get_opt_u32	xs:Vec<u32>,i:u32	Option<u32>	surface(LeanRustCore.SurfaceExpr.call\n  "__runtime_array_get_u32"\n  [LeanRustCore.RType.array \(LeanRustCore.RType.u32\)\, LeanRustCore.RType.u32]\n  \(LeanRustCore.RType.option \(LeanRustCore.RType.u32\)\)\n  [LeanRustCore.SurfaceExpr.var "xs"\, LeanRustCore.SurfaceExpr.var "i"])
 IR-FN	generated_dict_add_u32	a:u32,b:u32	u32	surface(LeanRustCore.SurfaceExpr.call\n  "__runtime_dictionary_add_u32_const"\n  [LeanRustCore.RType.u32\, LeanRustCore.RType.u32]\n  \(LeanRustCore.RType.u32\)\n  [LeanRustCore.SurfaceExpr.var "a"\, LeanRustCore.SurfaceExpr.var "b"])
@@ -116,7 +116,9 @@ IR-FN	odd_terminal_u32	value:u32	OddNode	surface(LeanRustCore.SurfaceExpr.enumVa
 IR-FN	point_y	p:Point	u32	surface(LeanRustCore.SurfaceExpr.field \(LeanRustCore.SurfaceExpr.var "p"\) "y")
 IR-FN	preconditioned_mod_u32	a:u32,b:u32	Result<u32, String>	surface(LeanRustCore.SurfaceExpr.call\n  "__runtime_u32_preconditioned_mod"\n  [LeanRustCore.RType.u32\, LeanRustCore.RType.u32]\n  \(LeanRustCore.RType.result \(LeanRustCore.RType.u32\) \(LeanRustCore.RType.string\)\)\n  [LeanRustCore.SurfaceExpr.var "a"\, LeanRustCore.SurfaceExpr.var "b"])
 IR-FN	general_option_match_u32	x:Option<u32>,fallback:u32	u32	surface(LeanRustCore.SurfaceExpr.matchPattern\n  \(LeanRustCore.RType.option \(LeanRustCore.RType.u32\)\)\n  \(LeanRustCore.SurfaceExpr.var "x"\)\n  [\(LeanRustCore.SurfacePattern.optionNone\, LeanRustCore.SurfaceExpr.var "fallback"\)\,\n   \(LeanRustCore.SurfacePattern.optionSome \(LeanRustCore.SurfacePattern.var "value"\)\,\n    LeanRustCore.SurfaceExpr.add\n      \(LeanRustCore.RType.u32\)\n      \(LeanRustCore.SurfaceExpr.var "value"\)\n      \(LeanRustCore.SurfaceExpr.litU32 1\)\)])
+IR-FN	option_do_inc_u32	x:Option<u32>	Option<u32>	surface(LeanRustCore.SurfaceExpr.optionBind\n  "v"\n  \(LeanRustCore.RType.u32\)\n  \(LeanRustCore.RType.u32\)\n  \(LeanRustCore.SurfaceExpr.var "x"\)\n  \(LeanRustCore.SurfaceExpr.optionSome\n    \(LeanRustCore.SurfaceExpr.add\n      \(LeanRustCore.RType.u32\)\n      \(LeanRustCore.SurfaceExpr.var "v"\)\n      \(LeanRustCore.SurfaceExpr.litU32 1\)\)\))
 IR-FN	echo_i32	x:i32	i32	surface(LeanRustCore.SurfaceExpr.var "x")
+IR-FN	except_do_inc_u32	x:Result<u32, u32>	Result<u32, u32>	surface(LeanRustCore.SurfaceExpr.resultBind\n  "v"\n  \(LeanRustCore.RType.u32\)\n  \(LeanRustCore.RType.u32\)\n  \(LeanRustCore.RType.u32\)\n  \(LeanRustCore.SurfaceExpr.var "x"\)\n  \(LeanRustCore.SurfaceExpr.resultOk\n    \(LeanRustCore.RType.u32\)\n    \(LeanRustCore.SurfaceExpr.add\n      \(LeanRustCore.RType.u32\)\n      \(LeanRustCore.SurfaceExpr.var "v"\)\n      \(LeanRustCore.SurfaceExpr.litU32 1\)\)\))
 IR-FN	result_ok_none_u32	_x:()	Result<Option<u32>, u32>	surface(LeanRustCore.SurfaceExpr.resultOk\n  \(LeanRustCore.RType.u32\)\n  \(LeanRustCore.SurfaceExpr.optionNone \(LeanRustCore.RType.u32\)\))
 IR-FN	list_map_inc_u32	xs:Vec<u32>	Vec<u32>	surface(LeanRustCore.SurfaceExpr.listMap\n  "x"\n  \(LeanRustCore.RType.u32\)\n  \(LeanRustCore.RType.u32\)\n  \(LeanRustCore.SurfaceExpr.var "xs"\)\n  \(LeanRustCore.SurfaceExpr.add\n    \(LeanRustCore.RType.u32\)\n    \(LeanRustCore.SurfaceExpr.var "x"\)\n    \(LeanRustCore.SurfaceExpr.litU32 1\)\))
 IR-FN	echo_array_u32	xs:Vec<u32>	Vec<u32>	surface(LeanRustCore.SurfaceExpr.var "xs")

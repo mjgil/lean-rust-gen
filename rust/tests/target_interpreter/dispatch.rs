@@ -403,6 +403,10 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[0])?,
             as_u32(&args[1])?,
         ))),
+        "option_do_inc_u32" => Ok(v_option_u32(option_do_inc_u32(as_option_u32(&args[0])?))),
+        "except_do_inc_u32" => Ok(v_result_u32_u32(except_do_inc_u32(as_result_u32_u32(
+            &args[0],
+        )?))),
         "generic_choose__point" => Ok(v_point(generic_choose__point(
             as_bool(&args[0])?,
             as_point(&args[1])?,

@@ -117,6 +117,10 @@ fn typeclass_and_closure_specializations_lower() {
     assert_eq!(ord_compare_u32(3, 2), Ordering::Gt);
     assert_eq!(option_getd_u32(None, 9), 9);
     assert_eq!(option_getd_u32(Some(4), 9), 4);
+    assert_eq!(option_do_inc_u32(None), None);
+    assert_eq!(option_do_inc_u32(Some(41)), Some(42));
+    assert_eq!(except_do_inc_u32(Err(7)), Err(7));
+    assert_eq!(except_do_inc_u32(Ok(41)), Ok(42));
     assert_eq!(result_map_err_inc_u32(Ok(5)), Ok(5));
     assert_eq!(result_map_err_inc_u32(Err(41)), Err(42));
     assert_eq!(reader_add_env_u32(5, 37), 42);

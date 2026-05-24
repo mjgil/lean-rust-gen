@@ -795,8 +795,22 @@ pub fn general_option_match_u32(x: Option<u32>, fallback: u32) -> u32 {
     }
 }
 
+pub fn option_do_inc_u32(x: Option<u32>) -> Option<u32> {
+    match x {
+        None => None::<u32>,
+        Some(v) => Some((v).wrapping_add(1)),
+    }
+}
+
 pub fn echo_i32(x: i32) -> i32 {
     x
+}
+
+pub fn except_do_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x {
+        Err(__lrc_err) => Err::<_, u32>(__lrc_err),
+        Ok(v) => Ok((v).wrapping_add(1)),
+    }
 }
 
 pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32> {

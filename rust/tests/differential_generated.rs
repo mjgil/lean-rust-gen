@@ -115,6 +115,10 @@ fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(array_push_u32(vec![1, 2], 3), vec![1u32, 2u32, 3u32]);
     assert_eq!(option_getd_u32(None, 9), 9u32);
     assert_eq!(option_getd_u32(Some(4), 9), 4u32);
+    assert_eq!(option_do_inc_u32(None), None);
+    assert_eq!(option_do_inc_u32(Some(41)), Some(42u32));
+    assert_eq!(except_do_inc_u32(Err(7)), Err(7u32));
+    assert_eq!(except_do_inc_u32(Ok(41)), Ok(42u32));
     assert_eq!(result_map_err_inc_u32(Err(41)), Err(42u32));
     assert_eq!(reader_add_env_u32(5, 37), 42u32);
     assert_eq!(state_tick_u32(41), (41u32, 42u32));

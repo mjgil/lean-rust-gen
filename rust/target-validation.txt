@@ -1,7 +1,7 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
 TYPE_COUNT	18
-FN_COUNT	173
+FN_COUNT	175
 TYPE	struct	RoseTreeU32	value:u32,children:Vec<RoseTreeU32>
 TYPE	struct	PairboxStringU32	left:String,right:u32
 TYPE	struct	BoundedProof	value:u32
@@ -135,7 +135,9 @@ FN	odd_terminal_u32	value:u32	OddNode	enum(OddNode::Terminal,var(value))
 FN	point_y	p:Point	u32	field(var(p),y)
 FN	preconditioned_mod_u32	a:u32,b:u32	Result<u32, String>	call(__runtime_u32_preconditioned_mod,var(a),var(b))
 FN	general_option_match_u32	x:Option<u32>,fallback:u32	u32	match_pattern(var(x),None=>var(fallback)|Some(varpat(value))=>add(var(value),lit(1)))
+FN	option_do_inc_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(v)=>some(add(var(v),lit(1))))
 FN	echo_i32	x:i32	i32	var(x)
+FN	except_do_inc_u32	x:Result<u32, u32>	Result<u32, u32>	match_enum(var(x),Err(__lrc_err)=>err(var(__lrc_err))|Ok(v)=>ok(add(var(v),lit(1))))
 FN	result_ok_none_u32	_x:()	Result<Option<u32>, u32>	ok(none)
 FN	list_map_inc_u32	xs:Vec<u32>	Vec<u32>	list_map(x,var(xs),add(var(x),lit(1)))
 FN	echo_array_u32	xs:Vec<u32>	Vec<u32>	var(xs)

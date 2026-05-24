@@ -696,10 +696,89 @@ private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expec
         | _ => throwError "Fin.val projection currently supports local Fin variables only"
       else
         unsupported e
-  | .app .. => translateApp typeCtx locals expected e
+  | .app .. =>
+      match (← translateElaboratedPureDoApp? typeCtx locals expected e) with
+      | some lowered => pure lowered
+      | none => translateApp typeCtx locals expected e
   | .mdata _ inner => translateExpr typeCtx locals expected inner
   | _ => unsupported e
 where
+  translateElaboratedPureDoApp? (typeCtx : TypeCtx) (locals : LocalCtx)
+      (expected : Option RType) (e : Expr) : CoreM (Option SurfaceExpr) := do
+    let fn := e.getAppFn
+    let args := e.getAppArgs.toList
+    match fn with
+    | .const n _ =>
+        if n == ``Bind.bind then
+          translateElaboratedPureDoBind? typeCtx locals expected args
+        else if n == ``Pure.pure then
+          translateElaboratedPureDoPure? typeCtx locals expected args
+        else
+          pure none
+    | _ => pure none
+
+  translateElaboratedPureDoBind? (typeCtx : TypeCtx) (locals : LocalCtx)
+      (expected : Option RType) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    match args with
+    | monadExpr :: _instExpr :: alphaExpr :: betaExpr :: targetExpr :: fnExpr :: [] =>
+        match stripMData monadExpr with
+        | .const monadName _ =>
+            if monadName == ``Option then
+              let innerTy ← typeOfLeanWithCtx typeCtx alphaExpr
+              let outTy ← typeOfLeanWithCtx typeCtx betaExpr
+              match expected with
+              | some (.option wanted) =>
+                  if wanted != outTy then
+                    throwError "elaborated Option bind result type did not match the expected Option type"
+              | some _ => throwError "elaborated Option bind expected type was not Option"
+              | none => pure ()
+              let target ← translateExpr typeCtx locals (some (.option innerTy)) targetExpr
+              let (binder, body) ← translateUnaryLambdaBody typeCtx locals innerTy (.option outTy) fnExpr
+              pure (some (.optionBind binder innerTy outTy target body))
+            else
+              pure none
+        | .app (.const monadName _) errExpr =>
+            if monadName == ``Except then
+              let errTy ← typeOfLeanWithCtx typeCtx errExpr
+              let okTy ← typeOfLeanWithCtx typeCtx alphaExpr
+              let outTy ← typeOfLeanWithCtx typeCtx betaExpr
+              match expected with
+              | some (.result wantedOk wantedErr) =>
+                  if wantedOk != outTy || wantedErr != errTy then
+                    throwError "elaborated Except bind result type did not match the expected Result type"
+              | some _ => throwError "elaborated Except bind expected type was not Result"
+              | none => pure ()
+              let target ← translateExpr typeCtx locals (some (.result okTy errTy)) targetExpr
+              let (binder, body) ← translateUnaryLambdaBody typeCtx locals okTy (.result outTy errTy) fnExpr
+              pure (some (.resultBind binder errTy okTy outTy target body))
+            else
+              pure none
+        | _ => pure none
+    | _ => pure none
+
+  translateElaboratedPureDoPure? (typeCtx : TypeCtx) (locals : LocalCtx)
+      (expected : Option RType) (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    match args with
+    | monadExpr :: _instExpr :: alphaExpr :: valueExpr :: [] =>
+        match stripMData monadExpr with
+        | .const monadName _ =>
+            if monadName == ``Option then
+              let innerTy ← typeOfLeanWithCtx typeCtx alphaExpr
+              let value ← translateExpr typeCtx locals (some innerTy) valueExpr
+              pure (some (.optionSome value))
+            else
+              pure none
+        | .app (.const monadName _) errExpr =>
+            if monadName == ``Except then
+              let errTy ← typeOfLeanWithCtx typeCtx errExpr
+              let okTy ← typeOfLeanWithCtx typeCtx alphaExpr
+              let value ← translateExpr typeCtx locals (some okTy) valueExpr
+              pure (some (.resultOk errTy value))
+            else
+              pure none
+        | _ => pure none
+    | _ => pure none
+
   translateBinaryLastTwo (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (fallback : RType)
       (ctor : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr) : CoreM SurfaceExpr := do
     let args := e.getAppArgs.toList
@@ -762,14 +841,17 @@ where
     let env ← getEnv
     if containsName (LeanRustCore.Export.exportedNames env) calledName then
       return none
-    match env.find? calledName, (← firstOrderSignature? calledName) with
-    | some (.defnInfo defInfo), some (argTypes, retTy) =>
-        if (argTypes.any directFuncType || directFuncType retTy) && !exprContainsConst calledName defInfo.value then
-          let unfolded ← Core.betaReduce (mkAppN defInfo.value args.toArray)
-          return some (← translateExpr typeCtx locals expected unfolded)
-        else
-          return none
-    | _, _ => return none
+    try
+      match env.find? calledName, (← firstOrderSignature? calledName) with
+      | some (.defnInfo defInfo), some (argTypes, retTy) =>
+          if (argTypes.any directFuncType || directFuncType retTy) && !exprContainsConst calledName defInfo.value then
+            let unfolded ← Core.betaReduce (mkAppN defInfo.value args.toArray)
+            return some (← translateExpr typeCtx locals expected unfolded)
+          else
+            return none
+      | _, _ => return none
+    catch _ =>
+      return none
 
   translateUnaryLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx) (elemTy outTy : RType) (fnExpr : Expr) : CoreM (String × SurfaceExpr) := do
     match stripMData fnExpr with
@@ -1470,12 +1552,15 @@ where
     pure (.defaultValue ty)
 
   translatePureValue (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
-    match expected, last? args with
-    | some (.option inner), some valueExpr =>
-        pure (.optionSome (← translateExpr typeCtx locals (some inner) valueExpr))
-    | some (.result ok err), some valueExpr =>
-        pure (.resultOk err (← translateExpr typeCtx locals (some ok) valueExpr))
-    | _, _ => unsupported e
+    try
+      match expected, last? args with
+      | some (.option inner), some valueExpr =>
+          pure (.optionSome (← translateExpr typeCtx locals (some inner) valueExpr))
+      | some (.result ok err), some valueExpr =>
+          pure (.resultOk err (← translateExpr typeCtx locals (some ok) valueExpr))
+      | _, _ => unsupported e
+    catch err =>
+      throwError "Pure.pure lowering failed: {← err.toMessageData.toString}"
 
   surfaceCtxFromLocals : LocalCtx → List RArg
     | [] => []
@@ -1488,22 +1573,25 @@ where
     | .error report => throwError "could not infer translated surface type during typeclass bind lowering: {report.detail}"
 
   translateTypeclassBind (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
-    match lastTwo args with
-    | some (targetExpr, fnExpr) => do
-        let target ← translateExpr typeCtx locals none targetExpr
-        let targetTy ← translatedSurfaceType locals target
-        match targetTy, expected with
-        | .option elemTy, some (.option outTy) =>
-            let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy (.option outTy) fnExpr
-            pure (.optionBind binder elemTy outTy target body)
-        | .result okTy errTy, some (.result outTy expectedErr) =>
-            if errTy == expectedErr then
-              let (binder, body) ← translateUnaryLambdaBody typeCtx locals okTy (.result outTy errTy) fnExpr
-              pure (.resultBind binder errTy okTy outTy target body)
-            else
-              unsupported e
-        | _, _ => unsupported e
-    | none => unsupported e
+    try
+      match lastTwo args with
+      | some (targetExpr, fnExpr) => do
+          let target ← translateExpr typeCtx locals none targetExpr
+          let targetTy ← translatedSurfaceType locals target
+          match targetTy, expected with
+          | .option elemTy, some (.option outTy) =>
+              let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy (.option outTy) fnExpr
+              pure (.optionBind binder elemTy outTy target body)
+          | .result okTy errTy, some (.result outTy expectedErr) =>
+              if errTy == expectedErr then
+                let (binder, body) ← translateUnaryLambdaBody typeCtx locals okTy (.result outTy errTy) fnExpr
+                pure (.resultBind binder errTy okTy outTy target body)
+              else
+                unsupported e
+          | _, _ => unsupported e
+      | none => unsupported e
+    catch err =>
+      throwError "typeclass bind lowering failed: {← err.toMessageData.toString}"
 
   translateVectorMap (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match args with
@@ -3026,7 +3114,9 @@ private def generatedDictionaryExport (declName : Name) : Bool :=
   leaf == "generated_dict_to_string_u32"
 
 private def monadicSpecializationExport (declName : Name) : Bool :=
-  nameLeaf declName == "option_do_inc_u32"
+  let leaf := nameLeaf declName
+  leaf == "option_do_inc_u32" ||
+  leaf == "except_do_inc_u32"
 
 private def closureConversionExport (declName : Name) : Bool :=
   let leaf := nameLeaf declName

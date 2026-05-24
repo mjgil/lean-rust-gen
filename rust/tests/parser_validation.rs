@@ -129,6 +129,8 @@ fn parser_validates_generated_top_level_subset() {
         "list_find_nonzero_u32",
         "array_push_u32",
         "option_getd_u32",
+        "option_do_inc_u32",
+        "except_do_inc_u32",
         "result_map_err_inc_u32",
         "reader_add_env_u32",
         "state_tick_u32",

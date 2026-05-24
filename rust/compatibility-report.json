@@ -2,7 +2,7 @@
   "format": "lean-rust-core.compatibility-report.v1",
   "architecture": "direct-lean-emits-rust",
   "feature_tag_schema": "lean-rust-core.feature-tags.v1",
-  "generated_function_count": 173,
+  "generated_function_count": 175,
   "diagnostics": [
     { "source": "LeanRustCore.Examples.inhabited_default_u32", "rust_name": "inhabited_default_u32", "code": "supported", "detail": "exported-typeclass-specialization", "features": ["typeclass-specialization"], "next_feature": null },
     { "source": "LeanRustCore.Examples.array_get_opt_u32", "rust_name": "array_get_opt_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null },
@@ -119,7 +119,9 @@
     { "source": "LeanRustCore.Examples.point_y", "rust_name": "point_y", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.preconditioned_mod_u32", "rust_name": "preconditioned_mod_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.general_option_match_u32", "rust_name": "general_option_match_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
+    { "source": "LeanRustCore.Examples.option_do_inc_u32", "rust_name": "option_do_inc_u32", "code": "supported", "detail": "exported-monadic-bind-specialization", "features": ["pure-do-notation"], "next_feature": null },
     { "source": "LeanRustCore.Examples.echo_i32", "rust_name": "echo_i32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
+    { "source": "LeanRustCore.Examples.except_do_inc_u32", "rust_name": "except_do_inc_u32", "code": "supported", "detail": "exported-monadic-bind-specialization", "features": ["pure-do-notation"], "next_feature": null },
     { "source": "LeanRustCore.Examples.result_ok_none_u32", "rust_name": "result_ok_none_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.list_map_inc_u32", "rust_name": "list_map_inc_u32", "code": "supported", "detail": "exported", "features": ["structural-list-loop"], "next_feature": null },
     { "source": "LeanRustCore.Examples.echo_array_u32", "rust_name": "echo_array_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
@@ -176,8 +178,6 @@
     { "source": "LeanRustCore.Examples.auto_option_default_step", "rust_name": "auto_option_default_step", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.returned_closure_apply_u32", "rust_name": "returned_closure_apply_u32", "code": "supported", "detail": "exported", "features": ["exported"], "next_feature": null },
     { "source": "LeanRustCore.Examples.mutual_even_u32", "rust_name": "mutual_even_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null },
-    { "source": "LeanRustCore.Examples.mutual_odd_u32", "rust_name": "mutual_odd_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null },
-    { "source": "LeanRustCore.Examples.option_do_inc_u32", "rust_name": "option_do_inc_u32", "code": "unsupported-declaration", "detail": "unsupported export skipped by the direct Lean-to-Rust extractor", "features": ["unsupported"], "next_feature": null },
-    { "source": "LeanRustCore.Examples.except_do_inc_u32", "rust_name": "except_do_inc_u32", "code": "unsupported-declaration", "detail": "unsupported export skipped by the direct Lean-to-Rust extractor", "features": ["unsupported"], "next_feature": null }
+    { "source": "LeanRustCore.Examples.mutual_odd_u32", "rust_name": "mutual_odd_u32", "code": "supported", "detail": "exported-nat-wrapping-u32", "features": ["exported"], "next_feature": null }
   ]
 }
