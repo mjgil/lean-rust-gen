@@ -7,6 +7,13 @@
 use std::collections::BTreeMap;
 use std::sync::{Mutex, OnceLock};
 
+mod property_generators;
+
+pub use property_generators::{
+    execute_handle_trace, generate_handle_traces, minimize_handle_trace, shrink_handle_trace,
+    HandleTraceOp,
+};
+
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ChStatus(pub i32);
@@ -185,5 +192,30 @@ mod tests {
         let handle = string_handle_from_u32(42);
         assert_eq!(string_handle_drop(handle), ChStatus::OK);
         assert_eq!(string_handle_drop(handle), ChStatus::ERR);
+    }
+
+    #[test]
+    fn randomized_handle_generators_cover_lifecycle_traces() {
+        let traces = generate_handle_traces(0xBADC0DE, 6, 5);
+        assert_eq!(traces.len(), 6);
+        assert!(traces.iter().all(|trace| !trace.is_empty()));
+        assert!(traces
+            .iter()
+            .flat_map(|trace| execute_handle_trace(trace))
+            .all(|status| status == ChStatus::OK || status == ChStatus::ERR));
+    }
+
+    #[test]
+    fn handle_trace_minimizer_prefers_short_lifecycle_counterexamples() {
+        let trace = vec![
+            HandleTraceOp::VecNew,
+            HandleTraceOp::VecPush(9),
+            HandleTraceOp::VecDrop,
+            HandleTraceOp::VecDrop,
+        ];
+        let minimized = minimize_handle_trace(trace, |ops| {
+            execute_handle_trace(ops).contains(&ChStatus::ERR)
+        });
+        assert_eq!(minimized, vec![HandleTraceOp::VecDrop]);
     }
 }

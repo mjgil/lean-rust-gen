@@ -394,6 +394,21 @@ That release gate is wired into `scripts/check.sh`, `Makefile`, the release
 checklist, and Rust tests that assert the publish metadata remains visible from
 checked artifacts.
 
+## Property generator hardening
+
+Task 64 no longer stops at deterministic seed metadata. The real generator layer
+now lives in the Rust crates:
+
+- `lean-rust-core-runtime` exposes seeded randomized runtime-value generators and
+  shrinkers for scalar, container, recursive, and closure/dictionary families.
+- `lean-rust-core-validate` exposes seeded target-term generators plus shrink and
+  minimization functions over the admitted target grammar.
+- `lean-rust-core-abi` exposes seeded handle lifecycle trace generators and
+  shrinkers for the raw boundary lane.
+
+The remaining-completion gate checks those APIs directly, and the property tests
+exercise both generation and minimization rather than only fixed seeds.
+
 The boundary policy is intentionally narrow:
 
 - primitive integers cross directly,

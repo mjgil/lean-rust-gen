@@ -8,19 +8,15 @@ python3 scripts/check-publishing.py
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-python3 - "$PWD" "$tmpdir/repo" <<'PY'
-import pathlib
-import shutil
-import sys
-
-src = pathlib.Path(sys.argv[1])
-dst = pathlib.Path(sys.argv[2])
-shutil.copytree(
-    src,
-    dst,
-    ignore=shutil.ignore_patterns(".git", "target", "__pycache__", "*.pyc"),
-)
-PY
+mkdir -p "$tmpdir/repo"
+rsync \
+  -a \
+  --exclude '.git' \
+  --exclude '.lake' \
+  --exclude 'target' \
+  --exclude '__pycache__' \
+  --exclude '*.pyc' \
+  "$PWD"/ "$tmpdir/repo"/
 
 mkdir -p "$tmpdir/repo/.cargo"
 cat > "$tmpdir/repo/.cargo/config.toml" <<'EOF'

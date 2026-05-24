@@ -10,6 +10,14 @@ use std::rc::Rc;
 
 use num_bigint::{BigInt, BigUint};
 
+mod property_generators;
+
+pub use property_generators::{
+    generate_runtime_value_cases, minimize_runtime_value_case, runtime_case_depth,
+    runtime_case_exercises_first_order_helpers, shrink_runtime_value_case, PropertyRng,
+    RuntimeValueCase,
+};
+
 pub fn exact_nat_add(a: BigUint, b: BigUint) -> BigUint {
     a + b
 }
@@ -615,6 +623,46 @@ mod tests {
             vec![0, 1, 2, 41, 42, u32::MAX]
         );
         assert_eq!(container_property_values_u32()[2], vec![1, 2, u32::MAX]);
+    }
+
+    #[test]
+    fn randomized_runtime_generators_cover_all_runtime_families() {
+        let cases = generate_runtime_value_cases(0xC0FFEE, 12);
+        assert!(cases
+            .iter()
+            .any(|case| matches!(case, RuntimeValueCase::BaseScalar(_))));
+        assert!(cases
+            .iter()
+            .any(|case| matches!(case, RuntimeValueCase::Container(_))));
+        assert!(cases
+            .iter()
+            .any(|case| matches!(case, RuntimeValueCase::RecursiveTree(_))));
+        assert!(cases
+            .iter()
+            .any(|case| matches!(case, RuntimeValueCase::ClosureDictionary { .. })));
+        assert!(cases
+            .iter()
+            .all(|case| runtime_case_exercises_first_order_helpers(case, ADD_U32)));
+    }
+
+    #[test]
+    fn runtime_generator_minimizer_shrinks_counterexamples() {
+        let minimized = minimize_runtime_value_case(
+            RuntimeValueCase::BaseScalar(19),
+            |case| matches!(case, RuntimeValueCase::BaseScalar(value) if *value >= 2),
+        );
+        assert_eq!(minimized, RuntimeValueCase::BaseScalar(2));
+
+        let tree_case = RuntimeValueCase::RecursiveTree(rc_tree_node_u32(
+            rc_tree_leaf_u32(),
+            9,
+            rc_tree_leaf_u32(),
+        ));
+        let shrinks = shrink_runtime_value_case(&tree_case);
+        assert!(shrinks
+            .iter()
+            .any(|case| matches!(case, RuntimeValueCase::RecursiveTree(_))
+                && runtime_case_depth(case) == 0));
     }
 
     #[test]

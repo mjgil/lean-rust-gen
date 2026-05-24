@@ -97,12 +97,21 @@ def check_lean_modules() -> None:
 
 
 def check_rust_runtime_and_validate() -> None:
-    runtime = read("crates/runtime/src/lib.rs")
+    runtime = "\n".join(
+        [
+            read("crates/runtime/src/lib.rs"),
+            read("crates/runtime/src/property_generators.rs"),
+        ]
+    )
     for needle in [
         "pub struct AddDictU32",
         "pub struct StoredClosureU32",
         "pub enum ControlledIoOp",
         "pub struct ControlledIoProgram",
+        "pub enum RuntimeValueCase",
+        "generate_runtime_value_cases",
+        "shrink_runtime_value_case",
+        "minimize_runtime_value_case",
         "option_result_do_runtime",
         "except_state_do_runtime",
         "scalar_property_values_u32",
@@ -118,6 +127,7 @@ def check_rust_runtime_and_validate() -> None:
         [
             read("crates/validate/src/lib.rs"),
             read("crates/validate/src/target_semantics.rs"),
+            read("crates/validate/src/property_generators.rs"),
         ]
     )
     for needle in [
@@ -125,6 +135,9 @@ def check_rust_runtime_and_validate() -> None:
         "pub enum TargetTerm",
         "eval_target_term",
         "target_grammar_heads",
+        "generate_target_term_cases",
+        "shrink_target_term",
+        "minimize_target_term",
         "generated_subset_semantics_interprets_core_terms",
         "generated_subset_semantics_interprets_representative_values",
         "target_grammar_heads_are_complete",
@@ -136,11 +149,28 @@ def check_rust_runtime_and_validate() -> None:
         "remaining_rows_reports_and_dashboard_are_complete",
         "remaining_runtime_features_are_exercised",
         "remaining_validate_semantics_cover_representative_values",
+        "remaining_property_generators_are_randomized_and_shrinkable",
         "dictionary_add_u32",
         "closure_apply_stored",
         "ControlledIoProgram",
     ]:
         require(needle in remaining_test, f"remaining completion test missing {needle}")
+
+    abi = "\n".join(
+        [
+            read("crates/abi/src/lib.rs"),
+            read("crates/abi/src/property_generators.rs"),
+        ]
+    )
+    for needle in [
+        "HandleTraceOp",
+        "generate_handle_traces",
+        "shrink_handle_trace",
+        "minimize_handle_trace",
+        "randomized_handle_generators_cover_lifecycle_traces",
+        "handle_trace_minimizer_prefers_short_lifecycle_counterexamples",
+    ]:
+        require(needle in abi, f"abi crate missing {needle}")
 
 
 def check_reports_and_dashboard() -> None:

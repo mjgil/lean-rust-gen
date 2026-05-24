@@ -5,8 +5,13 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::collections::BTreeSet;
 
+mod property_generators;
 mod target_semantics;
 
+pub use property_generators::{
+    generate_target_term_cases, generated_terms_are_well_typed, minimize_target_term,
+    shrink_target_term, target_term_head, PropertyRng,
+};
 pub use target_semantics::{
     eval_target_term, target_grammar_heads, RecursiveTree, TargetTerm, TargetValue,
 };
@@ -400,5 +405,37 @@ mod tests {
             target_validation_counts("TYPE_COUNT\t2\nFN_COUNT\t3\n"),
             Some((2, 3))
         );
+    }
+
+    #[test]
+    fn randomized_target_generators_cover_target_grammar_and_shrinking() {
+        let terms = generate_target_term_cases(0x1234_5678, 28, 3);
+        let heads = terms.iter().map(target_term_head).collect::<BTreeSet<_>>();
+        for expected in [
+            "literal",
+            "let",
+            "if",
+            "match",
+            "call",
+            "struct",
+            "enum",
+            "box",
+            "deref",
+            "closure",
+            "dictionary",
+            "effect",
+        ] {
+            assert!(
+                heads.contains(expected),
+                "missing generated head {expected}"
+            );
+        }
+        assert!(generated_terms_are_well_typed(0x1234_5678, 28, 3));
+
+        let minimized = minimize_target_term(
+            TargetTerm::Add(Box::new(TargetTerm::U32(8)), Box::new(TargetTerm::U32(8))),
+            |term| matches!(eval_target_term(term), Some(TargetValue::U32(value)) if value >= 2),
+        );
+        assert_eq!(minimized, TargetTerm::U32(2));
     }
 }

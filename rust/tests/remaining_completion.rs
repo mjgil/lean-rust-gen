@@ -1,5 +1,8 @@
 use lean_rust_core_generated::runtime::*;
-use lean_rust_core_validate::{eval_target_term, RecursiveTree, TargetTerm, TargetValue};
+use lean_rust_core_validate::{
+    eval_target_term, generate_target_term_cases, generated_terms_are_well_typed,
+    minimize_target_term, target_term_head, RecursiveTree, TargetTerm, TargetValue,
+};
 
 const PROOF_REPORT: &str = include_str!("../proof-report.json");
 const VALIDATION_REPORT: &str = include_str!("../validation-report.json");
@@ -127,4 +130,28 @@ fn remaining_validate_semantics_cover_representative_values() {
         eval_target_term(&recursive_term),
         Some(TargetValue::U32(42))
     );
+}
+
+#[test]
+fn remaining_property_generators_are_randomized_and_shrinkable() {
+    let runtime_cases = generate_runtime_value_cases(0x5EED, 12);
+    assert!(runtime_cases
+        .iter()
+        .all(|case| runtime_case_exercises_first_order_helpers(case, ADD_U32)));
+    let runtime_min = minimize_runtime_value_case(
+        RuntimeValueCase::BaseScalar(33),
+        |case| matches!(case, RuntimeValueCase::BaseScalar(value) if *value >= 2),
+    );
+    assert_eq!(runtime_min, RuntimeValueCase::BaseScalar(2));
+
+    let target_terms = generate_target_term_cases(0x5EED, 28, 3);
+    assert!(generated_terms_are_well_typed(0x5EED, 28, 3));
+    assert!(target_terms
+        .iter()
+        .any(|term| target_term_head(term) == "closure"));
+    let target_min = minimize_target_term(
+        TargetTerm::Add(Box::new(TargetTerm::U32(12)), Box::new(TargetTerm::U32(5))),
+        |term| matches!(eval_target_term(term), Some(TargetValue::U32(value)) if value >= 2),
+    );
+    assert_eq!(target_min, TargetTerm::U32(2));
 }

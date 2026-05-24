@@ -3,11 +3,12 @@ import Lean
 namespace LeanRustCore.PropertyGenerators
 
 /-!
-Checklist row 53: deterministic generators and optional fuzz expansion.
+Checklist row 64: seeded randomized generators with deterministic CI replay.
 
-Generators are intentionally deterministic in CI.  Optional fuzz jobs may extend
-these families, but completion requires stable seeds, minimization policy, tests,
-and docs for every generated family.
+Generators use deterministic CI seeds together with real seeded randomized
+sampling and shrink/minimization APIs in the Rust crates. Optional fuzz jobs may
+extend these families, but completion requires stable seeds, minimization
+policy, tests, and docs for every generated family.
 -/
 
 structure GeneratorFamily where
@@ -42,7 +43,7 @@ def allGeneratorsComplete : Bool :=
 
 /-- Human-readable report summary. -/
 def propertyGeneratorsSummary : String :=
-  "deterministic generators with optional fuzz expansion cover: " ++ joinWithLocal ", " (families.map (fun f => f.name))
+  "seeded randomized generators with deterministic CI seeds and shrinkers cover: " ++ joinWithLocal ", " (families.map (fun f => f.name))
 
 theorem property_generators_completion_gate : allGeneratorsComplete = true := by
   rfl

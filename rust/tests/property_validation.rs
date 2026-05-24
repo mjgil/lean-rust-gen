@@ -1,4 +1,12 @@
+use lean_rust_core_generated::runtime::{
+    generate_runtime_value_cases, minimize_runtime_value_case,
+    runtime_case_exercises_first_order_helpers, RuntimeValueCase, ADD_U32,
+};
 use lean_rust_core_generated::*;
+use lean_rust_core_validate::{
+    eval_target_term, generate_target_term_cases, generated_terms_are_well_typed,
+    minimize_target_term, target_term_head, TargetTerm, TargetValue,
+};
 
 #[test]
 fn deterministic_recursive_tree_property_seeds() {
@@ -40,4 +48,37 @@ fn closure_and_defun_regression_seeds_remain_first_order() {
         defun_map_selected_u32(false, vec![0, 37, u32::MAX]),
         vec![1, 38, 0]
     );
+}
+
+#[test]
+fn randomized_runtime_and_target_generators_stay_semantic() {
+    let runtime_cases = generate_runtime_value_cases(0xA11CE, 12);
+    assert!(runtime_cases
+        .iter()
+        .all(|case| runtime_case_exercises_first_order_helpers(case, ADD_U32)));
+    assert!(runtime_cases
+        .iter()
+        .any(|case| matches!(case, RuntimeValueCase::RecursiveTree(_))));
+
+    let terms = generate_target_term_cases(0xA11CE, 28, 3);
+    assert!(generated_terms_are_well_typed(0xA11CE, 28, 3));
+    assert!(terms
+        .iter()
+        .any(|term| target_term_head(term) == "dictionary"));
+    assert!(terms.iter().all(|term| eval_target_term(term).is_some()));
+}
+
+#[test]
+fn generator_minimizers_record_small_counterexamples() {
+    let runtime_min = minimize_runtime_value_case(
+        RuntimeValueCase::BaseScalar(17),
+        |case| matches!(case, RuntimeValueCase::BaseScalar(value) if *value >= 2),
+    );
+    assert_eq!(runtime_min, RuntimeValueCase::BaseScalar(2));
+
+    let target_min = minimize_target_term(
+        TargetTerm::Add(Box::new(TargetTerm::U32(9)), Box::new(TargetTerm::U32(9))),
+        |term| matches!(eval_target_term(term), Some(TargetValue::U32(value)) if value >= 2),
+    );
+    assert_eq!(target_min, TargetTerm::U32(2));
 }
