@@ -654,6 +654,12 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("FN\tfin_checked10_u32"));
     assert!(snapshot.contains("FN\tvector_map_inc3_u32"));
     assert!(snapshot.contains("FN\tlist_append_u32"));
+    assert!(snapshot.contains("FN\tresult_map_ok_inc_u32"));
+    assert!(snapshot.contains("FN\tlist_reverse_first_or_u32"));
+    assert!(snapshot.contains("FN\tarray_get_opt_u32"));
+    assert!(snapshot.contains("FN\tstring_append_lean"));
+    assert!(snapshot.contains("FN\tstring_length_chars_u32"));
+    assert!(snapshot.contains("FN\tstring_contains_char_lean"));
     assert!(snapshot.contains("FN\treader_add_env_u32"));
     assert!(snapshot.contains("FN\tstate_tick_u32"));
 }

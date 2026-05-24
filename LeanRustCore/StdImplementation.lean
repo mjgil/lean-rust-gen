@@ -35,22 +35,20 @@ def lowerings : List ImplementedLowering := [
   { leanName := "List.all", rustShape := "short-circuit bool loop", ownership := .borrowedReadOnly, requiredTests := ["list_all_nonzero_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "List.append", rustShape := "Vec extend", ownership := .owned, requiredTests := ["list_append_u32", "runtime list_append_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "List.find?", rustShape := "for loop returning Option", ownership := .borrowedReadOnly, requiredTests := ["list_find_nonzero_u32", "runtime list_find"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
-  { leanName := "List.reverse", rustShape := "Vec::reverse", ownership := .owned, requiredTests := ["runtime list_reverse_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
-  { leanName := "List.zip", rustShape := "Iterator::zip collect", ownership := .owned, requiredTests := ["runtime list_zip_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
+  { leanName := "List.reverse", rustShape := "runtime Vec reverse helper", ownership := .owned, requiredTests := ["list_reverse_first_or_u32", "runtime list_reverse_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "Array.map", rustShape := "Vec allocation plus for/push", ownership := .returnedNewValue, requiredTests := ["array_map_inc_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "Array.foldl", rustShape := "mutable accumulator for loop", ownership := .owned, requiredTests := ["array_fold_sum_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "Array.push", rustShape := "owned Vec push", ownership := .owned, requiredTests := ["array_push_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
-  { leanName := "Array.get?", rustShape := "slice get copied to Option", ownership := .borrowedReadOnly, requiredTests := ["runtime array_get_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
-  { leanName := "Array.set", rustShape := "checked get_mut then return Option<Vec<T>>", ownership := .owned, requiredTests := ["runtime array_set_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
+  { leanName := "Array.get?", rustShape := "runtime slice get helper", ownership := .borrowedReadOnly, requiredTests := ["array_get_opt_u32", "runtime array_get_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "Option.map", rustShape := "match Option", ownership := .owned, requiredTests := ["option_map_inc_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "Option.bind", rustShape := "match Option", ownership := .owned, requiredTests := ["option_bind_inc_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "Option.getD", rustShape := "match Option fallback", ownership := .owned, requiredTests := ["option_getd_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
-  { leanName := "Except.map", rustShape := "match Result Ok", ownership := .owned, requiredTests := ["result_bind_inc_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
+  { leanName := "Except.map", rustShape := "match Result Ok", ownership := .owned, requiredTests := ["result_map_ok_inc_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "Except.bind", rustShape := "match Result", ownership := .owned, requiredTests := ["except_do_inc_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
   { leanName := "Except.mapError", rustShape := "match Result Err", ownership := .owned, requiredTests := ["result_map_err_inc_u32"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
-  { leanName := "String.append", rustShape := "String::push_str", ownership := .owned, requiredTests := ["runtime string_append"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
-  { leanName := "String.length", rustShape := "chars().count()", ownership := .borrowedReadOnly, requiredTests := ["runtime string_length_chars"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
-  { leanName := "String.contains", rustShape := "str::contains", ownership := .borrowedReadOnly, requiredTests := ["runtime string_contains"], requiredDocs := ["docs/STD_LOWERINGS.md"] }
+  { leanName := "String.append", rustShape := "runtime owned String append helper", ownership := .owned, requiredTests := ["string_append_lean", "runtime string_append"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
+  { leanName := "String.length", rustShape := "runtime char-count helper", ownership := .borrowedReadOnly, requiredTests := ["string_length_chars_u32", "runtime string_length_chars"], requiredDocs := ["docs/STD_LOWERINGS.md"] },
+  { leanName := "String.contains", rustShape := "runtime char-membership helper", ownership := .borrowedReadOnly, requiredTests := ["string_contains_char_lean", "runtime string_contains_char"], requiredDocs := ["docs/STD_LOWERINGS.md"] }
 ]
 
 def implementedLoweringNames : List String := lowerings.map (fun item => item.leanName)

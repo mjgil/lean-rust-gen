@@ -1,7 +1,7 @@
 FORMAT	lean-rust-core.target-validation.v2
 ARCH	direct-lean-emits-rust
 TYPE_COUNT	18
-FN_COUNT	147
+FN_COUNT	153
 TYPE	struct	RoseTreeU32	value:u32,children:Vec<RoseTreeU32>
 TYPE	struct	PairboxStringU32	left:String,right:u32
 TYPE	struct	BoundedProof	value:u32
@@ -21,6 +21,7 @@ TYPE	enum	BinaryTreeU32	Leaf|Node(Box<BinaryTreeU32>,u32,Box<BinaryTreeU32>)
 TYPE	enum	EvenNode	Terminal(u32)|Step(u32,Box<OddNode>)
 TYPE	enum	Step	Stay|Jump(u32)
 FN	inhabited_default_u32	_x:()	u32	default(u32)
+FN	array_get_opt_u32	xs:Vec<u32>,i:u32	Option<u32>	call(__runtime_array_get_u32,var(xs),var(i))
 FN	checked_sub_u32	a:u32,b:u32	Option<u32>	call(__runtime_u32_checked_sub,var(a),var(b))
 FN	saturating_add_u32	a:u32,b:u32	u32	call(__runtime_u32_saturating_add,var(a),var(b))
 FN	some_u32	x:u32	Option<u32>	some(var(x))
@@ -45,12 +46,14 @@ FN	subtype_inc_u32	x:u32	u32	add(var(x),lit(1))
 FN	flag_carrier_true_roundtrip_u32	x:u32	u32	var(x)
 FN	step_amount_plus_one_or	s:Step,fallback:u32	u32	match_pattern(var(s),Step::Stay()=>var(fallback)|Step::Jump(varpat(amount))=>add(var(amount),lit(1)))
 FN	fin_checked10_u32	x:u32	Option<u32>	if(lt(var(x),lit(10)),some(var(x)),none)
+FN	result_map_ok_inc_u32	x:Result<u32, u32>	Result<u32, u32>	match_enum(var(x),Err(__lrc_err)=>err(var(__lrc_err))|Ok(y)=>ok(add(var(y),lit(1))))
 FN	shift_point_x	p:Point,dx:u32	Point	struct(Point,x=add(field(var(p),x),var(dx)),y=field(var(p),y))
 FN	array_fold_sum_u32	xs:Vec<u32>	u32	list_foldl(acc,x,lit(0),var(xs),add(var(acc),var(x)))
 FN	bool_match_u32	flag:bool,when_true:u32,when_false:u32	u32	match_pattern(var(flag),true=>var(when_true)|false=>var(when_false))
 FN	tree_node_u32	left:BinaryTreeU32,value:u32,right:BinaryTreeU32	BinaryTreeU32	enum(BinaryTreeU32::Node,box(var(left)),var(value),box(var(right)))
 FN	decidable_eq_u32	a:u32,b:u32	bool	eq(var(a),var(b))
 FN	rose_branch_u32	value:u32,children:Vec<RoseTreeU32>	RoseTreeU32	struct(RoseTreeU32,value=var(value),children=var(children))
+FN	list_reverse_first_or_u32	xs:Vec<u32>,fallback:u32	u32	list_foldl(_hyg1679,x,var(fallback),call(__runtime_list_reverse_u32,var(xs)),var(x))
 FN	echo_list_u32	xs:Vec<u32>	Vec<u32>	var(xs)
 FN	tree_leaf_u32	_x:()	BinaryTreeU32	enum(BinaryTreeU32::Leaf)
 FN	equality_cast_subtype_value_u32	x:u32	u32	var(x)
@@ -77,7 +80,7 @@ FN	closure_env_apply_add_delta_u32	delta:u32,x:u32	u32	let(env,struct(AddDeltaU3
 FN	option_bind_inc_u32	x:Option<u32>	Option<u32>	match_option(var(x),none=>none|some(y)=>some(add(var(y),lit(1))))
 FN	ord_compare_u32	a:u32,b:u32	Ordering	compare(var(a),var(b))
 FN	defun_compose_inc_double_u32	x:u32	u32	call(defun_apply_u32,enum(U32FnCase::Double),call(defun_apply_u32,enum(U32FnCase::Inc),var(x)))
-FN	pair_choice_default_u32_string	choice:PairchoiceU32String,fallback:u32	u32	match_pattern(var(choice),PairchoiceU32String::Left(varpat(value))=>var(value)|PairchoiceU32String::Right(varpat(_hyg2447))=>var(fallback))
+FN	pair_choice_default_u32_string	choice:PairchoiceU32String,fallback:u32	u32	match_pattern(var(choice),PairchoiceU32String::Left(varpat(value))=>var(value)|PairchoiceU32String::Right(varpat(_hyg2519))=>var(fallback))
 FN	add_u32	a:u32,b:u32	u32	add(var(a),var(b))
 FN	repr_u32	x:u32	String	repr(u32,var(x))
 FN	list_filter_nonzero_u32	xs:Vec<u32>	Vec<u32>	list_filter(x,var(xs),gt(var(x),lit(0)))
@@ -96,9 +99,12 @@ FN	bounded_bump_u32	x:u32	u32	let(y,add(var(x),lit(1)),if(gt(var(y),lit(10)),lit
 FN	unit_roundtrip	x:()	()	var(x)
 FN	inc_u32	x:u32	u32	add(var(x),lit(1))
 FN	flag_carrier_match_invariant_u32	flag:bool,x:u32	u32	if(var(flag),add(var(x),lit(1)),var(x))
+FN	string_length_chars_u32	s:String	u32	call(__runtime_string_length_chars,var(s))
 FN	result_bind_inc_u32	x:Result<u32, u32>	Result<u32, u32>	match_enum(var(x),Err(__lrc_err)=>err(var(__lrc_err))|Ok(y)=>ok(add(var(y),lit(1))))
+FN	string_append_lean	left:String,right:String	String	call(__runtime_string_append,var(left),var(right))
 FN	make_point	x:u32,y:u32	Point	struct(Point,x=var(x),y=var(y))
 FN	closure_apply_capture_u32	delta:u32,x:u32	u32	closure_apply(y,var(x),add(var(y),var(delta)))
+FN	string_contains_char_lean	s:String,c:char	bool	call(__runtime_string_contains_char,var(s),var(c))
 FN	subtype_roundtrip_u32	x:u32	u32	var(x)
 FN	tree_sum_u32	t:BinaryTreeU32	u32	match_enum(var(t),BinaryTreeU32::Leaf()=>lit(0)|BinaryTreeU32::Node(left,value,right)=>add(add(call(tree_sum_u32,deref(var(left))),var(value)),call(tree_sum_u32,deref(var(right)))))
 FN	fin_succ_checked10_u32	i:u32	Option<u32>	if(lt(add(var(i),lit(1)),lit(10)),some(add(var(i),lit(1))),none)

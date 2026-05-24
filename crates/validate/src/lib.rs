@@ -429,7 +429,7 @@ mod tests {
     fn validates_generated_ownership_policy() {
         let validation =
             validate_generated_ownership(include_str!("../../../rust/src/generated.rs")).unwrap();
-        assert_eq!(validation.approved_reference_exprs, 8);
+        assert_eq!(validation.approved_reference_exprs, 12);
         assert!(validation.violations.is_empty());
     }
 
@@ -444,7 +444,10 @@ mod tests {
     #[test]
     fn parses_current_target_validation_functions() {
         let functions = parse_target_validation_functions(TARGET_VALIDATION_TXT).unwrap();
-        assert_eq!(functions.len(), 147);
+        assert_eq!(
+            target_validation_counts(TARGET_VALIDATION_TXT).map(|(_, count)| count),
+            Some(functions.len())
+        );
         assert!(functions
             .iter()
             .any(|function| function.name == "tree_sum_u32"));

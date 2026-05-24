@@ -135,6 +135,10 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_even_node(&args[1])?,
         ))),
         "list_find_nonzero_u32" => Ok(v_option_u32(list_find_nonzero_u32(as_vec_u32(&args[0])?))),
+        "list_reverse_first_or_u32" => Ok(v_u32(list_reverse_first_or_u32(
+            as_vec_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
         "list_any_nonzero_u32" => Ok(v_bool(list_any_nonzero_u32(as_vec_u32(&args[0])?))),
         "exact_nat_mul" => Ok(v_nat(exact_nat_mul(as_nat(&args[0])?, as_nat(&args[1])?))),
         "step_jump" => Ok(v_step(step_jump(as_u32(&args[0])?))),
@@ -197,6 +201,10 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_option_u32(&args[0])?,
             as_u32(&args[1])?,
         ))),
+        "array_get_opt_u32" => Ok(v_option_u32(array_get_opt_u32(
+            as_vec_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
         "reader_add_env_u32" => Ok(v_u32(reader_add_env_u32(
             as_u32(&args[0])?,
             as_u32(&args[1])?,
@@ -254,9 +262,21 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         "except_do_inc_u32" => Ok(v_result_u32_u32(except_do_inc_u32(as_result_u32_u32(
             &args[0],
         )?))),
+        "result_map_ok_inc_u32" => Ok(v_result_u32_u32(result_map_ok_inc_u32(as_result_u32_u32(
+            &args[0],
+        )?))),
         "result_ok_none_u32" => Ok(v_result_option_u32_u32(result_ok_none_u32(as_unit(
             &args[0],
         )?))),
+        "string_append_lean" => Ok(v_string(string_append_lean(
+            as_string(&args[0])?,
+            as_string(&args[1])?,
+        ))),
+        "string_length_chars_u32" => Ok(v_u32(string_length_chars_u32(as_string(&args[0])?))),
+        "string_contains_char_lean" => Ok(v_bool(string_contains_char_lean(
+            as_string(&args[0])?,
+            as_char(&args[1])?,
+        ))),
         "list_map_inc_u32" => Ok(v_vec_u32(list_map_inc_u32(as_vec_u32(&args[0])?))),
         "echo_array_u32" => Ok(v_vec_u32(echo_array_u32(as_vec_u32(&args[0])?))),
         "tagged_default_u32" => Ok(v_u32(tagged_default_u32(

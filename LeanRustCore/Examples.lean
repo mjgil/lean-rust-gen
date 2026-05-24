@@ -400,6 +400,30 @@ def option_getd_u32 (x : Option UInt32) (fallback : UInt32) : UInt32 :=
   x.getD fallback
 
 @[rust_export]
+def result_map_ok_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
+  Except.map (fun y => y + 1) x
+
+@[rust_export]
+def list_reverse_first_or_u32 (xs : List UInt32) (fallback : UInt32) : UInt32 :=
+  (List.reverse xs).foldl (fun _ x => x) fallback
+
+@[rust_export, rust_nat_wrapping_u32]
+def array_get_opt_u32 (xs : Array UInt32) (i : Nat) : Option UInt32 :=
+  Array.get? xs i
+
+@[rust_export]
+def string_append_lean (left right : String) : String :=
+  String.append left right
+
+@[rust_export, rust_nat_wrapping_u32]
+def string_length_chars_u32 (s : String) : Nat :=
+  String.length s
+
+@[rust_export]
+def string_contains_char_lean (s : String) (c : Char) : Bool :=
+  String.contains s c
+
+@[rust_export]
 def result_map_err_inc_u32 (x : Except UInt32 UInt32) : Except UInt32 UInt32 :=
   match x with
   | Except.ok value => Except.ok value

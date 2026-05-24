@@ -2,12 +2,16 @@
 mod dispatch;
 #[path = "target_interpreter/eval.rs"]
 mod eval;
+#[path = "target_interpreter/matchers.rs"]
+mod matchers;
 #[path = "target_interpreter/model.rs"]
 mod model;
+#[path = "target_interpreter/parse.rs"]
+mod parse;
 
 use dispatch::dispatch_compiled_function;
 use eval::eval_target_function;
-use lean_rust_core_validate::TargetValidationFunction;
+use lean_rust_core_validate::{target_validation_counts, TargetValidationFunction};
 use model::{function_map, parse_snapshot_functions, sample_args_for};
 
 fn snapshot_function<'a>(
@@ -44,9 +48,9 @@ fn generated_subset_semantics_spot_checks_match_compiled_rust() {
 fn generated_subset_semantics_are_executable_for_every_emitted_function() {
     let functions = parse_snapshot_functions();
     assert_eq!(
-        functions.len(),
-        147,
-        "unexpected target-validation function count"
+        target_validation_counts(model::TARGET_VALIDATION_SNAPSHOT).map(|(_, count)| count),
+        Some(functions.len()),
+        "unexpected target-validation function count in snapshot header"
     );
     let functions_by_name = function_map(&functions);
 

@@ -362,6 +362,23 @@ fn first_order_function_calls_lower_to_rust_calls() {
 }
 
 #[test]
+fn std_registry_examples_lower_from_real_lean_paths() {
+    assert_eq!(result_map_ok_inc_u32(Ok(41)), Ok(42));
+    assert_eq!(result_map_ok_inc_u32(Err(7)), Err(7));
+    assert_eq!(list_reverse_first_or_u32(vec![], 9), 9);
+    assert_eq!(list_reverse_first_or_u32(vec![1, 2, 3], 9), 1);
+    assert_eq!(array_get_opt_u32(vec![5, 6, 7], 1), Some(6));
+    assert_eq!(array_get_opt_u32(vec![5, 6, 7], 9), None);
+    assert_eq!(
+        string_append_lean(String::from("lean"), String::from("-rust")),
+        "lean-rust"
+    );
+    assert_eq!(string_length_chars_u32(String::from("hé")), 2);
+    assert!(string_contains_char_lean(String::from("lean-rust"), 'r'));
+    assert!(!string_contains_char_lean(String::from("lean-rust"), 'z'));
+}
+
+#[test]
 fn dependent_shape_erasure_sprint_10_12() {
     assert_eq!(subtype_val_u32(42), 42);
     assert_eq!(subtype_inc_u32(u32::MAX), 0);

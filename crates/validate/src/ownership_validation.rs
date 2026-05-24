@@ -341,8 +341,12 @@ fn scan_expr(
         }
         Expr::Call(call) => {
             scan_expr(&call.func, false, validation);
-            for arg in &call.args {
-                scan_expr(arg, false, validation);
+            for (index, arg) in call.args.iter().enumerate() {
+                scan_expr(
+                    arg,
+                    allow_runtime_helper_borrow(&call.func, index),
+                    validation,
+                );
             }
         }
         Expr::Cast(cast) => {
@@ -443,6 +447,26 @@ fn scan_expr_binary(binary: &ExprBinary, validation: &mut OwnershipValidation) {
     );
     scan_expr(&binary.left, allow_temporary_shared_borrow, validation);
     scan_expr(&binary.right, allow_temporary_shared_borrow, validation);
+}
+
+fn allow_runtime_helper_borrow(func: &Expr, index: usize) -> bool {
+    match runtime_helper_name(func).as_deref() {
+        Some("array_get_u32") => index == 0,
+        Some("string_append") => index == 1,
+        Some("string_length_chars") => index == 0,
+        Some("string_contains_char") => index == 0,
+        _ => false,
+    }
+}
+
+fn runtime_helper_name(func: &Expr) -> Option<String> {
+    let Expr::Path(path) = func else {
+        return None;
+    };
+    path.path
+        .segments
+        .last()
+        .map(|segment| segment.ident.to_string())
 }
 
 fn scan_expr_reference(

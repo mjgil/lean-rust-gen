@@ -58,6 +58,7 @@ def check_files() -> None:
         "LeanRustCore/GenericPolicy.lean",
         "LeanRustCore/NumericSemantics.lean",
         "LeanRustCore/NumericExamples.lean",
+        "LeanRustCore/StdExamples.lean",
         "LeanRustCore/DependentErasureChecker.lean",
         "LeanRustCore/RecursiveDiscovery.lean",
         "LeanRustCore/OwnershipPolicy.lean",
@@ -87,6 +88,12 @@ def check_files() -> None:
         "corpus/positive/recursive_binary_tree.expected.json",
         "corpus/positive/recursive_rose_tree.expected.json",
         "corpus/positive/recursive_even_odd.expected.json",
+        "corpus/positive/std_result_map_ok.expected.json",
+        "corpus/positive/std_list_reverse.expected.json",
+        "corpus/positive/std_array_get.expected.json",
+        "corpus/positive/std_string_append.expected.json",
+        "corpus/positive/std_string_length.expected.json",
+        "corpus/positive/std_string_contains_char.expected.json",
         "corpus/unsupported/dependent_generic_index.expected.json",
     ]
     for path in required:
@@ -101,6 +108,7 @@ def check_lean_modules() -> None:
         "LeanRustCore/GenericPolicy.lean": ["ExportGenericDecision", "finalRustGenericPolicySummary", "LRC009"],
         "LeanRustCore/NumericSemantics.lean": ["NumericMode", "NumericRule", "checkedAddU32", "preconditionedDivU32", "numericSemanticsSummary"],
         "LeanRustCore/NumericExamples.lean": ["def checked_add_u32", "def saturating_add_u32", "def preconditioned_div_u32", "def checked_cast_u64_to_u32"],
+        "LeanRustCore/StdExamples.lean": ["def result_map_ok_inc_u32", "def list_reverse_first_or_u32", "def array_get_opt_u32", "def string_append_lean", "def string_length_chars_u32", "def string_contains_char_lean"],
         "LeanRustCore/DependentErasureChecker.lean": ["RuntimeRelevance", "ErasureDecision", "checkDependentErasure", "dependentErasureCheckerSummary"],
         "LeanRustCore/RecursiveDiscovery.lean": ["RecursiveEdgeKind", "RecursiveLayoutMode", "layoutDecisions", "recursiveDiscoverySummary"],
         "LeanRustCore/OwnershipPolicy.lean": ["OwnershipMode", "OwnershipRule", "borrowedShared", "approvedReferenceForms", "ownershipPolicySummary", "ownershipPolicyEnforcementSummary"],
@@ -116,7 +124,7 @@ def check_lean_modules() -> None:
     imports = read("LeanRustCore.lean")
     for module in [
         "GenericEmission", "ParameterizedData", "ParameterizedExamples", "GenericPolicy", "NumericSemantics", "DependentErasureChecker",
-        "RecursiveDiscovery", "OwnershipPolicy", "PatternMatrix", "RecursionAnalysis", "StdImplementation", "TypeclassSpecialization",
+        "RecursiveDiscovery", "OwnershipPolicy", "PatternMatrix", "RecursionAnalysis", "StdImplementation", "StdExamples", "TypeclassSpecialization",
     ]:
         require(f"import LeanRustCore.{module}" in imports, f"LeanRustCore.lean missing {module}")
 
@@ -181,6 +189,12 @@ def check_runtime_and_tests() -> None:
         "pub fn pair_box_swap_u32_string",
         "pub fn pair_choice_default_u32_string",
         "pub fn nested_payload_value_or_u32_string",
+        "pub fn result_map_ok_inc_u32",
+        "pub fn list_reverse_first_or_u32",
+        "pub fn array_get_opt_u32",
+        "pub fn string_append_lean",
+        "pub fn string_length_chars_u32",
+        "pub fn string_contains_char_lean",
     ]:
         require(needle in generated, f"generated Rust missing {needle}")
 
@@ -211,6 +225,12 @@ def check_runtime_and_tests() -> None:
         "FN\tpair_box_make_u32_string",
         "FN\tpair_choice_default_u32_string",
         "FN\tnested_payload_value_or_u32_string",
+        "FN\tresult_map_ok_inc_u32",
+        "FN\tlist_reverse_first_or_u32",
+        "FN\tarray_get_opt_u32",
+        "FN\tstring_append_lean",
+        "FN\tstring_length_chars_u32",
+        "FN\tstring_contains_char_lean",
     ]:
         require(needle in target_validation, f"target-validation snapshot missing {needle}")
 
@@ -355,6 +375,48 @@ def check_recursive_positive_corpus() -> None:
         )
 
 
+def check_std_positive_corpus() -> None:
+    expected = {
+        "corpus/positive/std_result_map_ok.expected.json": (
+            "LeanRustCore.Examples.result_map_ok_inc_u32",
+            {"std-lowering", "result-shape"},
+        ),
+        "corpus/positive/std_list_reverse.expected.json": (
+            "LeanRustCore.Examples.list_reverse_first_or_u32",
+            {"std-lowering", "structural-loop"},
+        ),
+        "corpus/positive/std_array_get.expected.json": (
+            "LeanRustCore.Examples.array_get_opt_u32",
+            {"std-lowering", "container-shape"},
+        ),
+        "corpus/positive/std_string_append.expected.json": (
+            "LeanRustCore.Examples.string_append_lean",
+            {"std-lowering", "string-shape"},
+        ),
+        "corpus/positive/std_string_length.expected.json": (
+            "LeanRustCore.Examples.string_length_chars_u32",
+            {"std-lowering", "string-shape"},
+        ),
+        "corpus/positive/std_string_contains_char.expected.json": (
+            "LeanRustCore.Examples.string_contains_char_lean",
+            {"std-lowering", "string-shape"},
+        ),
+    }
+    for path, (source, features) in expected.items():
+        fixture = load_json(path)
+        require(fixture["kind"] == "positive", f"{path} must be positive")
+        require(fixture["source"] == source, f"{path} must reference {source}")
+        require(fixture["expected_status"] == "supported", f"{path} must be supported")
+        require(
+            set(fixture["required_features"]) == features,
+            f"{path} must record required features {sorted(features)}",
+        )
+        require(
+            "docs/STD_LOWERINGS.md" in fixture["documentation"],
+            f"{path} must reference docs/STD_LOWERINGS.md",
+        )
+
+
 def check_docs() -> None:
     for path in [
         "docs/GENERICS.md", "docs/NUMERIC_SEMANTICS.md", "docs/DEPENDENT_ERASURE.md", "docs/RECURSIVE_DATA.md",
@@ -451,6 +513,7 @@ def main() -> None:
     check_parameterized_data_corpus()
     check_dependent_erasure_positive_corpus()
     check_recursive_positive_corpus()
+    check_std_positive_corpus()
     check_docs()
     check_reports()
     check_scripts()

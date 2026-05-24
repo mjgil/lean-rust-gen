@@ -24,8 +24,10 @@ def lowerings : List StdLowering := [
   { leanName := "List.foldr", feature := "list-foldr-loop", rustShape := "reverse iterator plus mutable accumulator" },
   { leanName := "List.any", feature := "list-any-loop", rustShape := "short-circuiting bool loop" },
   { leanName := "List.all", feature := "list-all-loop", rustShape := "short-circuiting bool loop" },
+  { leanName := "List.reverse", feature := "list-reverse-runtime-call", rustShape := "runtime Vec reverse helper" },
   { leanName := "Array.map", feature := "array-map-loop", rustShape := "Vec allocation plus for/push" },
   { leanName := "Array.foldl", feature := "array-foldl-loop", rustShape := "mutable accumulator for loop" },
+  { leanName := "Array.get?", feature := "array-get-runtime-call", rustShape := "runtime slice get helper" },
   { leanName := "Option.map", feature := "option-map-match", rustShape := "match Option" },
   { leanName := "Option.bind", feature := "option-bind-match", rustShape := "match Option" },
   { leanName := "Except.map", feature := "result-map-match", rustShape := "match Result" },
@@ -33,7 +35,9 @@ def lowerings : List StdLowering := [
   { leanName := "Option.getD", feature := "option-getd-match", rustShape := "match Option with fallback" },
   { leanName := "Except.mapError", feature := "result-map-error-match", rustShape := "match Result error branch" },
   { leanName := "Array.push", feature := "array-push-owned", rustShape := "owned Vec push" },
-  { leanName := "String.append", feature := "string-append-owned", rustShape := "owned String append" }
+  { leanName := "String.append", feature := "string-append-runtime-call", rustShape := "runtime owned String append helper" },
+  { leanName := "String.length", feature := "string-length-runtime-call", rustShape := "runtime char-count helper" },
+  { leanName := "String.contains", feature := "string-contains-char-runtime-call", rustShape := "runtime char-membership helper" }
 ]
 
 private def joinWithLocal (sep : String) : List String → String
@@ -44,7 +48,7 @@ private def joinWithLocal (sep : String) : List String → String
 /-- Compact summary for validation reports. -/
 def stdLoweringSummary : String :=
   "Sprint 7–8 Std lowering table covers " ++ toString lowerings.length ++
-  " monomorphic List/Array/Option/Except/String combinator families using owned safe Rust loops and matches"
+  " monomorphic List/Array/Option/Except/String combinator families using owned safe Rust loops, matches, and approved runtime helpers"
 
 /-- Feature names exported for coverage dashboards. -/
 def featureNames : List String := lowerings.map (fun item => item.feature)

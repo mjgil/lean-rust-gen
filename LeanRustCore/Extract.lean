@@ -804,6 +804,17 @@ where
         return .listFilter binder elemTy target predicate
     | _ => unsupported e
 
+  translateListReverse (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: targetExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        if elemTy == .u32 then
+          let target ← translateExpr typeCtx locals (some (.list elemTy)) targetExpr
+          pure (.call "__runtime_list_reverse_u32" [.list elemTy] (.list elemTy) [target])
+        else
+          unsupported e
+    | _ => unsupported e
+
   translateListFoldr (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match args with
     | alpha :: beta :: fnExpr :: initExpr :: targetExpr :: [] => do
@@ -859,6 +870,18 @@ where
         let target ← translateExpr typeCtx locals (some (.array elemTy)) targetExpr
         let (accName, elemName, body) ← translateFoldlLambdaBody typeCtx locals accTy elemTy fnExpr
         return .arrayFoldl accName elemName accTy elemTy init target body
+    | _ => unsupported e
+
+  translateArrayGet (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | alpha :: targetExpr :: indexExpr :: [] => do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        if elemTy == .u32 then
+          let target ← translateExpr typeCtx locals (some (.array elemTy)) targetExpr
+          let index ← translateExpr typeCtx locals (some .u32) indexExpr
+          pure (.call "__runtime_array_get_u32" [.array elemTy, .u32] (.option elemTy) [target, index])
+        else
+          unsupported e
     | _ => unsupported e
 
   translateOptionMap (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
@@ -1395,6 +1418,27 @@ where
           (← translateExpr typeCtx locals (some domain) b))
     | none => unsupported e
 
+  translateStringAppend (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | leftExpr :: rightExpr :: [] =>
+        pure (.call "__runtime_string_append" [.string, .string] .string
+          [← translateExpr typeCtx locals (some .string) leftExpr, ← translateExpr typeCtx locals (some .string) rightExpr])
+    | _ => unsupported e
+
+  translateStringLength (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | [targetExpr] =>
+        pure (.call "__runtime_string_length_chars" [.string] .u32
+          [← translateExpr typeCtx locals (some .string) targetExpr])
+    | _ => unsupported e
+
+  translateStringContainsChar (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    match args with
+    | targetExpr :: needleExpr :: [] =>
+        pure (.call "__runtime_string_contains_char" [.string, .char] .bool
+          [← translateExpr typeCtx locals (some .string) targetExpr, ← translateExpr typeCtx locals (some .char) needleExpr])
+    | _ => unsupported e
+
   translateDirectLambdaApply (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (fnExpr : Expr) (args : List Expr) : CoreM SurfaceExpr := do
     match stripMData fnExpr, args with
     | .lam n ty body _, [argExpr] => do
@@ -1500,6 +1544,8 @@ where
           translateListMap typeCtx locals e args
         else if n == ``List.filter then
           translateListFilter typeCtx locals e args
+        else if n == ``List.reverse then
+          translateListReverse typeCtx locals e args
         else if n == ``List.foldl then
           translateListFoldl typeCtx locals expected e args
         else if n == ``List.foldr then
@@ -1514,6 +1560,8 @@ where
           translateArrayMap typeCtx locals e args
         else if n == ``Array.foldl then
           translateArrayFoldl typeCtx locals expected e args
+        else if n == ``Array.get? then
+          translateArrayGet typeCtx locals e args
         else if n == ``Vector.map then
           translateVectorMap typeCtx locals e args
         else if n == ``Option.map then
@@ -1524,6 +1572,12 @@ where
           translateExceptMap typeCtx locals e args
         else if n == ``Except.bind then
           translateExceptBind typeCtx locals expected e args
+        else if n == ``String.append then
+          translateStringAppend typeCtx locals e args
+        else if n == ``String.length then
+          translateStringLength typeCtx locals e args
+        else if n == ``String.contains then
+          translateStringContainsChar typeCtx locals e args
         else if n == ``Subtype.val then
           match expected with
           | some inner =>

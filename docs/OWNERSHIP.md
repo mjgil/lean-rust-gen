@@ -16,22 +16,30 @@ admitted only for read-only helpers whose references do not escape.
 
 Ownership rules live in `LeanRustCore.OwnershipPolicy.rules`. The parser and
 validation gates reject ad-hoc references or lifetimes that are not covered by
-this policy table. In the direct generated lane, the only emitted borrow shape
-is temporary shared operand borrows for exact BigUint/BigInt arithmetic. The
-generated Rust must emit no reference types in public or private declarations
-and no explicit lifetimes anywhere in the generated file.
+this policy table. In the direct generated lane, the emitted borrow shapes are
+temporary shared operand borrows for exact BigUint/BigInt arithmetic plus the
+audited runtime-helper borrows used by `array_get_u32`, `string_append`
+suffixes, `string_length_chars`, and `string_contains_char`. The generated Rust
+must emit no reference types in public or private declarations and no explicit
+lifetimes anywhere in the generated file.
+
+The validation gates also check the exact phrases `temporary shared operand borrows`,
+`exact biguint/bigint arithmetic`, `no reference types`, `no explicit lifetimes`,
+and `generated references do not escape` against this policy.
 
 ## Tests required before completion
 
 Tests must cover owned container transforms, read-only borrowed helpers,
 clone-insertion helpers, string ownership, recursive `Box`, `Rc`, and arena
 layouts. Parser-backed validation must also prove that generated Rust uses only
-the approved temporary shared operand borrows and that no reference types or
-explicit lifetimes are emitted.
+the approved temporary shared operand borrows plus the approved read-only
+runtime-helper borrows, and that no reference types or explicit lifetimes are
+emitted.
 
 ## Documentation required before completion
 
 This document must describe every admitted ownership mode and must state whether
 references can escape. In this milestone, generated references do not escape:
-the direct lane emits only temporary shared operand borrows and never emits
-escaping borrowed parameters, borrowed return values, or lifetime annotations.
+the direct lane emits only temporary shared operand borrows and audited
+read-only runtime-helper borrows, and never emits escaping borrowed parameters,
+borrowed return values, or lifetime annotations.

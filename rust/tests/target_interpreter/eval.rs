@@ -1,11 +1,15 @@
 use lean_rust_core_generated::*;
 use lean_rust_core_validate::TargetValidationFunction;
 
+use super::matchers::{match_enum_bindings, match_pattern_bindings};
 use super::model::{
-    as_binary_tree_u32, as_bool, as_even_node, as_expr_u32, as_odd_node, as_option_u32, as_string,
-    as_u32, as_u64, as_vec_rosetree_u32, as_vec_u32, Env, FunctionMap, UnaryFnU32, Value,
+    as_binary_tree_u32, as_bool, as_char, as_even_node, as_expr_u32, as_odd_node, as_option_u32,
+    as_string, as_u32, as_u64, as_vec_rosetree_u32, as_vec_u32, Env, FunctionMap, UnaryFnU32,
+    Value,
 };
+use super::parse::{call_payload, split_top_args, split_top_level};
 use lean_rust_core_generated::runtime::{
+    array_get_u32, list_reverse_u32, string_append, string_contains_char, string_length_chars,
     u32_checked_add, u32_checked_div, u32_checked_mod, u32_checked_sub, u32_preconditioned_div,
     u32_preconditioned_mod, u32_saturating_add, u32_saturating_sub, u64_to_u32_checked,
 };
@@ -210,6 +214,32 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
             }
             "__runtime_u64_to_u32_checked" => {
                 return Ok(Value::OptionU32(u64_to_u32_checked(as_u64(&values[0])?)))
+            }
+            "__runtime_list_reverse_u32" => {
+                return Ok(Value::VecU32(list_reverse_u32(as_vec_u32(&values[0])?)))
+            }
+            "__runtime_array_get_u32" => {
+                return Ok(Value::OptionU32(array_get_u32(
+                    &as_vec_u32(&values[0])?,
+                    as_u32(&values[1])? as usize,
+                )))
+            }
+            "__runtime_string_append" => {
+                return Ok(Value::String(string_append(
+                    as_string(&values[0])?,
+                    &as_string(&values[1])?,
+                )))
+            }
+            "__runtime_string_length_chars" => {
+                return Ok(Value::U32(
+                    string_length_chars(&as_string(&values[0])?) as u32
+                ))
+            }
+            "__runtime_string_contains_char" => {
+                return Ok(Value::Bool(string_contains_char(
+                    &as_string(&values[0])?,
+                    as_char(&values[1])?,
+                )))
             }
             _ => {}
         }
@@ -674,202 +704,4 @@ fn eval_match_enum(functions: &FunctionMap, inner: &str, env: &Env) -> Result<Va
         }
     }
     Err(format!("no match_enum arm matched {target:?}"))
-}
-
-fn match_pattern_bindings(pattern: &str, value: &Value) -> Option<Vec<(String, Value)>> {
-    match (pattern, value) {
-        ("true", Value::Bool(true)) | ("false", Value::Bool(false)) => Some(Vec::new()),
-        ("None", Value::OptionU32(None))
-        | ("None", Value::OptionU64(None))
-        | ("None", Value::OptionStep(None)) => Some(Vec::new()),
-        ("Choice::First()", Value::Choice(Choice::First))
-        | ("Choice::Second()", Value::Choice(Choice::Second))
-        | ("Step::Stay()", Value::Step(Step::Stay))
-        | ("TaggedU32::Missing()", Value::TaggedU32(TaggedU32::Missing)) => Some(Vec::new()),
-        _ => {
-            if let Some(name) = call_payload(pattern, "varpat") {
-                return Some(vec![(name.to_string(), value.clone())]);
-            }
-            if let (Some(inner), Value::OptionU32(Some(value))) =
-                (call_payload(pattern, "Some"), value)
-            {
-                let name = call_payload(inner, "varpat")?;
-                return Some(vec![(name.to_string(), Value::U32(*value))]);
-            }
-            if let (Some(inner), Value::OptionStep(Some(value))) =
-                (call_payload(pattern, "Some"), value)
-            {
-                let name = call_payload(inner, "varpat")?;
-                return Some(vec![(name.to_string(), Value::Step(value.clone()))]);
-            }
-            if let (Some(inner), Value::OptionU64(Some(value))) =
-                (call_payload(pattern, "Some"), value)
-            {
-                let name = call_payload(inner, "varpat")?;
-                return Some(vec![(name.to_string(), Value::U64(*value))]);
-            }
-            if let (Some(inner), Value::Step(Step::Jump(amount))) =
-                (call_payload(pattern, "Step::Jump"), value)
-            {
-                let name = call_payload(inner, "varpat")?;
-                return Some(vec![(name.to_string(), Value::U32(*amount))]);
-            }
-            if let (Some(inner), Value::TaggedU32(TaggedU32::Present(value))) =
-                (call_payload(pattern, "TaggedU32::Present"), value)
-            {
-                let name = call_payload(inner, "varpat")?;
-                return Some(vec![(name.to_string(), Value::U32(*value))]);
-            }
-            if let (Some(inner), Value::PairchoiceU32String(PairchoiceU32String::Left(value))) =
-                (call_payload(pattern, "PairchoiceU32String::Left"), value)
-            {
-                let name = call_payload(inner, "varpat")?;
-                return Some(vec![(name.to_string(), Value::U32(*value))]);
-            }
-            if let (Some(inner), Value::PairchoiceU32String(PairchoiceU32String::Right(value))) =
-                (call_payload(pattern, "PairchoiceU32String::Right"), value)
-            {
-                let name = call_payload(inner, "varpat")?;
-                return Some(vec![(name.to_string(), Value::String(value.clone()))]);
-            }
-            if pattern.starts_with('(') && pattern.ends_with(')') {
-                if let Value::ProdU32((left, right)) = value {
-                    let parts = split_top_args(&pattern[1..pattern.len() - 1]);
-                    let left_name = call_payload(parts[0], "varpat")?;
-                    let right_name = call_payload(parts[1], "varpat")?;
-                    return Some(vec![
-                        (left_name.to_string(), Value::U32(*left)),
-                        (right_name.to_string(), Value::U32(*right)),
-                    ]);
-                }
-            }
-            None
-        }
-    }
-}
-
-fn match_enum_bindings(pattern: &str, value: &Value) -> Option<Vec<(String, Value)>> {
-    match (pattern, value) {
-        ("BinaryTreeU32::Leaf()", Value::BinaryTreeU32(BinaryTreeU32::Leaf)) => Some(Vec::new()),
-        ("U32FnCase::Inc()", Value::U32FnCase(U32FnCase::Inc))
-        | ("U32FnCase::Double()", Value::U32FnCase(U32FnCase::Double)) => Some(Vec::new()),
-        _ => match (pattern, value) {
-            _ if pattern.starts_with("Err(") && pattern.ends_with(')') => match value {
-                Value::ResultU32U32(Err(err)) => Some(vec![(
-                    call_payload(pattern, "Err")?.to_string(),
-                    Value::U32(*err),
-                )]),
-                Value::ResultU32OptionU32(Err(err)) => Some(vec![(
-                    call_payload(pattern, "Err")?.to_string(),
-                    Value::OptionU32(*err),
-                )]),
-                _ => None,
-            },
-            _ if pattern.starts_with("Ok(") && pattern.ends_with(')') => match value {
-                Value::ResultU32U32(Ok(value)) => Some(vec![(
-                    call_payload(pattern, "Ok")?.to_string(),
-                    Value::U32(*value),
-                )]),
-                Value::ResultOptionU32U32(Ok(value)) => Some(vec![(
-                    call_payload(pattern, "Ok")?.to_string(),
-                    Value::OptionU32(*value),
-                )]),
-                _ => None,
-            },
-            ("ExprU32::Lit(value)", Value::ExprU32(ExprU32::Lit(value))) => {
-                Some(vec![(String::from("value"), Value::U32(*value))])
-            }
-            ("ExprU32::Add(left,right)", Value::ExprU32(ExprU32::Add(left, right))) => Some(vec![
-                (
-                    String::from("left"),
-                    Value::Boxed(Box::new(Value::ExprU32((**left).clone()))),
-                ),
-                (
-                    String::from("right"),
-                    Value::Boxed(Box::new(Value::ExprU32((**right).clone()))),
-                ),
-            ]),
-            (
-                "BinaryTreeU32::Node(left,value,right)",
-                Value::BinaryTreeU32(BinaryTreeU32::Node(left, value, right)),
-            ) => Some(vec![
-                (
-                    String::from("left"),
-                    Value::Boxed(Box::new(Value::BinaryTreeU32((**left).clone()))),
-                ),
-                (String::from("value"), Value::U32(*value)),
-                (
-                    String::from("right"),
-                    Value::Boxed(Box::new(Value::BinaryTreeU32((**right).clone()))),
-                ),
-            ]),
-            ("EvenNode::Terminal(value)", Value::EvenNode(EvenNode::Terminal(value))) => {
-                Some(vec![(String::from("value"), Value::U32(*value))])
-            }
-            ("EvenNode::Step(value,next)", Value::EvenNode(EvenNode::Step(value, next))) => {
-                Some(vec![
-                    (String::from("value"), Value::U32(*value)),
-                    (
-                        String::from("next"),
-                        Value::Boxed(Box::new(Value::OddNode((**next).clone()))),
-                    ),
-                ])
-            }
-            ("OddNode::Terminal(value)", Value::OddNode(OddNode::Terminal(value))) => {
-                Some(vec![(String::from("value"), Value::U32(*value))])
-            }
-            ("OddNode::Step(value,next)", Value::OddNode(OddNode::Step(value, next))) => {
-                Some(vec![
-                    (String::from("value"), Value::U32(*value)),
-                    (
-                        String::from("next"),
-                        Value::Boxed(Box::new(Value::EvenNode((**next).clone()))),
-                    ),
-                ])
-            }
-            ("U32FnCase::Add(delta)", Value::U32FnCase(U32FnCase::Add(delta))) => {
-                Some(vec![(String::from("delta"), Value::U32(*delta))])
-            }
-            _ => None,
-        },
-    }
-}
-
-fn call_payload<'a>(expr: &'a str, name: &str) -> Option<&'a str> {
-    let prefix = format!("{name}(");
-    expr.strip_prefix(&prefix)?.strip_suffix(')')
-}
-
-fn split_top_level(input: &str, delimiter: char) -> Vec<&str> {
-    let mut parts = Vec::new();
-    let mut start = 0usize;
-    let mut angle_depth = 0i32;
-    let mut paren_depth = 0i32;
-    for (idx, ch) in input.char_indices() {
-        match ch {
-            '<' => angle_depth += 1,
-            '>' => {
-                let prev = input[..idx].chars().next_back();
-                if prev != Some('-') && angle_depth > 0 {
-                    angle_depth -= 1;
-                }
-            }
-            '(' => paren_depth += 1,
-            ')' => paren_depth -= 1,
-            _ if ch == delimiter && angle_depth == 0 && paren_depth == 0 => {
-                parts.push(input[start..idx].trim());
-                start = idx + ch.len_utf8();
-            }
-            _ => {}
-        }
-    }
-    let tail = input[start..].trim();
-    if !tail.is_empty() {
-        parts.push(tail);
-    }
-    parts
-}
-
-fn split_top_args(input: &str) -> Vec<&str> {
-    split_top_level(input, ',')
 }

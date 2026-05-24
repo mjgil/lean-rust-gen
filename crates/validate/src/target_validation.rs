@@ -154,10 +154,21 @@ mod tests {
 
     const TARGET_VALIDATION_SNAPSHOT: &str = include_str!("../../../rust/target-validation.txt");
 
+    fn snapshot_function_count(snapshot: &str) -> usize {
+        snapshot
+            .lines()
+            .find_map(|line| line.strip_prefix("FN_COUNT\t"))
+            .and_then(|value| value.parse().ok())
+            .expect("target-validation snapshot should declare FN_COUNT")
+    }
+
     #[test]
     fn parses_current_target_validation_snapshot() {
         let functions = parse_target_validation_functions(TARGET_VALIDATION_SNAPSHOT).unwrap();
-        assert_eq!(functions.len(), 147);
+        assert_eq!(
+            functions.len(),
+            snapshot_function_count(TARGET_VALIDATION_SNAPSHOT)
+        );
         assert!(functions.iter().any(|function| {
             function.name == "unsupported_higher_order_u32"
                 && function.args

@@ -12,6 +12,7 @@ import LeanRustCore.DependentErasure
 import LeanRustCore.EmitRust
 import LeanRustCore.Extract
 import LeanRustCore.ParameterizedExamples
+import LeanRustCore.StdExamples
 import LeanRustCore.Lowering
 import LeanRustCore.ChimeraBoundary
 import LeanRustCore.Examples

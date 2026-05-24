@@ -1,0 +1,9 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "positive",
+  "source": "LeanRustCore.Examples.list_reverse_first_or_u32",
+  "expected_status": "supported",
+  "required_features": ["std-lowering", "structural-loop"],
+  "tests": ["parser_validation", "semantic_validation", "rust/tests/generated.rs", "rust/tests/next20_completion.rs"],
+  "documentation": ["docs/STD_LOWERINGS.md", "docs/ARCHITECTURE.md"]
+}

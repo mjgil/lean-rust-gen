@@ -551,3 +551,26 @@ saturating add/sub, preconditioned div/mod with `Result<u32, String>`, and
 checked `u64` to `u32` casts. Those functions are enforced by
 `rust/tests/generated.rs`, `rust/tests/next20_completion.rs`,
 `rust/target-validation.txt`, and the exhaustive target interpreter.
+
+## Next-20 Std lowering completion
+
+Task 43 now distinguishes extractor-backed Std lowering from runtime-only
+helpers. `LeanRustCore.StdLowering` and `LeanRustCore.StdImplementation` list
+only the Lean constants that have real `@[rust_export]` examples, generated Rust
+artifacts, and target-validation coverage.
+
+The current extractor-backed additions beyond the older loop/match slice are:
+
+- `List.reverse`, lowered through a runtime reverse helper and exercised by
+  `LeanRustCore.Examples.list_reverse_first_or_u32`
+- `Array.get?`, lowered through a borrowed-slice runtime helper and exercised by
+  `LeanRustCore.Examples.array_get_opt_u32`
+- `Except.map`, exercised by `LeanRustCore.Examples.result_map_ok_inc_u32`
+- `String.append`, `String.length`, and char-based `String.contains`, all
+  exercised by `LeanRustCore.Examples`
+
+`List.zip` and `Array.set` are intentionally no longer counted as
+extractor-complete. They may exist as runtime helpers, but they do not re-enter
+the design-doc complete set until the generated Lean→Rust lane has exported
+examples, target-validation fingerprints, and ownership/docs gates for those
+shapes.

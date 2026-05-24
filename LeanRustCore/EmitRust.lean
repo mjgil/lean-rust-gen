@@ -1,6 +1,7 @@
 import LeanRustCore.IR
 import LeanRustCore.Surface
 import LeanRustCore.RustHygiene
+import LeanRustCore.EmitRustRuntimeCalls
 
 namespace LeanRustCore
 
@@ -93,46 +94,6 @@ private def emitExactNatLiteral (n : Nat) : String :=
   "num_bigint::BigUint::parse_bytes(b\"" ++ toString n ++ "\", 10).unwrap()"
 private def emitExactIntLiteral (n : Int) : String :=
   "num_bigint::BigInt::parse_bytes(b\"" ++ toString n ++ "\", 10).unwrap()"
-private def wrappingMethod : RType → String → Option String
-  | .u32, op => some ("wrapping_" ++ op)
-  | .u64, op => some ("wrapping_" ++ op)
-  | .i32, op => some ("wrapping_" ++ op)
-  | .i64, op => some ("wrapping_" ++ op)
-  | _, _ => none
-
-private def emitWrapping (op : String) (t : RType) (a b : String) : String :=
-  match wrappingMethod t op with
-  | some method => "(" ++ a ++ ")." ++ method ++ "(" ++ b ++ ")"
-  | none => "(" ++ a ++ " /* unsupported wrapping op */ " ++ b ++ ")"
-private def borrowExpr (expr : String) : String :=
-  "(&(" ++ expr ++ "))"
-private def emitExactArithmetic (op : String) (t : RType) (a b : String) : String :=
-  match t, op with
-  | .nat, "add" => borrowExpr a ++ " + " ++ borrowExpr b
-  | .nat, "mul" => borrowExpr a ++ " * " ++ borrowExpr b
-  | .nat, "sub" => "if " ++ borrowExpr a ++ " < " ++ borrowExpr b ++ " { num_bigint::BigUint::from(0u8) } else { " ++ borrowExpr a ++ " - " ++ borrowExpr b ++ " }"
-  | .int, "add" => borrowExpr a ++ " + " ++ borrowExpr b
-  | .int, "sub" => borrowExpr a ++ " - " ++ borrowExpr b
-  | .int, "mul" => borrowExpr a ++ " * " ++ borrowExpr b
-  | _, _ => emitWrapping op t a b
-
-private def emitArithmetic (op : String) (t : RType) (a b : String) : String :=
-  match t with
-  | .nat | .int => emitExactArithmetic op t a b
-  | _ => emitWrapping op t a b
-
-private def emitRuntimeCall? (name : String) (args : List String) : Option String :=
-  match name, args with
-  | "__runtime_u32_checked_add", [a, b] => some s!"crate::runtime::u32_checked_add({a}, {b})"
-  | "__runtime_u32_checked_sub", [a, b] => some s!"crate::runtime::u32_checked_sub({a}, {b})"
-  | "__runtime_u32_checked_div", [a, b] => some s!"crate::runtime::u32_checked_div({a}, {b})"
-  | "__runtime_u32_checked_mod", [a, b] => some s!"crate::runtime::u32_checked_mod({a}, {b})"
-  | "__runtime_u32_saturating_add", [a, b] => some s!"crate::runtime::u32_saturating_add({a}, {b})"
-  | "__runtime_u32_saturating_sub", [a, b] => some s!"crate::runtime::u32_saturating_sub({a}, {b})"
-  | "__runtime_u32_preconditioned_div", [a, b] => some s!"crate::runtime::u32_preconditioned_div({a}, {b}).map_err(String::from)"
-  | "__runtime_u32_preconditioned_mod", [a, b] => some s!"crate::runtime::u32_preconditioned_mod({a}, {b}).map_err(String::from)"
-  | "__runtime_u64_to_u32_checked", [x] => some s!"crate::runtime::u64_to_u32_checked({x})"
-  | _, _ => none
 
 private partial def emitDefaultValue : RType → String
   | .unit => "()"

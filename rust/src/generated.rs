@@ -112,6 +112,10 @@ pub fn inhabited_default_u32(_x: ()) -> u32 {
     0
 }
 
+pub fn array_get_opt_u32(xs: Vec<u32>, i: u32) -> Option<u32> {
+    crate::runtime::array_get_u32(&(xs), (i) as usize)
+}
+
 pub fn checked_sub_u32(a: u32, b: u32) -> Option<u32> {
     crate::runtime::u32_checked_sub(a, b)
 }
@@ -229,6 +233,13 @@ pub fn fin_checked10_u32(x: u32) -> Option<u32> {
     }
 }
 
+pub fn result_map_ok_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x {
+        Err(__lrc_err) => Err::<_, u32>(__lrc_err),
+        Ok(y) => Ok((y).wrapping_add(1)),
+    }
+}
+
 pub fn shift_point_x(p: Point, dx: u32) -> Point {
     Point {
         x: ((p).x).wrapping_add(dx),
@@ -265,6 +276,16 @@ pub fn rose_branch_u32(value: u32, children: Vec<RoseTreeU32>) -> RoseTreeU32 {
     RoseTreeU32 {
         value: value,
         children: children,
+    }
+}
+
+pub fn list_reverse_first_or_u32(xs: Vec<u32>, fallback: u32) -> u32 {
+    {
+        let mut _hyg1679: u32 = fallback;
+        for x in crate::runtime::list_reverse_u32(xs) {
+            _hyg1679 = x;
+        }
+        _hyg1679
     }
 }
 
@@ -448,7 +469,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg2447) => fallback,
+        PairchoiceU32String::Right(_hyg2519) => fallback,
     }
 }
 
@@ -552,11 +573,19 @@ pub fn flag_carrier_match_invariant_u32(flag: bool, x: u32) -> u32 {
     }
 }
 
+pub fn string_length_chars_u32(s: String) -> u32 {
+    crate::runtime::string_length_chars(&(s)) as u32
+}
+
 pub fn result_bind_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
     match x {
         Err(__lrc_err) => Err::<_, u32>(__lrc_err),
         Ok(y) => Ok((y).wrapping_add(1)),
     }
+}
+
+pub fn string_append_lean(left: String, right: String) -> String {
+    crate::runtime::string_append(left, &(right))
 }
 
 pub fn make_point(x: u32, y: u32) -> Point {
@@ -568,6 +597,10 @@ pub fn closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
         let y = x;
         (y).wrapping_add(delta)
     }
+}
+
+pub fn string_contains_char_lean(s: String, c: char) -> bool {
+    crate::runtime::string_contains_char(&(s), c)
 }
 
 pub fn subtype_roundtrip_u32(x: u32) -> u32 {

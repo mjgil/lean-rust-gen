@@ -201,6 +201,10 @@ pub fn string_contains(s: &str, needle: &str) -> bool {
     s.contains(needle)
 }
 
+pub fn string_contains_char(s: &str, needle: char) -> bool {
+    s.contains(needle)
+}
+
 pub fn string_append(mut left: String, right: &str) -> String {
     left.push_str(right);
     left
@@ -567,6 +571,7 @@ mod tests {
         assert_eq!(array_set_u32(vec![1, 2], 1, 9), Some(vec![1, 9]));
         assert_eq!(string_length_chars("hé"), 2);
         assert!(string_contains("lean-rust-core", "rust"));
+        assert!(string_contains_char("lean-rust-core", 'r'));
         assert_eq!(string_append(String::from("lean"), "-rust"), "lean-rust");
         assert_eq!(borrowed_vec_len_u32(&[1, 2, 3]), 3);
         assert!(borrowed_string_is_empty(""));

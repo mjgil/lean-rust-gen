@@ -174,7 +174,7 @@ def checks : List ValidationCheck := [
   {
     name := "standard-combinator-lowering",
     status := "passed",
-    detail := "recognized List.map/filter/foldl/foldr/any/all, Array.map/foldl, Option.map/bind, and Except.map/bind shapes lower to checked SurfaceExpr nodes"
+    detail := "recognized List.map/filter/foldl/foldr/any/all/reverse, Array.map/foldl/get?, Option.map/bind/getD, Except.map/bind/mapError, and String append/length/contains shapes lower through checked SurfaceExpr nodes and approved runtime helpers"
   },
   {
     name := "structural-recursion-lowering",
@@ -481,7 +481,7 @@ private def featureSummaryJson : String :=
   "    \"ffi_wrapper_count\": " ++ toString LeanRustCore.BoundaryExport.boundaryExportCount ++ ",\n" ++
   "    \"pattern_matching_functions\": 4,\n" ++
   "    \"tail_recursion_loop_functions\": 1,\n" ++
-  "    \"std_lowerings\": [\"List.map\", \"List.filter\", \"List.foldl\", \"List.foldr\", \"List.any\", \"List.all\", \"List.append\", \"List.find?\", \"Array.map\", \"Array.foldl\", \"Array.push\", \"Option.map\", \"Option.bind\", \"Option.getD\", \"Except.bind\", \"Except.mapError\"],\n" ++
+  "    \"std_lowerings\": [\"List.map\", \"List.filter\", \"List.foldl\", \"List.foldr\", \"List.any\", \"List.all\", \"List.append\", \"List.find?\", \"List.reverse\", \"Array.map\", \"Array.foldl\", \"Array.push\", \"Array.get?\", \"Option.map\", \"Option.bind\", \"Option.getD\", \"Except.map\", \"Except.bind\", \"Except.mapError\", \"String.append\", \"String.length\", \"String.contains\"],\n" ++
   "    \"typeclass_specialization\": [\"BEq\", \"Decidable\", \"DecidableEq\", \"Ord\", \"Inhabited\", \"ToString\", \"Repr\", \"Monad.Option\", \"Monad.Except\"],\n" ++
   "    \"pure_effects\": [\"Option\", \"Except\", \"ReaderT\", \"StateM\"],\n" ++
   "    \"final16_completion\": [\"property/fuzz corpus\", \"quantitative coverage\", \"diagnostics\", \"workspace crate split\", \"generated/runtime/ABI/validate/headers crates\", \"release matrix\"],\n" ++

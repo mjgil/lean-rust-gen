@@ -99,6 +99,18 @@ cargo publish --dry-run -p lean-rust-core-validate
 cargo publish --dry-run -p lean-rust-core-headers
 ```
 
+Std-lowering completion now also requires the extractor-backed evidence set from
+Task 43:
+
+- `LeanRustCore.StdImplementation.lowerings` must only list constants with real
+  `@[rust_export]` examples.
+- `corpus/positive/std_*.expected.json` fixtures must exist for the added
+  `Except.map`, `List.reverse`, `Array.get?`, `String.append`,
+  `String.length`, and `String.contains` examples.
+- `rust/src/generated.rs`, `rust/target-validation.txt`,
+  `rust/tests/generated.rs`, and `rust/tests/next20_completion.rs` must all
+  cover those examples.
+
 ## Exact final command set
 
 The release evidence for task 1 is the exact command set below. A green release

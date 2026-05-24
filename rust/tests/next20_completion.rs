@@ -4,13 +4,15 @@ use std::path::PathBuf;
 
 use lean_rust_core_generated::runtime::*;
 use lean_rust_core_generated::{
-    checked_add_u32, checked_cast_u64_to_u32, checked_div_u32, checked_mod_u32, checked_sub_u32,
-    equality_cast_subtype_value_u32, even_step_u32, even_terminal_u32,
+    array_get_opt_u32, checked_add_u32, checked_cast_u64_to_u32, checked_div_u32, checked_mod_u32,
+    checked_sub_u32, equality_cast_subtype_value_u32, even_step_u32, even_terminal_u32,
     flag_carrier_false_value_u32, flag_carrier_match_invariant_u32,
-    flag_carrier_true_roundtrip_u32, nested_proof_wrapper_value_u32, odd_step_u32,
-    preconditioned_div_u32, preconditioned_mod_u32, rose_branch_u32, saturating_add_u32,
-    saturating_sub_u32, sigma_runtime_pair_echo_u32, sigma_runtime_pair_sum_u32, tree_leaf_u32,
-    tree_node_u32, tree_sum_u32, EvenNode, OddNode, RoseTreeU32,
+    flag_carrier_true_roundtrip_u32, list_reverse_first_or_u32, nested_proof_wrapper_value_u32,
+    odd_step_u32, preconditioned_div_u32, preconditioned_mod_u32, result_map_ok_inc_u32,
+    rose_branch_u32, saturating_add_u32, saturating_sub_u32, sigma_runtime_pair_echo_u32,
+    sigma_runtime_pair_sum_u32, string_append_lean, string_contains_char_lean,
+    string_length_chars_u32, tree_leaf_u32, tree_node_u32, tree_sum_u32, EvenNode, OddNode,
+    RoseTreeU32,
 };
 use lean_rust_core_validate::validate_generated_ownership;
 use num_bigint::{BigInt, BigUint};
@@ -343,6 +345,7 @@ fn next20_runtime_helpers_cover_numeric_std_and_layouts() {
     assert_eq!(array_set_u32(vec![5, 6], 0, 9), Some(vec![9, 6]));
     assert_eq!(string_append(String::from("lean"), "-rust"), "lean-rust");
     assert!(string_contains("lean-rust-core", "rust"));
+    assert!(string_contains_char("lean-rust-core", 'r'));
     assert_eq!(borrowed_vec_len_u32(&[1, 2, 3]), 3);
     assert_eq!(clone_vec_for_shared_use(&[9, 8]), vec![9, 8]);
 
@@ -365,11 +368,113 @@ fn next20_runtime_helpers_cover_numeric_std_and_layouts() {
 }
 
 #[test]
+fn next20_std_lowerings_cover_real_exported_examples() {
+    let generated =
+        fs::read_to_string(repo_root().join("rust/src/generated.rs")).expect("generated Rust");
+    for needle in [
+        "pub fn result_map_ok_inc_u32",
+        "pub fn list_reverse_first_or_u32",
+        "pub fn array_get_opt_u32",
+        "pub fn string_append_lean",
+        "pub fn string_length_chars_u32",
+        "pub fn string_contains_char_lean",
+    ] {
+        assert!(
+            generated.contains(needle),
+            "missing generated Std-lowering example {needle}"
+        );
+    }
+
+    let target_validation = fs::read_to_string(repo_root().join("rust/target-validation.txt"))
+        .expect("target validation");
+    for needle in [
+        "FN\tresult_map_ok_inc_u32",
+        "FN\tlist_reverse_first_or_u32",
+        "FN\tarray_get_opt_u32",
+        "FN\tstring_append_lean",
+        "FN\tstring_length_chars_u32",
+        "FN\tstring_contains_char_lean",
+    ] {
+        assert!(
+            target_validation.contains(needle),
+            "missing target-validation item {needle}"
+        );
+    }
+
+    assert_eq!(result_map_ok_inc_u32(Ok(41)), Ok(42));
+    assert_eq!(result_map_ok_inc_u32(Err(7)), Err(7));
+    assert_eq!(list_reverse_first_or_u32(vec![1, 2, 3], 9), 1);
+    assert_eq!(array_get_opt_u32(vec![5, 6, 7], 1), Some(6));
+    assert_eq!(
+        string_append_lean(String::from("lean"), String::from("-rust")),
+        "lean-rust"
+    );
+    assert_eq!(string_length_chars_u32(String::from("hé")), 2);
+    assert!(string_contains_char_lean(String::from("lean-rust"), 'r'));
+
+    for (path, source, features) in [
+        (
+            "corpus/positive/std_result_map_ok.expected.json",
+            "LeanRustCore.Examples.result_map_ok_inc_u32",
+            BTreeSet::from(["std-lowering", "result-shape"]),
+        ),
+        (
+            "corpus/positive/std_list_reverse.expected.json",
+            "LeanRustCore.Examples.list_reverse_first_or_u32",
+            BTreeSet::from(["std-lowering", "structural-loop"]),
+        ),
+        (
+            "corpus/positive/std_array_get.expected.json",
+            "LeanRustCore.Examples.array_get_opt_u32",
+            BTreeSet::from(["std-lowering", "container-shape"]),
+        ),
+        (
+            "corpus/positive/std_string_append.expected.json",
+            "LeanRustCore.Examples.string_append_lean",
+            BTreeSet::from(["std-lowering", "string-shape"]),
+        ),
+        (
+            "corpus/positive/std_string_length.expected.json",
+            "LeanRustCore.Examples.string_length_chars_u32",
+            BTreeSet::from(["std-lowering", "string-shape"]),
+        ),
+        (
+            "corpus/positive/std_string_contains_char.expected.json",
+            "LeanRustCore.Examples.string_contains_char_lean",
+            BTreeSet::from(["std-lowering", "string-shape"]),
+        ),
+    ] {
+        let fixture = serde_json::from_str::<serde_json::Value>(
+            &fs::read_to_string(repo_root().join(path)).expect("fixture"),
+        )
+        .unwrap();
+        assert_eq!(fixture["kind"].as_str(), Some("positive"));
+        assert_eq!(fixture["source"].as_str(), Some(source));
+        assert_eq!(fixture["expected_status"].as_str(), Some("supported"));
+        assert_eq!(
+            fixture["required_features"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|item| item.as_str())
+                .collect::<BTreeSet<_>>(),
+            features
+        );
+        assert!(fixture["documentation"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|item| item.as_str())
+            .any(|item| item == "docs/STD_LOWERINGS.md"));
+    }
+}
+
+#[test]
 fn next20_ownership_policy_enforces_non_escaping_borrows() {
     let generated =
         fs::read_to_string(repo_root().join("rust/src/generated.rs")).expect("generated Rust");
     let validation = validate_generated_ownership(&generated).expect("generated Rust should parse");
-    assert_eq!(validation.approved_reference_exprs, 8);
+    assert_eq!(validation.approved_reference_exprs, 12);
     assert!(
         validation.violations.is_empty(),
         "generated ownership policy violations: {:?}",
