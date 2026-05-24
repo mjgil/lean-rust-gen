@@ -58,12 +58,15 @@ private partial def fingerprintPattern (ty : RType) : SurfacePattern → String
       | .option innerTy => "Some(" ++ fingerprintPattern innerTy inner ++ ")"
       | _ => "Some(_)"
   | .enumCtor variant payload =>
-      match ty with
-      | .enum _ variants =>
+      match enumVariantsLocal ty with
+      | some variants =>
           let payloadTypes := match lookupVariantPayloadLocal variants variant with | some tys => tys | none => []
           let rendered := (payload.zip payloadTypes).map (fun pair => fingerprintPattern pair.2 pair.1)
-          fingerprintEnumPath ty variant ++ "(" ++ joinWith "," rendered ++ ")"
-      | _ => rustVariantIdent variant
+          if rendered.isEmpty then
+            fingerprintEnumPath ty variant
+          else
+            fingerprintEnumPath ty variant ++ "(" ++ joinWith "," rendered ++ ")"
+      | none => rustVariantIdent variant
   | .prod a b =>
       match ty with
       | .prod aTy bTy => "(" ++ fingerprintPattern aTy a ++ "," ++ fingerprintPattern bTy b ++ ")"
@@ -73,6 +76,11 @@ where
     match variants with
     | [] => none
     | (candidate, payload) :: rest => if candidate == name then some payload else lookupVariantPayloadLocal rest name
+
+  enumVariantsLocal : RType → Option (List (String × List RType))
+    | .enum _ variants => some variants
+    | .result ok err => some [("Err", [err]), ("Ok", [ok])]
+    | _ => none
 
 private partial def fingerprintDefaultValue : RType → String
   | .unit => "default(())"

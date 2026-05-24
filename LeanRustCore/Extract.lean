@@ -767,22 +767,36 @@ where
           pure none
     | _ => pure none
 
+  exceptTStateTypes? (typeCtx : TypeCtx) (monadExpr : Expr) : CoreM (Option (RType × RType)) := do
+    match stripMData monadExpr with
+    | .app (.app (.const monadName _) errTyExpr) baseMonadExpr =>
+        if nameLeaf monadName == "ExceptT" then
+          match (← stateMStateType? typeCtx baseMonadExpr) with
+          | some stateTy => pure (some (← typeOfLeanWithCtx typeCtx errTyExpr, stateTy))
+          | none => pure none
+        else
+          pure none
+    | _ => pure none
+
   normalizePureDoType : RType → RType
     | .enum name [("unit", [])] =>
         if name == "PUnit" then .unit else .enum name [("unit", [])]
     | other => other
 
   translateAppliedReaderLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx)
-      (argTy outTy : RType) (fnExpr runtimeExpr : Expr) : CoreM (String × SurfaceExpr) := do
+      (argTy outTy : RType) (fnExpr : Expr) (runtimeLocal : Local) : CoreM (String × SurfaceExpr) := do
     match stripMData fnExpr with
     | .lam n ty body _ => do
         let actualTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx ty)
         if actualTy == argTy then
           let binder := sanitizeRustIdent "item" (nameLeaf n)
-          let appliedBody ← Core.betaReduce (mkApp body runtimeExpr)
+          let runtimeIdx := locals.length + 1
+          let appliedBody ← Core.betaReduce (mkApp body (.bvar runtimeIdx))
+          let bodyTypeCtx := (none :: typeCtx) ++ [none]
+          let bodyLocals := (some { name := binder, ty := argTy } :: locals) ++ [some runtimeLocal]
           match (← translateElaboratedPureDoApp?
-            (none :: typeCtx)
-            (some { name := binder, ty := argTy } :: locals)
+            bodyTypeCtx
+            bodyLocals
             (some outTy)
             appliedBody) with
           | some lowered => pure (binder, lowered)
@@ -792,19 +806,16 @@ where
     | _ => unsupported fnExpr
 
   translateAppliedStateLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx)
-      (argTy outTy stateTy : RType) (fnExpr runtimeExpr : Expr) : CoreM (String × SurfaceExpr) := do
+      (argTy outTy stateTy : RType) (fnExpr : Expr) (runtimeLocal : Local) : CoreM (String × SurfaceExpr) := do
     match stripMData fnExpr with
     | .lam n ty body _ => do
         let actualTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx ty)
         if actualTy == argTy then
           let binder := sanitizeRustIdent "item" (nameLeaf n)
-          let liftedRuntime :=
-            if argTy == .unit then runtimeExpr else runtimeExpr.liftLooseBVars 0 1
-          let appliedBody ← Core.betaReduce (mkApp body liftedRuntime)
-          let bodyTypeCtx :=
-            if argTy == .unit then typeCtx else none :: typeCtx
-          let bodyLocals :=
-            if argTy == .unit then locals else some { name := binder, ty := argTy } :: locals
+          let runtimeIdx := locals.length + 1
+          let appliedBody ← Core.betaReduce (mkApp body (.bvar runtimeIdx))
+          let bodyTypeCtx := (none :: typeCtx) ++ [none]
+          let bodyLocals := (some { name := binder, ty := argTy } :: locals) ++ [some runtimeLocal]
           match (← translateElaboratedPureDoApp?
             bodyTypeCtx
             bodyLocals
@@ -815,6 +826,35 @@ where
         else
           throwError "StateM lambda argument type did not match the lowered bind/seq type"
     | _ => unsupported fnExpr
+
+  translateAppliedExceptStateLambdaBody (typeCtx : TypeCtx) (locals : LocalCtx)
+      (argTy outTy errTy stateTy : RType) (fnExpr : Expr) (runtimeLocal : Local) : CoreM (String × SurfaceExpr) := do
+    match stripMData fnExpr with
+    | .lam n ty body _ => do
+        let actualTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx ty)
+        if actualTy == argTy then
+          let binder := sanitizeRustIdent "item" (nameLeaf n)
+          let runtimeIdx := locals.length + 1
+          let appliedBody ← Core.betaReduce (mkApp body (.bvar runtimeIdx))
+          let bodyTypeCtx := (none :: typeCtx) ++ [none]
+          let bodyLocals := (some { name := binder, ty := argTy } :: locals) ++ [some runtimeLocal]
+          match (← translateElaboratedPureDoApp?
+            bodyTypeCtx
+            bodyLocals
+            (some (.prod (.result outTy errTy) stateTy))
+            appliedBody) with
+          | some lowered => pure (binder, lowered)
+          | none => unsupported body
+        else
+          throwError "ExceptT(StateM) lambda argument type did not match the lowered bind/seq type"
+    | _ => unsupported fnExpr
+
+  translateAppliedPureDoTarget (typeCtx : TypeCtx) (locals : LocalCtx)
+      (expected : Option RType) (targetExpr runtimeExpr : Expr) : CoreM SurfaceExpr := do
+    let applied := mkApp targetExpr runtimeExpr
+    match (← translateElaboratedPureDoApp? typeCtx locals expected applied) with
+    | some lowered => pure lowered
+    | none => translateExpr typeCtx locals expected applied
 
   translateElaboratedAppliedPureDoBind? (typeCtx : TypeCtx) (locals : LocalCtx)
       (expected : Option RType) (args : List Expr) : CoreM (Option SurfaceExpr) := do
@@ -829,11 +869,9 @@ where
                 if wanted != outTy then
                   throwError "elaborated ReaderT bind result type did not match the expected output type"
             | none => pure ()
-            let target ← match (← translateElaboratedPureDoApp? typeCtx locals (some innerTy) (mkApp targetExpr runtimeExpr)) with
-              | some lowered => pure lowered
-              | none => unsupported targetExpr
-            let (binder, body) ← translateAppliedReaderLambdaBody typeCtx locals innerTy outTy fnExpr runtimeExpr
-            let _envValue ← translateExpr typeCtx locals (some envTy) runtimeExpr
+            let target ← translateAppliedPureDoTarget typeCtx locals (some innerTy) targetExpr runtimeExpr
+            let envLocal := { name := "__reader_bind_env", ty := envTy }
+            let (binder, body) ← translateAppliedReaderLambdaBody typeCtx locals innerTy outTy fnExpr envLocal
             pure (some (.letIn binder target body))
         | none =>
             match (← stateMStateType? typeCtx monadExpr) with
@@ -846,19 +884,51 @@ where
                       throwError "elaborated StateM bind result type did not match the expected state-threaded output type"
                 | some _ => throwError "elaborated StateM bind expected type was not a pair"
                 | none => pure ()
-                let target ← match (← translateElaboratedPureDoApp?
-                  typeCtx locals (some (.prod innerTy stateTy)) (mkApp targetExpr runtimeExpr)) with
-                  | some lowered => pure lowered
-                  | none => unsupported targetExpr
+                let target ← translateAppliedPureDoTarget
+                  typeCtx locals (some (.prod innerTy stateTy)) targetExpr runtimeExpr
                 let stateBinder := freshLocalName locals "__state_bind"
+                let stateLocal := { name := stateBinder, ty := stateTy }
                 let (binder, body) ← translateAppliedStateLambdaBody
                   typeCtx
-                  (some { name := stateBinder, ty := stateTy } :: locals)
-                  innerTy outTy stateTy fnExpr (.bvar 0)
+                  locals
+                  innerTy outTy stateTy fnExpr stateLocal
                 pure (some (.matchPattern (.prod innerTy stateTy) target [
                   (SurfacePattern.prod (SurfacePattern.var binder) (SurfacePattern.var stateBinder), body)
                 ]))
-            | none => pure none
+            | none =>
+                match (← exceptTStateTypes? typeCtx monadExpr) with
+                | some (errTy, stateTy) => do
+                    let innerTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx alphaExpr)
+                    let outTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx betaExpr)
+                    match expected with
+                    | some (.prod (.result wantedOk wantedErr) wantedState) =>
+                        if wantedOk != outTy || wantedErr != errTy || wantedState != stateTy then
+                          throwError "elaborated ExceptT(StateM) bind result type did not match the expected state-threaded Result output type"
+                    | some _ => throwError "elaborated ExceptT(StateM) bind expected type was not a state-threaded Result pair"
+                    | none => pure ()
+                    let target ← translateAppliedPureDoTarget
+                      typeCtx locals (some (.prod (.result innerTy errTy) stateTy)) targetExpr runtimeExpr
+                    let resultBinder := freshLocalName locals "__except_state_bind_result"
+                    let stateBinder := freshLocalName
+                      (some { name := resultBinder, ty := .result innerTy errTy } :: locals)
+                      "__except_state_bind_state"
+                    let errBinder := freshLocalName
+                      (some { name := stateBinder, ty := stateTy } :: some { name := resultBinder, ty := .result innerTy errTy } :: locals)
+                      "__except_state_bind_err"
+                    let stateLocal := { name := stateBinder, ty := stateTy }
+                    let (binder, body) ← translateAppliedExceptStateLambdaBody
+                      typeCtx
+                      locals
+                      innerTy outTy errTy stateTy fnExpr stateLocal
+                    pure (some (.matchPattern (.prod (.result innerTy errTy) stateTy) target [
+                      (SurfacePattern.prod (SurfacePattern.var resultBinder) (SurfacePattern.var stateBinder),
+                        .matchPattern (.result innerTy errTy) (.var resultBinder) [
+                          (SurfacePattern.enumCtor "Err" [SurfacePattern.var errBinder],
+                            .prodLit (.resultErr outTy (.var errBinder)) (.var stateBinder)),
+                          (SurfacePattern.enumCtor "Ok" [SurfacePattern.var binder], body)
+                        ])
+                    ]))
+                | none => pure none
     | _ => pure none
 
   translateElaboratedAppliedPureDoPure? (typeCtx : TypeCtx) (locals : LocalCtx)
@@ -866,7 +936,7 @@ where
     match args with
     | monadExpr :: _instExpr :: alphaExpr :: valueExpr :: runtimeExpr :: [] =>
         match (← readerTEnvType? typeCtx monadExpr) with
-        | some _ => do
+        | some envTy => do
             let outTy ← typeOfLeanWithCtx typeCtx alphaExpr
             match expected with
             | some wanted =>
@@ -888,7 +958,20 @@ where
                 let value ← translateExpr typeCtx locals (some outTy) valueExpr
                 let stateValue ← translateExpr typeCtx locals (some stateTy) runtimeExpr
                 pure (some (.prodLit value stateValue))
-            | none => pure none
+            | none =>
+                match (← exceptTStateTypes? typeCtx monadExpr) with
+                | some (errTy, stateTy) => do
+                    let outTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx alphaExpr)
+                    match expected with
+                    | some (.prod (.result wantedOk wantedErr) wantedState) =>
+                        if wantedOk != outTy || wantedErr != errTy || wantedState != stateTy then
+                          throwError "elaborated ExceptT(StateM) pure result type did not match the expected state-threaded Result output type"
+                    | some _ => throwError "elaborated ExceptT(StateM) pure expected type was not a state-threaded Result pair"
+                    | none => pure ()
+                    let value ← translateExpr typeCtx locals (some outTy) valueExpr
+                    let stateValue ← translateExpr typeCtx locals (some stateTy) runtimeExpr
+                    pure (some (.prodLit (.resultOk errTy value) stateValue))
+                | none => pure none
     | _ => pure none
 
   translateElaboratedAppliedPureDoSeqRight? (typeCtx : TypeCtx) (locals : LocalCtx)
@@ -896,7 +979,7 @@ where
     match args with
     | monadExpr :: _instExpr :: alphaExpr :: betaExpr :: targetExpr :: fnExpr :: runtimeExpr :: [] =>
         match (← readerTEnvType? typeCtx monadExpr) with
-        | some _ => do
+        | some envTy => do
             let innerTy ← typeOfLeanWithCtx typeCtx alphaExpr
             let outTy ← typeOfLeanWithCtx typeCtx betaExpr
             match expected with
@@ -904,10 +987,9 @@ where
                 if wanted != outTy then
                   throwError "elaborated ReaderT seqRight result type did not match the expected output type"
             | none => pure ()
-            let target ← match (← translateElaboratedPureDoApp? typeCtx locals (some innerTy) (mkApp targetExpr runtimeExpr)) with
-              | some lowered => pure lowered
-              | none => unsupported targetExpr
-            let (_unitBinder, body) ← translateAppliedReaderLambdaBody typeCtx locals .unit outTy fnExpr runtimeExpr
+            let target ← translateAppliedPureDoTarget typeCtx locals (some innerTy) targetExpr runtimeExpr
+            let envLocal := { name := "__reader_seq_right_env", ty := envTy }
+            let (_unitBinder, body) ← translateAppliedReaderLambdaBody typeCtx locals .unit outTy fnExpr envLocal
             let seqBinder := freshLocalName locals "__reader_seq_right"
             pure (some (.letIn seqBinder target body))
         | none =>
@@ -921,19 +1003,54 @@ where
                       throwError "elaborated StateM seqRight result type did not match the expected state-threaded output type"
                 | some _ => throwError "elaborated StateM seqRight expected type was not a pair"
                 | none => pure ()
-                let target ← match (← translateElaboratedPureDoApp?
-                  typeCtx locals (some (.prod innerTy stateTy)) (mkApp targetExpr runtimeExpr)) with
-                  | some lowered => pure lowered
-                  | none => unsupported targetExpr
+                let target ← translateAppliedPureDoTarget
+                  typeCtx locals (some (.prod innerTy stateTy)) targetExpr runtimeExpr
                 let stateBinder := freshLocalName locals "__state_seq_right"
+                let stateLocal := { name := stateBinder, ty := stateTy }
                 let (_unitBinder, body) ← translateAppliedStateLambdaBody
                   typeCtx
-                  (some { name := stateBinder, ty := stateTy } :: locals)
-                  .unit outTy stateTy fnExpr (.bvar 0)
+                  locals
+                  .unit outTy stateTy fnExpr stateLocal
                 pure (some (.matchPattern (.prod innerTy stateTy) target [
                   (SurfacePattern.prod SurfacePattern.wildcard (SurfacePattern.var stateBinder), body)
                 ]))
-            | none => pure none
+            | none =>
+                match (← exceptTStateTypes? typeCtx monadExpr) with
+                | some (errTy, stateTy) => do
+                    let innerTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx alphaExpr)
+                    let outTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx betaExpr)
+                    match expected with
+                    | some (.prod (.result wantedOk wantedErr) wantedState) =>
+                        if wantedOk != outTy || wantedErr != errTy || wantedState != stateTy then
+                          throwError "elaborated ExceptT(StateM) seqRight result type did not match the expected state-threaded Result output type"
+                    | some _ => throwError "elaborated ExceptT(StateM) seqRight expected type was not a state-threaded Result pair"
+                    | none => pure ()
+                    let target ← translateAppliedPureDoTarget
+                      typeCtx locals (some (.prod (.result innerTy errTy) stateTy)) targetExpr runtimeExpr
+                    let resultBinder := freshLocalName locals "__except_state_seq_right_result"
+                    let stateBinder := freshLocalName
+                      (some { name := resultBinder, ty := .result innerTy errTy } :: locals)
+                      "__except_state_seq_right_state"
+                    let errBinder := freshLocalName
+                      (some { name := stateBinder, ty := stateTy } :: some { name := resultBinder, ty := .result innerTy errTy } :: locals)
+                      "__except_state_seq_right_err"
+                    let okBinder := freshLocalName
+                      (some { name := stateBinder, ty := stateTy } :: some { name := resultBinder, ty := .result innerTy errTy } :: locals)
+                      "__except_state_seq_right_ok"
+                    let stateLocal := { name := stateBinder, ty := stateTy }
+                    let (_unitBinder, body) ← translateAppliedExceptStateLambdaBody
+                      typeCtx
+                      locals
+                      .unit outTy errTy stateTy fnExpr stateLocal
+                    pure (some (.matchPattern (.prod (.result innerTy errTy) stateTy) target [
+                      (SurfacePattern.prod (SurfacePattern.var resultBinder) (SurfacePattern.var stateBinder),
+                        .matchPattern (.result innerTy errTy) (.var resultBinder) [
+                          (SurfacePattern.enumCtor "Err" [SurfacePattern.var errBinder],
+                            .prodLit (.resultErr outTy (.var errBinder)) (.var stateBinder)),
+                          (SurfacePattern.enumCtor "Ok" [SurfacePattern.var okBinder], body)
+                        ])
+                    ]))
+                | none => pure none
     | _ => pure none
 
   translateElaboratedAppliedPureDoSeqLeft? (typeCtx : TypeCtx) (locals : LocalCtx)
@@ -941,7 +1058,7 @@ where
     match args with
     | monadExpr :: _instExpr :: alphaExpr :: betaExpr :: targetExpr :: fnExpr :: runtimeExpr :: [] =>
         match (← readerTEnvType? typeCtx monadExpr) with
-        | some _ => do
+        | some envTy => do
             let leftTy ← typeOfLeanWithCtx typeCtx alphaExpr
             let rightTy ← typeOfLeanWithCtx typeCtx betaExpr
             match expected with
@@ -949,10 +1066,9 @@ where
                 if wanted != leftTy then
                   throwError "elaborated ReaderT seqLeft result type did not match the expected output type"
             | none => pure ()
-            let target ← match (← translateElaboratedPureDoApp? typeCtx locals (some leftTy) (mkApp targetExpr runtimeExpr)) with
-              | some lowered => pure lowered
-              | none => unsupported targetExpr
-            let (_unitBinder, rightBody) ← translateAppliedReaderLambdaBody typeCtx locals .unit rightTy fnExpr runtimeExpr
+            let target ← translateAppliedPureDoTarget typeCtx locals (some leftTy) targetExpr runtimeExpr
+            let envLocal := { name := "__reader_seq_left_env", ty := envTy }
+            let (_unitBinder, rightBody) ← translateAppliedReaderLambdaBody typeCtx locals .unit rightTy fnExpr envLocal
             let binder := freshLocalName locals "__reader_seq_left"
             let ignoreBinder := freshLocalName (some { name := binder, ty := leftTy } :: locals) "__reader_seq_left_ignore"
             pure (some (.letIn binder target (.letIn ignoreBinder rightBody (.var binder))))
@@ -967,10 +1083,8 @@ where
                       throwError "elaborated StateM seqLeft result type did not match the expected state-threaded output type"
                 | some _ => throwError "elaborated StateM seqLeft expected type was not a pair"
                 | none => pure ()
-                let target ← match (← translateElaboratedPureDoApp?
-                  typeCtx locals (some (.prod leftTy stateTy)) (mkApp targetExpr runtimeExpr)) with
-                  | some lowered => pure lowered
-                  | none => unsupported targetExpr
+                let target ← translateAppliedPureDoTarget
+                  typeCtx locals (some (.prod leftTy stateTy)) targetExpr runtimeExpr
                 let leftBinder := freshLocalName locals "__state_seq_left_value"
                 let midStateBinder := freshLocalName
                   (some { name := leftBinder, ty := leftTy } :: locals)
@@ -978,10 +1092,11 @@ where
                 let finalStateBinder := freshLocalName
                   (some { name := midStateBinder, ty := stateTy } :: some { name := leftBinder, ty := leftTy } :: locals)
                   "__state_seq_left_final"
+                let midStateLocal := { name := midStateBinder, ty := stateTy }
                 let (_unitBinder, rightBody) ← translateAppliedStateLambdaBody
                   typeCtx
-                  (some { name := midStateBinder, ty := stateTy } :: some { name := leftBinder, ty := leftTy } :: locals)
-                  .unit rightTy stateTy fnExpr (.bvar 0)
+                  (some { name := leftBinder, ty := leftTy } :: locals)
+                  .unit rightTy stateTy fnExpr midStateLocal
                 let finalBody := .matchPattern (.prod rightTy stateTy) rightBody [
                   (SurfacePattern.prod SurfacePattern.wildcard (SurfacePattern.var finalStateBinder),
                     .prodLit (.var leftBinder) (.var finalStateBinder))
@@ -989,7 +1104,64 @@ where
                 pure (some (.matchPattern (.prod leftTy stateTy) target [
                   (SurfacePattern.prod (SurfacePattern.var leftBinder) (SurfacePattern.var midStateBinder), finalBody)
                 ]))
-            | none => pure none
+            | none =>
+                match (← exceptTStateTypes? typeCtx monadExpr) with
+                | some (errTy, stateTy) => do
+                    let leftTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx alphaExpr)
+                    let rightTy := normalizePureDoType (← typeOfLeanWithCtx typeCtx betaExpr)
+                    match expected with
+                    | some (.prod (.result wantedOk wantedErr) wantedState) =>
+                        if wantedOk != leftTy || wantedErr != errTy || wantedState != stateTy then
+                          throwError "elaborated ExceptT(StateM) seqLeft result type did not match the expected state-threaded Result output type"
+                    | some _ => throwError "elaborated ExceptT(StateM) seqLeft expected type was not a state-threaded Result pair"
+                    | none => pure ()
+                    let target ← translateAppliedPureDoTarget
+                      typeCtx locals (some (.prod (.result leftTy errTy) stateTy)) targetExpr runtimeExpr
+                    let leftResultBinder := freshLocalName locals "__except_state_seq_left_result"
+                    let midStateBinder := freshLocalName
+                      (some { name := leftResultBinder, ty := .result leftTy errTy } :: locals)
+                      "__except_state_seq_left_mid"
+                    let leftErrBinder := freshLocalName
+                      (some { name := midStateBinder, ty := stateTy } :: some { name := leftResultBinder, ty := .result leftTy errTy } :: locals)
+                      "__except_state_seq_left_outer_err"
+                    let leftBinder := freshLocalName
+                      (some { name := midStateBinder, ty := stateTy } :: some { name := leftResultBinder, ty := .result leftTy errTy } :: locals)
+                      "__except_state_seq_left_value"
+                    let rightResultBinder := freshLocalName
+                      (some { name := leftBinder, ty := leftTy } :: some { name := midStateBinder, ty := stateTy } :: locals)
+                      "__except_state_seq_left_right_result"
+                    let finalStateBinder := freshLocalName
+                      (some { name := rightResultBinder, ty := .result rightTy errTy } :: some { name := leftBinder, ty := leftTy } :: some { name := midStateBinder, ty := stateTy } :: locals)
+                      "__except_state_seq_left_final_state"
+                    let rightErrBinder := freshLocalName
+                      (some { name := finalStateBinder, ty := stateTy } :: some { name := rightResultBinder, ty := .result rightTy errTy } :: some { name := leftBinder, ty := leftTy } :: some { name := midStateBinder, ty := stateTy } :: locals)
+                      "__except_state_seq_left_inner_err"
+                    let rightOkBinder := freshLocalName
+                      (some { name := finalStateBinder, ty := stateTy } :: some { name := rightResultBinder, ty := .result rightTy errTy } :: some { name := leftBinder, ty := leftTy } :: some { name := midStateBinder, ty := stateTy } :: locals)
+                      "__except_state_seq_left_right"
+                    let midStateLocal := { name := midStateBinder, ty := stateTy }
+                    let (_unitBinder, rightBody) ← translateAppliedExceptStateLambdaBody
+                      typeCtx
+                      (some { name := leftBinder, ty := leftTy } :: locals)
+                      .unit rightTy errTy stateTy fnExpr midStateLocal
+                    let finalBody := .matchPattern (.prod (.result rightTy errTy) stateTy) rightBody [
+                      (SurfacePattern.prod (SurfacePattern.var rightResultBinder) (SurfacePattern.var finalStateBinder),
+                        .matchPattern (.result rightTy errTy) (.var rightResultBinder) [
+                          (SurfacePattern.enumCtor "Err" [SurfacePattern.var rightErrBinder],
+                            .prodLit (.resultErr leftTy (.var rightErrBinder)) (.var finalStateBinder)),
+                          (SurfacePattern.enumCtor "Ok" [SurfacePattern.var rightOkBinder],
+                            .prodLit (.resultOk errTy (.var leftBinder)) (.var finalStateBinder))
+                        ])
+                    ]
+                    pure (some (.matchPattern (.prod (.result leftTy errTy) stateTy) target [
+                      (SurfacePattern.prod (SurfacePattern.var leftResultBinder) (SurfacePattern.var midStateBinder),
+                        .matchPattern (.result leftTy errTy) (.var leftResultBinder) [
+                          (SurfacePattern.enumCtor "Err" [SurfacePattern.var leftErrBinder],
+                            .prodLit (.resultErr leftTy (.var leftErrBinder)) (.var midStateBinder)),
+                          (SurfacePattern.enumCtor "Ok" [SurfacePattern.var leftBinder], finalBody)
+                        ])
+                    ]))
+                | none => pure none
     | _ => pure none
 
   translateElaboratedAppliedReaderRead? (typeCtx : TypeCtx) (locals : LocalCtx)
@@ -1027,7 +1199,21 @@ where
             | none => pure ()
             let stateValue ← translateExpr typeCtx locals (some stateTy) runtimeExpr
             pure (some (.prodLit stateValue stateValue))
-        | none => pure none
+        | none =>
+            match (← exceptTStateTypes? typeCtx monadExpr) with
+            | some (errTy, stateTy) => do
+                let explicitStateTy ← typeOfLeanWithCtx typeCtx stateTyExpr
+                if explicitStateTy != stateTy then
+                  throwError "elaborated ExceptT(StateM) get state type did not match the monad state type"
+                match expected with
+                | some (.prod (.result wantedOk wantedErr) wantedState) =>
+                    if wantedOk != stateTy || wantedErr != errTy || wantedState != stateTy then
+                      throwError "elaborated ExceptT(StateM) get result type did not match the expected state-threaded Result output type"
+                | some _ => throwError "elaborated ExceptT(StateM) get expected type was not a state-threaded Result pair"
+                | none => pure ()
+                let stateValue ← translateExpr typeCtx locals (some stateTy) runtimeExpr
+                pure (some (.prodLit (.resultOk errTy stateValue) stateValue))
+            | none => pure none
     | _ => pure none
 
   translateElaboratedAppliedStateSet? (typeCtx : TypeCtx) (locals : LocalCtx)
@@ -1048,7 +1234,22 @@ where
             let _oldState ← translateExpr typeCtx locals (some stateTy) runtimeExpr
             let newState ← translateExpr typeCtx locals (some stateTy) newStateExpr
             pure (some (.prodLit .litUnit newState))
-        | none => pure none
+        | none =>
+            match (← exceptTStateTypes? typeCtx monadExpr) with
+            | some (errTy, stateTy) => do
+                let explicitStateTy ← typeOfLeanWithCtx typeCtx stateTyExpr
+                if explicitStateTy != stateTy then
+                  throwError "elaborated ExceptT(StateM) set state type did not match the monad state type"
+                match expected with
+                | some (.prod (.result wantedOk wantedErr) wantedState) =>
+                    if wantedOk != .unit || wantedErr != errTy || wantedState != stateTy then
+                      throwError "elaborated ExceptT(StateM) set result type did not match the expected state-threaded Result output type"
+                | some _ => throwError "elaborated ExceptT(StateM) set expected type was not a state-threaded Result pair"
+                | none => pure ()
+                let _oldState ← translateExpr typeCtx locals (some stateTy) runtimeExpr
+                let newState ← translateExpr typeCtx locals (some stateTy) newStateExpr
+                pure (some (.prodLit (.resultOk errTy .litUnit) newState))
+            | none => pure none
     | _ => pure none
 
   translateElaboratedPureDoBind? (typeCtx : TypeCtx) (locals : LocalCtx)
@@ -3542,7 +3743,10 @@ private def monadicSpecializationExport (declName : Name) : Bool :=
   leaf == "reader_seq_left_u32" ||
   leaf == "state_do_tick_u32" ||
   leaf == "state_seq_right_u32" ||
-  leaf == "state_seq_left_u32"
+  leaf == "state_seq_left_u32" ||
+  leaf == "except_state_do_u32" ||
+  leaf == "except_state_seq_right_u32" ||
+  leaf == "except_state_seq_left_u32"
 
 private def closureConversionExport (declName : Name) : Bool :=
   let leaf := nameLeaf declName

@@ -117,6 +117,12 @@ fn remaining_pure_do_generated_examples_cover_bind_and_seq_shapes() {
     assert_eq!(state_do_tick_u32(41), (41, 42));
     assert_eq!(state_seq_right_u32(5), (6, 5));
     assert_eq!(state_seq_left_u32(5), (5, 6));
+    assert_eq!(except_state_do_u32(Err(7), 2), (Err(7), 2));
+    assert_eq!(except_state_do_u32(Ok(40), 2), (Ok(42), 3));
+    assert_eq!(except_state_seq_right_u32(Err(7), 2), (Err(7), 2));
+    assert_eq!(except_state_seq_right_u32(Ok(40), 2), (Ok(3), 2));
+    assert_eq!(except_state_seq_left_u32(Err(7), 2), (Err(7), 2));
+    assert_eq!(except_state_seq_left_u32(Ok(40), 2), (Ok(40), 3));
 }
 
 #[test]

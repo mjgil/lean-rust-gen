@@ -9,9 +9,9 @@ use super::model::{
     v_binary_tree_u32, v_bool, v_bounded_proof, v_boxed_u32, v_char, v_even_node, v_expr_u32,
     v_i32, v_i64, v_int, v_nat, v_nested_option_u32, v_nestedpayload_u32_string, v_odd_node,
     v_option_u32, v_ordering, v_pairbox_string_u32, v_pairbox_u32_string, v_pairchoice_u32_string,
-    v_point, v_prod_u32, v_result_option_u32_u32, v_result_u32_option_u32, v_result_u32_string,
-    v_result_u32_u32, v_rosetree_u32, v_step, v_string, v_tagged_u32, v_u32, v_u64, v_unit,
-    v_vec_u32, Value,
+    v_point, v_prod_result_u32_u32_u32, v_prod_u32, v_result_option_u32_u32,
+    v_result_u32_option_u32, v_result_u32_string, v_result_u32_u32, v_rosetree_u32, v_step,
+    v_string, v_tagged_u32, v_u32, v_u64, v_unit, v_vec_u32, Value,
 };
 
 pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, String> {
@@ -262,6 +262,22 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         "state_do_tick_u32" => Ok(v_prod_u32(state_do_tick_u32(as_u32(&args[0])?))),
         "state_seq_right_u32" => Ok(v_prod_u32(state_seq_right_u32(as_u32(&args[0])?))),
         "state_seq_left_u32" => Ok(v_prod_u32(state_seq_left_u32(as_u32(&args[0])?))),
+        "except_state_input_u32" => Ok(v_prod_result_u32_u32_u32(except_state_input_u32(
+            as_result_u32_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "except_state_do_u32" => Ok(v_prod_result_u32_u32_u32(except_state_do_u32(
+            as_result_u32_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "except_state_seq_right_u32" => Ok(v_prod_result_u32_u32_u32(except_state_seq_right_u32(
+            as_result_u32_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "except_state_seq_left_u32" => Ok(v_prod_result_u32_u32_u32(except_state_seq_left_u32(
+            as_result_u32_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
         "reader_add_env_u32" => Ok(v_u32(reader_add_env_u32(
             as_u32(&args[0])?,
             as_u32(&args[1])?,

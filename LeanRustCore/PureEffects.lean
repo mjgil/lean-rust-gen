@@ -16,10 +16,11 @@ inductive PureEffect where
   | except
   | state
   | reader
+  | exceptState
   deriving Repr, BEq, DecidableEq
 
 def supportedEffects : List PureEffect := [
-  .option, .except, .state, .reader
+  .option, .except, .state, .reader, .exceptState
 ]
 
 def effectName : PureEffect → String
@@ -27,6 +28,7 @@ def effectName : PureEffect → String
   | .except => "Except"
   | .state => "StateM"
   | .reader => "ReaderT"
+  | .exceptState => "ExceptT(StateM)"
 
 private def joinWithLocal (sep : String) : List String → String
   | [] => ""
@@ -35,6 +37,6 @@ private def joinWithLocal (sep : String) : List String → String
 
 /-- Human-readable summary included in validation/proof reports. -/
 def pureEffectsSummary : String :=
-  "the direct lane lowers pure do-notation for Option, Except, ReaderT, and StateM into explicit safe control flow, while IO remains outside the safe direct lane and ExceptT(StateM) is still pending generalized extraction"
+  "the direct lane lowers pure do-notation for Option, Except, ReaderT, StateM, and ExceptT(StateM) into explicit safe control flow, while IO remains outside the safe direct lane"
 
 end LeanRustCore.PureEffects

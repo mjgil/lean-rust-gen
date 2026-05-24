@@ -644,7 +644,10 @@ That means ordinary exported declarations like
 `LeanRustCore.Examples.reader_seq_left_u32`,
 `LeanRustCore.Examples.state_do_tick_u32`,
 `LeanRustCore.Examples.state_seq_right_u32`, and
-`LeanRustCore.Examples.state_seq_left_u32` now flow through the real
+`LeanRustCore.Examples.state_seq_left_u32`,
+`LeanRustCore.Examples.except_state_do_u32`,
+`LeanRustCore.Examples.except_state_seq_right_u32`, and
+`LeanRustCore.Examples.except_state_seq_left_u32` now flow through the real
 Lean→ExtractIR→SurfaceExpr→Rust pipeline, show up in `rust/src/generated.rs`,
 `rust/extract-ir.txt`, and `rust/target-validation.txt`, and are enforced by
 generated, differential, parser-validation, interpreter, corpus, and shell
@@ -652,7 +655,8 @@ release tests.
 
 The direct extractor lane now also handles fully applied `StateM` programs by
 lowering the applied state argument into explicit `(value, state)` tuple
-construction and destructuring. `ExceptT(StateM)` still only has runtime models
-and docs, so Task 52 stays incomplete until the stacked error-plus-state family
-has exported examples, corpus evidence, and generated-artifact coverage
-comparable to the completed lanes.
+construction and destructuring. The stacked `ExceptT(StateM)` lane now lowers
+after the final state application into explicit `(Result value err, state)`
+carriers, including lifted `get`/`set` state operations, `Ok`/`Err`
+short-circuiting in bind and applicative sequencing, and first-order partial
+applications such as `except_state_input_u32 input`.

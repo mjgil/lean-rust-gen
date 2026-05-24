@@ -52,7 +52,7 @@ def allPureDoLoweringsComplete : Bool :=
 
 /-- Human-readable report summary. -/
 def pureDoNotationSummary : String :=
-  "the direct lane now lowers elaborated pure/bind/map/seq for Option, Except, ReaderT, and StateM into safe first-order Rust control flow; ExceptT(StateM) still has runtime/documentation coverage while generalized extracted lowering remains in progress"
+  "the direct lane now lowers elaborated pure/bind/map/seq for Option, Except, ReaderT, StateM, and ExceptT(StateM) into safe first-order Rust control flow"
 
 theorem pure_do_completion_gate : allPureDoLoweringsComplete = true := by
   rfl

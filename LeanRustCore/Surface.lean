@@ -239,6 +239,7 @@ private def structFields? : RType → Option (List RArg)
 
 private def enumVariants? : RType → Option (List (String × List RType))
   | .enum _ variants => some variants
+  | .result ok err => some [("Err", [err]), ("Ok", [ok])]
   | _ => none
 
 private def enumVariantNames : List (String × List RType) → List String
@@ -257,10 +258,13 @@ private partial def patternBinders (pat : SurfacePattern) (ty : RType) : Except 
   | .bool _, .bool => pure []
   | .optionNone, .option _ => pure []
   | .optionSome innerPat, .option innerTy => patternBinders innerPat innerTy
-  | .enumCtor variant payloadPats, .enum _ variants =>
-      match lookupVariant variants variant with
-      | none => throw (report .unsupportedExpression ("pattern refers to unknown enum variant `" ++ variant ++ "`"))
-      | some payloadTypes => patternBinderList payloadPats payloadTypes
+  | .enumCtor variant payloadPats, ty =>
+      match enumVariants? ty with
+      | some variants =>
+          match lookupVariant variants variant with
+          | none => throw (report .unsupportedExpression ("pattern refers to unknown enum variant `" ++ variant ++ "`"))
+          | some payloadTypes => patternBinderList payloadPats payloadTypes
+      | none => throw (report .unsupportedType ("pattern is not compatible with scrutinee type " ++ rTypeLabel ty))
   | .prod aPat bPat, .prod aTy bTy => do
       let a ← patternBinders aPat aTy
       let b ← patternBinders bPat bTy
@@ -318,9 +322,11 @@ private def patternsExhaustive (scrutTy : RType) (patterns : List SurfacePattern
     | .unit => patterns.any (fun p => p == .unit)
     | .bool => patterns.any (patternCoversBool true) && patterns.any (patternCoversBool false)
     | .option _ => patterns.any patternCoversOptionNone && patterns.any patternCoversOptionSome
-    | .enum _ variants => variants.all (fun variant => patterns.any (patternCoversEnumVariant variant.1))
     | .prod _ _ => patterns.any (fun p => match p with | .prod _ _ => true | _ => false)
-    | _ => false
+    | ty =>
+        match enumVariants? ty with
+        | some variants => variants.all (fun variant => patterns.any (patternCoversEnumVariant variant.1))
+        | none => false
 
 /-- Type check the extracted first-order surface tree, using an expected type when it disambiguates constructors. -/
 partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Option RType) : Except CompatibilityReport RType :=
@@ -1169,6 +1175,10 @@ private partial def matchPatternValue (pat : SurfacePattern) (value : SurfaceVal
         matchPatternList payloadPats payloadValues
       else
         none
+  | .enumCtor "Ok" [payloadPat], .resultOk payloadValue =>
+      matchPatternValue payloadPat payloadValue
+  | .enumCtor "Err" [payloadPat], .resultErr payloadValue =>
+      matchPatternValue payloadPat payloadValue
   | .prod aPat bPat, .prodVal a b => do
       let aEnv ← matchPatternValue aPat a
       let bEnv ← matchPatternValue bPat b

@@ -452,8 +452,12 @@ def check_pure_do_docs_and_corpus() -> None:
         "state_do_tick_u32",
         "state_seq_right_u32",
         "state_seq_left_u32",
+        "except_state_do_u32",
+        "except_state_seq_right_u32",
+        "except_state_seq_left_u32",
         "ReaderT",
         "StateM",
+        "ExceptT(StateM)",
         "SeqRight.seqRight",
         "SeqLeft.seqLeft",
     ]:
@@ -470,6 +474,9 @@ def check_pure_do_docs_and_corpus() -> None:
         "state_do_tick.expected.json",
         "state_seq_right.expected.json",
         "state_seq_left.expected.json",
+        "except_state_do.expected.json",
+        "except_state_seq_right.expected.json",
+        "except_state_seq_left.expected.json",
     ]:
         fixture = json_file(f"corpus/positive/{fixture_name}")
         require(fixture.get("expected_status") == "supported", f"{fixture_name} must be supported")

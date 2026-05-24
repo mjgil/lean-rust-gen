@@ -570,7 +570,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg3138) => fallback,
+        PairchoiceU32String::Right(_hyg3431) => fallback,
     }
 }
 
@@ -1176,6 +1176,10 @@ pub fn generic_option_default__step(x: Option<Step>, fallback: Step) -> Step {
     }
 }
 
+pub fn except_state_input_u32(input: Result<u32, u32>, s: u32) -> (Result<u32, u32>, u32) {
+    (input, s)
+}
+
 pub fn helper_inc_fixed(x: u32) -> u32 {
     (x).wrapping_add(1)
 }
@@ -1192,6 +1196,34 @@ pub fn auto_choose_point(flag: bool, left: Point, right: Point) -> Point {
     generic_choose__point(flag, left, right)
 }
 
+pub fn except_state_seq_right_u32(input: Result<u32, u32>, s: u32) -> (Result<u32, u32>, u32) {
+    match except_state_input_u32(input, s) {
+        (__except_state_seq_right_result_2, __except_state_seq_right_state_3) => {
+            match __except_state_seq_right_result_2 {
+                Err(__except_state_seq_right_err_4) => (
+                    Err(__except_state_seq_right_err_4),
+                    __except_state_seq_right_state_3,
+                ),
+                Ok(__except_state_seq_right_ok_4) => match (
+                    Ok(__except_state_seq_right_state_3),
+                    __except_state_seq_right_state_3,
+                ) {
+                    (__except_state_bind_result_4, __except_state_bind_state_5) => {
+                        match __except_state_bind_result_4 {
+                            Err(__except_state_bind_err_6) => {
+                                (Err(__except_state_bind_err_6), __except_state_bind_state_5)
+                            }
+                            Ok(current) => {
+                                (Ok((current).wrapping_add(1)), __except_state_bind_state_5)
+                            }
+                        }
+                    }
+                },
+            }
+        }
+    }
+}
+
 pub fn auto_identity_u32(x: u32) -> u32 {
     generic_identity__u32(x)
 }
@@ -1202,6 +1234,94 @@ pub fn inc_twice_u32(x: u32) -> u32 {
 
 pub fn helper_chain_u32(x: u32) -> u32 {
     helper_inc_fixed(helper_inc_fixed(x))
+}
+
+pub fn except_state_do_u32(input: Result<u32, u32>, s: u32) -> (Result<u32, u32>, u32) {
+    match (Ok(s), s) {
+        (__except_state_bind_result_2, __except_state_bind_state_3) => {
+            match __except_state_bind_result_2 {
+                Err(__except_state_bind_err_4) => {
+                    (Err(__except_state_bind_err_4), __except_state_bind_state_3)
+                }
+                Ok(current) => match except_state_input_u32(input, __except_state_bind_state_3) {
+                    (__except_state_bind_result_4, __except_state_bind_state_5) => {
+                        match __except_state_bind_result_4 {
+                            Err(__except_state_bind_err_6) => {
+                                (Err(__except_state_bind_err_6), __except_state_bind_state_5)
+                            }
+                            Ok(value) => match (Ok(()), (current).wrapping_add(1)) {
+                                (__except_state_bind_result_6, __except_state_bind_state_7) => {
+                                    match __except_state_bind_result_6 {
+                                        Err(__except_state_bind_err_8) => (
+                                            Err(__except_state_bind_err_8),
+                                            __except_state_bind_state_7,
+                                        ),
+                                        Ok(_hyg2374) => (
+                                            Ok((value).wrapping_add(current)),
+                                            __except_state_bind_state_7,
+                                        ),
+                                    }
+                                }
+                            },
+                        }
+                    }
+                },
+            }
+        }
+    }
+}
+
+pub fn except_state_seq_left_u32(input: Result<u32, u32>, s: u32) -> (Result<u32, u32>, u32) {
+    match except_state_input_u32(input, s) {
+        (__except_state_seq_left_result_2, __except_state_seq_left_mid_3) => {
+            match __except_state_seq_left_result_2 {
+                Err(__except_state_seq_left_outer_err_4) => (
+                    Err(__except_state_seq_left_outer_err_4),
+                    __except_state_seq_left_mid_3,
+                ),
+                Ok(__except_state_seq_left_value_4) => match match (
+                    Ok(__except_state_seq_left_mid_3),
+                    __except_state_seq_left_mid_3,
+                ) {
+                    (__except_state_bind_result_5, __except_state_bind_state_6) => {
+                        match __except_state_bind_result_5 {
+                            Err(__except_state_bind_err_7) => {
+                                (Err(__except_state_bind_err_7), __except_state_bind_state_6)
+                            }
+                            Ok(current) => match (Ok(()), (current).wrapping_add(1)) {
+                                (__except_state_bind_result_7, __except_state_bind_state_8) => {
+                                    match __except_state_bind_result_7 {
+                                        Err(__except_state_bind_err_9) => (
+                                            Err(__except_state_bind_err_9),
+                                            __except_state_bind_state_8,
+                                        ),
+                                        Ok(_hyg2550) => (
+                                            Ok((current).wrapping_add(1)),
+                                            __except_state_bind_state_8,
+                                        ),
+                                    }
+                                }
+                            },
+                        }
+                    }
+                } {
+                    (
+                        __except_state_seq_left_right_result_4,
+                        __except_state_seq_left_final_state_5,
+                    ) => match __except_state_seq_left_right_result_4 {
+                        Err(__except_state_seq_left_inner_err_6) => (
+                            Err(__except_state_seq_left_inner_err_6),
+                            __except_state_seq_left_final_state_5,
+                        ),
+                        Ok(__except_state_seq_left_right_6) => (
+                            Ok(__except_state_seq_left_value_4),
+                            __except_state_seq_left_final_state_5,
+                        ),
+                    },
+                },
+            }
+        }
+    }
 }
 
 pub fn returned_multi_closure_apply_u32(a: u32, b: u32, x: u32, y: u32) -> u32 {

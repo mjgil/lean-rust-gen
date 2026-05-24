@@ -29,11 +29,14 @@ pub enum Value {
     OptionU64(Option<u64>),
     OptionStep(Option<Step>),
     NestedOptionU32(Option<Option<u32>>),
+    ResultUnitU32(Result<(), u32>),
     ResultU32U32(Result<u32, u32>),
     ResultU32String(Result<u32, String>),
     ResultU32OptionU32(Result<u32, Option<u32>>),
     ResultOptionU32U32(Result<Option<u32>, u32>),
     ProdU32((u32, u32)),
+    ProdResultUnitU32U32((Result<(), u32>, u32)),
+    ProdResultU32U32U32((Result<u32, u32>, u32)),
     ProdUnitU32(u32),
     Point(Point),
     Ordering(Ordering),
@@ -128,6 +131,7 @@ fn sample_value_for(name: &str, ty: &str) -> Result<Value, String> {
         "Option<Step>" => Value::OptionStep(Some(step_jump(41))),
         "Result<u32, u32>" => Value::ResultU32U32(Ok(41)),
         "(u32, u32)" => Value::ProdU32((40, 2)),
+        "(Result<u32, u32>, u32)" => Value::ProdResultU32U32U32((Ok(40), 2)),
         "num_bigint::BigUint" => match name {
             "b" => Value::Nat(BigUint::from(2u32)),
             _ => Value::Nat(BigUint::from(40u32)),
@@ -246,6 +250,10 @@ pub fn v_result_option_u32_u32(value: Result<Option<u32>, u32>) -> Value {
 
 pub fn v_prod_u32(value: (u32, u32)) -> Value {
     Value::ProdU32(value)
+}
+
+pub fn v_prod_result_u32_u32_u32(value: (Result<u32, u32>, u32)) -> Value {
+    Value::ProdResultU32U32U32(value)
 }
 
 pub fn v_point(value: Point) -> Value {

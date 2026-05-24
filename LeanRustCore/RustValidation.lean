@@ -483,7 +483,7 @@ private def featureSummaryJson : String :=
   "    \"tail_recursion_loop_functions\": 1,\n" ++
   "    \"std_lowerings\": [\"List.map\", \"List.filter\", \"List.foldl\", \"List.foldr\", \"List.any\", \"List.all\", \"List.append\", \"List.find?\", \"List.reverse\", \"Array.map\", \"Array.foldl\", \"Array.push\", \"Array.get?\", \"Option.map\", \"Option.bind\", \"Option.getD\", \"Except.map\", \"Except.bind\", \"Except.mapError\", \"String.append\", \"String.length\", \"String.contains\"],\n" ++
   "    \"typeclass_specialization\": [\"BEq\", \"Decidable\", \"DecidableEq\", \"Ord\", \"Inhabited\", \"ToString\", \"Repr\", \"Monad.Option\", \"Monad.Except\"],\n" ++
-  "    \"pure_effects\": [\"Option\", \"Except\", \"ReaderT\", \"StateM\"],\n" ++
+  "    \"pure_effects\": [\"Option\", \"Except\", \"ReaderT\", \"StateM\", \"ExceptT(StateM)\"],\n" ++
   "    \"final16_completion\": [\"property/fuzz corpus\", \"quantitative coverage\", \"diagnostics\", \"workspace crate split\", \"generated/runtime/ABI/validate/headers crates\", \"release matrix\"],\n" ++
   "    \"first20_completion\": [\"ci end-to-end matrix\", \"expanded diagnostics\", \"source spans\", \"ExtractIR pipeline\", \"RuntimeValue denotation\", \"SurfaceExpr coverage\"],\n" ++
   "    \"remaining_completion\": [\"generated dictionaries\", \"first-class closures\", \"pure do\", \"controlled IO\", \"complete semantics\", \"preservation lemmas\", \"property generators\", \"feature-complete coverage\", \"CI matrix\", \"publishing\"]\n" ++

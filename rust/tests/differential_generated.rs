@@ -133,6 +133,12 @@ fn surface_evaluator_matches_extracted_rust() {
     assert_eq!(state_do_tick_u32(41), (41u32, 42u32));
     assert_eq!(state_seq_right_u32(5), (6u32, 5u32));
     assert_eq!(state_seq_left_u32(5), (5u32, 6u32));
+    assert_eq!(except_state_do_u32(Err(7), 2), (Err(7u32), 2u32));
+    assert_eq!(except_state_do_u32(Ok(40), 2), (Ok(42u32), 3u32));
+    assert_eq!(except_state_seq_right_u32(Err(7), 2), (Err(7u32), 2u32));
+    assert_eq!(except_state_seq_right_u32(Ok(40), 2), (Ok(3u32), 2u32));
+    assert_eq!(except_state_seq_left_u32(Err(7), 2), (Err(7u32), 2u32));
+    assert_eq!(except_state_seq_left_u32(Ok(40), 2), (Ok(40u32), 3u32));
     assert_eq!(result_map_err_inc_u32(Err(41)), Err(42u32));
     assert_eq!(reader_add_env_u32(5, 37), 42u32);
     assert_eq!(state_tick_u32(41), (41u32, 42u32));

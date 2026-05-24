@@ -45,6 +45,7 @@ def rustType : RType → String
 private def enumPath (ty : RType) (variant : String) : String :=
   match ty with
   | .enum name _ => rustTypeIdent name ++ "::" ++ rustVariantIdent variant
+  | .result _ _ => rustVariantIdent variant
   | _ => rustVariantIdent variant
 
 private def emitEnumPattern (ty : RType) (branch : String × (List String × SurfaceExpr)) : String :=
@@ -73,6 +74,13 @@ private partial def emitSurfacePattern (ty : RType) : SurfacePattern → String
       match ty with
       | .enum _ variants =>
           let payloadTypes := match lookupVariantPayloadLocal variants variant with | some tys => tys | none => []
+          let rendered := (payload.zip payloadTypes).map (fun pair => emitSurfacePattern pair.2 pair.1)
+          if rendered.isEmpty then enumPath ty variant else enumPath ty variant ++ "(" ++ joinWith ", " rendered ++ ")"
+      | .result okTy errTy =>
+          let payloadTypes := match variant with
+            | "Err" => [errTy]
+            | "Ok" => [okTy]
+            | _ => []
           let rendered := (payload.zip payloadTypes).map (fun pair => emitSurfacePattern pair.2 pair.1)
           if rendered.isEmpty then enumPath ty variant else enumPath ty variant ++ "(" ++ joinWith ", " rendered ++ ")"
       | _ => rustVariantIdent variant

@@ -472,6 +472,36 @@ def state_seq_right_u32 (s : UInt32) : UInt32 × UInt32 :=
 def state_seq_left_u32 (s : UInt32) : UInt32 × UInt32 :=
   ((get : StateM UInt32 UInt32) <* set (s + 1) : StateM UInt32 UInt32) s
 
+def except_state_input_u32 (input : Except UInt32 UInt32) (s : UInt32) :
+    Except UInt32 UInt32 × UInt32 :=
+  (input, s)
+
+@[rust_export]
+def except_state_do_u32 (input : Except UInt32 UInt32) (s : UInt32) :
+    Except UInt32 UInt32 × UInt32 :=
+  (do
+    let current ← get
+    let value ← (except_state_input_u32 input : ExceptT UInt32 (StateM UInt32) UInt32)
+    set (current + 1)
+    pure (value + current) : ExceptT UInt32 (StateM UInt32) UInt32) s
+
+@[rust_export]
+def except_state_seq_right_u32 (input : Except UInt32 UInt32) (s : UInt32) :
+    Except UInt32 UInt32 × UInt32 :=
+  (((except_state_input_u32 input : ExceptT UInt32 (StateM UInt32) UInt32)) *>
+    (do
+      let current ← get
+      pure (current + 1) : ExceptT UInt32 (StateM UInt32) UInt32)) s
+
+@[rust_export]
+def except_state_seq_left_u32 (input : Except UInt32 UInt32) (s : UInt32) :
+    Except UInt32 UInt32 × UInt32 :=
+  (((except_state_input_u32 input : ExceptT UInt32 (StateM UInt32) UInt32)) <*
+    (do
+      let current ← get
+      set (current + 1)
+      pure (current + 1) : ExceptT UInt32 (StateM UInt32) UInt32)) s
+
 @[rust_export]
 def reader_add_env_u32 (env x : UInt32) : UInt32 :=
   (fun cfg => x + cfg) env

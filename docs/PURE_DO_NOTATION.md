@@ -3,9 +3,8 @@
 The extractor recognizes elaborated pure monadic code and lowers it to safe
 first-order Rust control flow. The current extractor-backed direct-lane cases
 cover the elaborated `Bind.bind`, `Pure.pure`, `SeqRight.seqRight`, and
-`SeqLeft.seqLeft` shapes for `Option`, `Except`, `ReaderT UInt32 Id`, and
-`StateM UInt32`. The broader pure-effect plan still includes the remaining
-stacked state/error family:
+`SeqLeft.seqLeft` shapes for `Option`, `Except`, `ReaderT UInt32 Id`,
+`StateM UInt32`, and `ExceptT UInt32 (StateM UInt32)`:
 
 | Effect | Rust shape | Tests |
 |---|---|---|
@@ -13,7 +12,7 @@ stacked state/error family:
 | `Except` | elaborated `Bind.bind` / `Pure.pure` / `SeqRight.seqRight` / `SeqLeft.seqLeft` lowers to `Result` match, map, and early return | `generated.rs`, differential tests, parser/validation gates |
 | `ReaderT` | elaborated bind/pure/`*>`/`<*` lowers to explicit environment threading via `SurfaceExpr.letIn` over the applied environment argument | `generated.rs`, differential tests, parser/validation gates |
 | `StateM` | elaborated bind/pure/`*>`/`<*` lowers to explicit `(value, state)` tuple threading with `SurfaceExpr.prodLit` and `SurfaceExpr.matchPattern` | `generated.rs`, differential tests, parser/validation gates |
-| `ExceptT(StateM)` | result-plus-state runtime model exists; generalized extracted `do` lowering is still pending | runtime pure-do tests |
+| `ExceptT(StateM)` | elaborated bind/pure/`*>`/`<*` lower to `Result` plus explicit state threading, with lifted `get`/`set` becoming `(Ok value, state)` and `(Ok (), new_state)` | `generated.rs`, differential tests, parser/validation/interpreter gates |
 
 Current extractor recognition rules:
 
@@ -37,6 +36,13 @@ Current extractor recognition rules:
   nested tuple destructuring with `SurfaceExpr.matchPattern`, and
   `SeqRight.seqRight` / `SeqLeft.seqLeft` thread the intermediate state through
   those same pair carriers.
+- Fully applied `ExceptT ε (StateM σ)` programs lower after their final state
+  application to `(Result value ε, state)` carriers. `Pure.pure` becomes
+  `(Ok(value), state)`, `Bind.bind` becomes state-threaded tuple destructuring
+  plus `Ok`/`Err` result matching, `SeqRight.seqRight` / `SeqLeft.seqLeft`
+  short-circuit on `Err` while preserving the current state, and lifted
+  `MonadState.get` / `MonadStateOf.set` become `(Ok(state), state)` and
+  `(Ok(()), new_state)`.
 - The monad constructor and instance arguments are ignored after shape
   recognition; only the concrete runtime carrier and value arguments are lowered.
 
@@ -50,13 +56,17 @@ Current direct-lane exported examples:
 - `state_do_tick_u32`, `state_seq_right_u32`, and `state_seq_left_u32` cover
   explicit `StateM UInt32` bind and applicative sequencing through the direct
   lane.
+- `except_state_do_u32`, `except_state_seq_right_u32`, and
+  `except_state_seq_left_u32` cover direct-lane `ExceptT UInt32 (StateM UInt32)`
+  bind and applicative sequencing, including lifted `get`/`set` state effects
+  and first-order partial application of `except_state_input_u32 input` as the
+  stacked monadic source value.
 
 `state_tick_u32` and the runtime pure-effect helpers still cover the admitted
 state-threading model, and the direct lane now has matching source-level
-`StateM` coverage for bind, `*>`, and `<*`.
+coverage for `StateM` and `ExceptT(StateM)` bind, `*>`, and `<*`.
 
 `IO`, `EIO`, `Task`, mutation, and external effects do not lower through this
-pure lane. They require the controlled IO boundary, and `ExceptT(StateM)`
-remains outside the completed direct lane.
+pure lane. They require the controlled IO boundary.
 
 Completion requires implementation, tests, and documentation for this feature.

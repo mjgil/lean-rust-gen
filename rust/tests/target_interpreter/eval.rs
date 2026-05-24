@@ -73,6 +73,7 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
     if let Some(inner) = call_payload(expr, "ok") {
         let value = eval_expr(functions, inner, env)?;
         return match value {
+            Value::Unit => Ok(Value::ResultUnitU32(Ok(()))),
             Value::U32(value) => Ok(Value::ResultU32U32(Ok(value))),
             Value::OptionU32(value) => Ok(Value::ResultOptionU32U32(Ok(value))),
             other => Err(format!("unsupported ok(...) payload {other:?}")),
@@ -361,6 +362,12 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
         return match (left, right) {
             (Value::Unit, Value::U32(value)) => Ok(Value::ProdUnitU32(value)),
             (Value::U32(left), Value::U32(right)) => Ok(Value::ProdU32((left, right))),
+            (Value::ResultUnitU32(left), Value::U32(right)) => {
+                Ok(Value::ProdResultUnitU32U32((left, right)))
+            }
+            (Value::ResultU32U32(left), Value::U32(right)) => {
+                Ok(Value::ProdResultU32U32U32((left, right)))
+            }
             other => Err(format!("unsupported tuple values {other:?}")),
         };
     }
@@ -580,7 +587,9 @@ fn eval_match_pattern(
         let (pattern, body) = arm
             .split_once("=>")
             .ok_or_else(|| format!("malformed match_pattern arm {arm}"))?;
-        if let Some(bindings) = match_pattern_bindings(pattern.trim(), target) {
+        if let Some(bindings) = match_pattern_bindings(pattern.trim(), target)
+            .or_else(|| match_enum_bindings(pattern.trim(), target))
+        {
             let mut nested = env.clone();
             for (name, value) in bindings {
                 nested.insert(name, value);
