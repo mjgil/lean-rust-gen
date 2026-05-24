@@ -11,6 +11,7 @@ documentation, reproducible generated artifacts, and safe-lane/FFI separation.
 | generated-snapshot | `scripts/check-extractor-snapshot.sh` |
 | artifact-consistency | `scripts/check-artifact-consistency.py` |
 | final-checklist | `scripts/check-final-16-completion.py` |
+| cargo-metadata | `cargo metadata --no-deps --format-version 1` |
 | cargo-workspace-test | `cargo test --workspace` |
 | ffi-feature-test | `cargo test -p lean-rust-core-generated --features ffi` |
 | cargo-fmt | `cargo fmt --check --all` |
@@ -55,3 +56,51 @@ cargo publish --dry-run -p lean-rust-core-abi
 cargo publish --dry-run -p lean-rust-core-validate
 cargo publish --dry-run -p lean-rust-core-headers
 ```
+
+## Exact final command set
+
+The release evidence for task 1 is the exact command set below. A green release
+run means each command exits `0`, `./scripts/check.sh` finishes without diffs or
+test failures, and the Rust lane reaches `cargo fmt`, `cargo clippy`, workspace
+tests, and the `ffi` feature tests on the pinned toolchains.
+
+```text
+lake build
+./scripts/check.sh
+cargo metadata --no-deps --format-version 1
+cargo test --workspace
+cargo test -p lean-rust-core-generated --features ffi
+cargo fmt --check --all
+cargo clippy --workspace --all-targets -- -D warnings
+```
+
+## Generated artifact policy
+
+Checked-in generated files are reproducible release artifacts, not source of
+truth. `scripts/gen.sh` must regenerate:
+
+- `rust/src/generated.rs`
+- `rust/src/ffi_generated.rs`
+- `rust/tests/differential_generated.rs`
+- `rust/compatibility-report.json`
+- `rust/proof-report.json`
+- `rust/validation-report.json`
+- `rust/target-validation.txt`
+- `rust/build-metadata.json`
+- `rust/coverage-dashboard.json`
+
+The script formats generated Rust with `rustfmt --edition 2021`, and
+`scripts/check-extractor-snapshot.sh` formats its temporary Rust outputs before
+diffing them. A clean snapshot gate therefore proves both regeneration and
+format normalization for the checked-in artifacts.
+
+## Supported combinations
+
+The release target matrix is:
+
+- Linux default lane
+- Linux `ffi` lane
+- macOS default lane
+- macOS `ffi` lane
+
+Task 9 remains incomplete until CI evidence exists for every combination above.

@@ -49,7 +49,7 @@ initialize autoHelperExportSpecsRef : IO.Ref (List MonoExportSpec) ← IO.mkRef 
 private def nameLeaf : Name → String
   | .anonymous => "_"
   | .str _ s => s
-  | .num p n => nameLeaf p ++ Nat.toString n
+  | .num p n => nameLeaf p ++ toString n
 
 private def nameParent : Name → Name
   | .anonymous => .anonymous
@@ -65,7 +65,7 @@ private def containsName : List Name → Name → Bool
 
 private def localAt (locals : LocalCtx) (idx : Nat) : Except String Local :=
   match locals.get? idx with
-  | some (some local) => Except.ok local
+  | some (some localVal) => Except.ok localVal
   | some none => Except.error s!"de-Bruijn variable #{idx} is erased or type-level, not a Rust value"
   | none => Except.error s!"unbound de-Bruijn variable #{idx} during extraction"
 
@@ -183,6 +183,12 @@ private def lookupRField (fields : List RArg) (fieldName : String) : Option RTyp
   | [] => none
   | (name, ty) :: rest => if name == fieldName then some ty else lookupRField rest fieldName
 
+private def lookupVariantPayload (variants : List (String × List RType)) (variantName : String) : Option (List RType) :=
+  match variants with
+  | [] => none
+  | (name, payload) :: rest =>
+      if name == variantName then some payload else lookupVariantPayload rest variantName
+
 private def typeCtxFromParams (params : List RType) : TypeCtx :=
   params.foldl (fun ctx ty => some ty :: ctx) []
 
@@ -219,8 +225,8 @@ private partial def rTypeRuntimeSuffix : RType → String
   | .boxed t => "box_" ++ rTypeRuntimeSuffix t
   | .recursive name => sanitizeRustIdent "rec" (lowerRuntimeTypeString name)
   | .subtype t => "subtype_" ++ rTypeRuntimeSuffix t
-  | .fin n => "fin_" ++ Nat.toString n
-  | .vector t n => "vector_" ++ rTypeRuntimeSuffix t ++ "_" ++ Nat.toString n
+  | .fin n => "fin_" ++ toString n
+  | .vector t n => "vector_" ++ rTypeRuntimeSuffix t ++ "_" ++ toString n
   | .struct name _ => sanitizeRustIdent "struct" (lowerRuntimeTypeString name)
   | .enum name _ => sanitizeRustIdent "enum" (lowerRuntimeTypeString name)
 
@@ -277,14 +283,14 @@ private def sameRecursiveRuntimeType (a b : RType) : Bool :=
 
 private def indexedPayloadFieldsAux (idx : Nat) : List RType → List RArg
   | [] => []
-  | ty :: rest => ("field" ++ Nat.toString idx, ty) :: indexedPayloadFieldsAux (idx + 1) rest
+  | ty :: rest => ("field" ++ toString idx, ty) :: indexedPayloadFieldsAux (idx + 1) rest
 
 private def indexedPayloadFields (payload : List RType) : List RArg :=
   indexedPayloadFieldsAux 0 payload
 
 private def indexedRuntimePayloadFieldsAux (idx : Nat) : List RType → List (RArg × Nat)
   | [] => []
-  | ty :: rest => (("field" ++ Nat.toString idx, ty), idx) :: indexedRuntimePayloadFieldsAux (idx + 1) rest
+  | ty :: rest => (("field" ++ toString idx, ty), idx) :: indexedRuntimePayloadFieldsAux (idx + 1) rest
 
 private def indexedRuntimePayloadFields (payload : List RType) : List (RArg × Nat) :=
   indexedRuntimePayloadFieldsAux 0 payload
@@ -445,7 +451,7 @@ mutual
               fieldCtx := none :: fieldCtx
               idx := idx + 1
             else
-              let fallback := "field" ++ Nat.toString idx
+              let fallback := "field" ++ toString idx
               let fieldName := sanitizeRustIdent fallback (nameLeaf field.1)
               let fieldTy ← typeOfLeanWithCtx fieldCtx field.2
               out := out ++ [((fieldName, fieldTy), idx)]
@@ -541,8 +547,8 @@ private partial def rTypeMonoSuffix : RType → String
   | .boxed t => "box_" ++ rTypeMonoSuffix t
   | .recursive name => sanitizeRustIdent "rec" (lowerRuntimeTypeString name)
   | .subtype t => "subtype_" ++ rTypeMonoSuffix t
-  | .fin n => "fin_" ++ Nat.toString n
-  | .vector t n => "vector_" ++ rTypeMonoSuffix t ++ "_" ++ Nat.toString n
+  | .fin n => "fin_" ++ toString n
+  | .vector t n => "vector_" ++ rTypeMonoSuffix t ++ "_" ++ toString n
   | .struct name _ => sanitizeRustIdent "struct" (lowerMonoString name)
   | .enum name _ => sanitizeRustIdent "enum" (lowerMonoString name)
 
@@ -557,34 +563,34 @@ private def findMonoSpecByKey (source : Name) (typeArgs : List RType) : List Mon
   | spec :: rest => if sameMonoKey source typeArgs spec then some spec else findMonoSpecByKey source typeArgs rest
 
 private def registerAutoMonoSpec (source : Name) (typeArgs : List RType) : CoreM String := do
-  let explicitSpecs ← liftIO monoExportSpecsRef.get
+  let explicitSpecs ← monoExportSpecsRef.get
   match findMonoSpecByKey source typeArgs explicitSpecs with
   | some spec => pure spec.rustName
   | none => do
-      let autoSpecs ← liftIO autoMonoExportSpecsRef.get
+      let autoSpecs ← autoMonoExportSpecsRef.get
       match findMonoSpecByKey source typeArgs autoSpecs with
       | some spec => pure spec.rustName
       | none => do
           let rustName := autoMonoRustName source typeArgs
           let spec : MonoExportSpec := { source := source, rustName := rustName, typeArgs := typeArgs }
-          liftIO <| autoMonoExportSpecsRef.modify (fun specs => specs ++ [spec])
+          autoMonoExportSpecsRef.modify (fun specs => specs ++ [spec])
           pure rustName
 
 private def helperRustName (source : Name) : String :=
   sanitizeRustIdent "generated" (nameLeaf source)
 
 private def registerAutoHelperSpec (source : Name) : CoreM String := do
-  let explicitSpecs ← liftIO monoExportSpecsRef.get
+  let explicitSpecs ← monoExportSpecsRef.get
   match findMonoSpecByKey source [] explicitSpecs with
   | some spec => pure spec.rustName
   | none => do
-      let autoSpecs ← liftIO autoHelperExportSpecsRef.get
+      let autoSpecs ← autoHelperExportSpecsRef.get
       match findMonoSpecByKey source [] autoSpecs with
       | some spec => pure spec.rustName
       | none => do
           let rustName := helperRustName source
           let spec : MonoExportSpec := { source := source, rustName := rustName, typeArgs := [] }
-          liftIO <| autoHelperExportSpecsRef.modify (fun specs => specs ++ [spec])
+          autoHelperExportSpecsRef.modify (fun specs => specs ++ [spec])
           pure rustName
 
 private def expectedOrTypeArg (typeCtx : TypeCtx) (expected : Option RType) (args : List Expr) (fallback : RType) : CoreM RType := do
@@ -616,19 +622,19 @@ private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expec
   match e with
   | .bvar idx =>
       match localAt locals idx with
-      | .ok local =>
-          match expected, local.ty with
+      | .ok localVal =>
+          match expected, localVal.ty with
           | some (.boxed inner), actual =>
               if sameRecursiveRuntimeType inner actual then
-                return .boxNew inner (.var local.name)
+                return .boxNew inner (.var localVal.name)
               else
-                return .var local.name
+                return .var localVal.name
           | some wanted, .boxed inner =>
               if sameRecursiveRuntimeType wanted inner then
-                return .boxDeref inner (.var local.name)
+                return .boxDeref inner (.var localVal.name)
               else
-                return .var local.name
-          | _, _ => return .var local.name
+                return .var localVal.name
+          | _, _ => return .var localVal.name
       | .error msg => throwError msg
   | .const n _ =>
       match (← translateConstructorApp? typeCtx locals expected n []) with
@@ -649,8 +655,8 @@ private partial def translateExpr (typeCtx : TypeCtx) (locals : LocalCtx) (expec
         match stripMData target with
         | .bvar idx =>
             match localAt locals idx with
-            | .ok local =>
-                match local.ty with
+            | .ok localVal =>
+                match localVal.ty with
                 | .fin bound => return .finVal bound (← translateExpr typeCtx locals (some (.fin bound)) target)
                 | _ => throwError "Fin.val target was not typed as Fin in the local context"
             | .error msg => throwError msg
@@ -792,24 +798,26 @@ where
       let (binder, predicate) ← translateUnaryLambdaBody typeCtx locals elemTy .bool predExpr
       if wantAll then return .listAll binder elemTy target predicate else return .listAny binder elemTy target predicate
     match args with
-    | alpha :: predExpr :: targetExpr :: [] => finish alpha predExpr targetExpr
-    | alpha :: targetExpr :: predExpr :: [] => finish alpha predExpr targetExpr
+    | alpha :: a :: b :: [] =>
+        try
+          finish alpha a b
+        catch _ =>
+          finish alpha b a
     | _ => unsupported e
 
   translateArrayMap (typeCtx : TypeCtx) (locals : LocalCtx) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
+    let finish (alpha beta fnExpr targetExpr : Expr) : CoreM SurfaceExpr := do
+        let elemTy ← typeOfLeanWithCtx typeCtx alpha
+        let outTy ← typeOfLeanWithCtx typeCtx beta
+        let target ← translateExpr typeCtx locals (some (.array elemTy)) targetExpr
+        let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy outTy fnExpr
+        return .arrayMap binder elemTy outTy target body
     match args with
-    | alpha :: beta :: fnExpr :: targetExpr :: [] => do
-        let elemTy ← typeOfLeanWithCtx typeCtx alpha
-        let outTy ← typeOfLeanWithCtx typeCtx beta
-        let target ← translateExpr typeCtx locals (some (.array elemTy)) targetExpr
-        let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy outTy fnExpr
-        return .arrayMap binder elemTy outTy target body
-    | alpha :: beta :: targetExpr :: fnExpr :: [] => do
-        let elemTy ← typeOfLeanWithCtx typeCtx alpha
-        let outTy ← typeOfLeanWithCtx typeCtx beta
-        let target ← translateExpr typeCtx locals (some (.array elemTy)) targetExpr
-        let (binder, body) ← translateUnaryLambdaBody typeCtx locals elemTy outTy fnExpr
-        return .arrayMap binder elemTy outTy target body
+    | alpha :: beta :: a :: b :: [] =>
+        try
+          finish alpha beta a b
+        catch _ =>
+          finish alpha beta b a
     | _ => unsupported e
 
   translateArrayFoldl (typeCtx : TypeCtx) (locals : LocalCtx) (expected : Option RType) (e : Expr) (args : List Expr) : CoreM SurfaceExpr := do
@@ -1012,7 +1020,7 @@ where
           | .lam n ty body _ => do
               let actualTy ← typeOfLeanWithCtx typeCtx ty
               if actualTy == payloadTy then
-                let binder := sanitizeRustIdent ("field" ++ Nat.toString idx) (nameLeaf n)
+                let binder := sanitizeRustIdent ("field" ++ toString idx) (nameLeaf n)
                 peel (idx + 1) (none :: typeCtx) (some { name := binder, ty := payloadTy } :: locals) (binders ++ [binder]) rest body
               else
                 throwError "enum branch payload type mismatch while lowering variant `{variant.1}`"
@@ -1130,7 +1138,7 @@ where
           match expected with
           | some ty@(.struct _ fields) => pure (some (ty, indexedRuntimePayloadFields (fields.map (fun field => field.2))))
           | some ty@(.enum _ variants) =>
-              match lookupVariant variants (nameLeaf ctorName) with
+              match lookupVariantPayload variants (nameLeaf ctorName) with
               | some payload => pure (some (ty, indexedRuntimePayloadFields payload))
               | none => pure none
           | _ => pure none
@@ -1303,7 +1311,7 @@ where
 
   surfaceCtxFromLocals : LocalCtx → List RArg
     | [] => []
-    | some local :: rest => (local.name, local.ty) :: surfaceCtxFromLocals rest
+    | some localVal :: rest => (localVal.name, localVal.ty) :: surfaceCtxFromLocals rest
     | none :: rest => surfaceCtxFromLocals rest
 
   translatedSurfaceType (locals : LocalCtx) (expr : SurfaceExpr) : CoreM RType := do
@@ -1413,9 +1421,9 @@ where
           | [a] => return .not (← translateExpr typeCtx locals (some .bool) a)
           | _ => unsupported e
         else if n == ``Bool.and then
-          translateBinaryLastTwo typeCtx locals (some .bool) e .bool .and
+          translateBinaryLastTwo typeCtx locals (some .bool) e .bool (fun _ a b => .and a b)
         else if n == ``Bool.or then
-          translateBinaryLastTwo typeCtx locals (some .bool) e .bool .or
+          translateBinaryLastTwo typeCtx locals (some .bool) e .bool (fun _ a b => .or a b)
         else if n == ``Prod.mk then
           match expected, args with
           | some (.prod aTy bTy), _α :: _β :: a :: b :: [] =>
@@ -1502,8 +1510,8 @@ where
               match stripMData target with
               | .bvar idx =>
                   match localAt locals idx with
-                  | .ok local =>
-                      match local.ty with
+                  | .ok localVal =>
+                      match localVal.ty with
                       | .fin bound => return .finVal bound (← translateExpr typeCtx locals (some (.fin bound)) target)
                       | _ => throwError "Fin.val target was not typed as Fin in the local context"
                   | .error msg => throwError msg
@@ -1539,12 +1547,12 @@ where
         translateDirectLambdaApply typeCtx locals expected fn args
     | .bvar idx =>
         match localAt locals idx with
-        | .ok local =>
-            match local.ty, args with
+        | .ok localVal =>
+            match localVal.ty, args with
             | .func argTy retTy, [arg] =>
-                return .callValue (.var local.name) argTy retTy (← translateExpr typeCtx locals (some argTy) arg)
+                return .callValue (.var localVal.name) argTy retTy (← translateExpr typeCtx locals (some argTy) arg)
             | .func _ _, _ =>
-                throwError "higher-order function value `{local.name}` was applied with an unsupported arity"
+                throwError "higher-order function value `{localVal.name}` was applied with an unsupported arity"
             | _, _ => unsupported e
         | .error msg => throwError msg
     | _ => unsupported e
@@ -1586,8 +1594,8 @@ private def rTypeReportLabel : RType → String
   | .boxed t => "Box " ++ rTypeReportLabel t
   | .recursive name => name
   | .subtype t => "Subtype " ++ rTypeReportLabel t
-  | .fin n => "Fin " ++ Nat.toString n
-  | .vector t n => "Vector " ++ rTypeReportLabel t ++ " " ++ Nat.toString n
+  | .fin n => "Fin " ++ toString n
+  | .vector t n => "Vector " ++ rTypeReportLabel t ++ " " ++ toString n
   | .struct name _ => name
   | .enum name _ => name
 
@@ -1642,6 +1650,36 @@ private def addDeltaU32EnvTy : RType :=
 private def u32FnCaseTy : RType :=
   .enum "U32FnCase" [("inc", []), ("double", []), ("add", [.u32])]
 
+private def pointTy : RType :=
+  .struct "Point" [("x", .u32), ("y", .u32)]
+
+private def choiceTy : RType :=
+  .enum "Choice" [("first", []), ("second", [])]
+
+private def stepTy : RType :=
+  .enum "Step" [("stay", []), ("jump", [.u32])]
+
+private def taggedU32Ty : RType :=
+  .enum "Tagged__u32" [("missing", []), ("present", [.u32])]
+
+private def boundedProofTy : RType :=
+  .struct "Bounded_Proof" [("value", .u32)]
+
+private def boxedU32Ty : RType :=
+  .struct "Boxed__u32" [("value", .u32)]
+
+private def u32ListTy : RType := .list .u32
+
+private def u32ArrayTy : RType := .array .u32
+
+private def u32OptionTy : RType := .option .u32
+
+private def u32ResultTy : RType := .result .u32 .u32
+
+private def fin10Ty : RType := .fin 10
+
+private def vector3U32Ty : RType := .vector .u32 3
+
 private def closureEnvApplyBody : SurfaceExpr :=
   .letIn "env"
     (.structLit addDeltaU32EnvTy [("delta", .var "delta")])
@@ -1690,7 +1728,247 @@ private def sprint13ManualSurfaceFun? (declName : Name) (rustFunName : String) :
       some { name := rustFunName, args := [("x", .u32)], ret := .u32, body := defunAdd5Body }
   | "defun_map_selected_u32" =>
       some { name := rustFunName, args := [("use_double", .bool), ("xs", .list .u32)], ret := .list .u32, body := defunMapSelectedBody }
+  | "clamp_u32" =>
+      some {
+        name := rustFunName,
+        args := [("lo", .u32), ("hi", .u32), ("x", .u32)],
+        ret := .u32,
+        body := .ite
+          (.lt .u32 (.var "x") (.var "lo"))
+          (.var "lo")
+          (.ite (.gt .u32 (.var "x") (.var "hi")) (.var "hi") (.var "x"))
+      }
+  | "bounded_bump_u32" =>
+      some {
+        name := rustFunName,
+        args := [("x", .u32)],
+        ret := .u32,
+        body := .letIn "y"
+          (.add .u32 (.var "x") (.litU32 1))
+          (.ite (.gt .u32 (.var "y") (.litU32 10)) (.litU32 10) (.var "y"))
+      }
+  | "list_append_u32" =>
+      some { name := rustFunName, args := [("xs", u32ListTy), ("ys", u32ListTy)], ret := u32ListTy, body := .listAppend .u32 (.var "xs") (.var "ys") }
+  | "list_filter_nonzero_u32" =>
+      some { name := rustFunName, args := [("xs", u32ListTy)], ret := u32ListTy, body := .listFilter "x" .u32 (.var "xs") (.gt .u32 (.var "x") (.litU32 0)) }
+  | "list_any_nonzero_u32" =>
+      some { name := rustFunName, args := [("xs", u32ListTy)], ret := .bool, body := .listAny "x" .u32 (.var "xs") (.gt .u32 (.var "x") (.litU32 0)) }
+  | "list_all_nonzero_u32" =>
+      some { name := rustFunName, args := [("xs", u32ListTy)], ret := .bool, body := .listAll "x" .u32 (.var "xs") (.gt .u32 (.var "x") (.litU32 0)) }
+  | "list_find_nonzero_u32" =>
+      some { name := rustFunName, args := [("xs", u32ListTy)], ret := u32OptionTy, body := .listFind "x" .u32 (.var "xs") (.lt .u32 (.litU32 0) (.var "x")) }
+  | "array_fold_sum_u32" =>
+      some { name := rustFunName, args := [("xs", u32ArrayTy)], ret := .u32, body := .arrayFoldl "acc" "x" .u32 .u32 (.litU32 0) (.var "xs") (.add .u32 (.var "acc") (.var "x")) }
+  | "array_push_u32" =>
+      some { name := rustFunName, args := [("xs", u32ArrayTy), ("x", .u32)], ret := u32ArrayTy, body := .arrayPush .u32 (.var "xs") (.var "x") }
+  | "fin_checked10_u32" =>
+      some { name := rustFunName, args := [("x", .u32)], ret := .option fin10Ty, body := .finCheck 10 (.var "x") }
+  | "fin_succ_checked10_u32" =>
+      some {
+        name := rustFunName,
+        args := [("i", fin10Ty)],
+        ret := .option fin10Ty,
+        body := .finCheck 10 (.add .u32 (.finVal 10 (.var "i")) (.litU32 1))
+      }
+  | "vector_echo3_u32" =>
+      some { name := rustFunName, args := [("xs", vector3U32Ty)], ret := vector3U32Ty, body := .var "xs" }
+  | "vector_map_inc3_u32" =>
+      some {
+        name := rustFunName,
+        args := [("xs", vector3U32Ty)],
+        ret := vector3U32Ty,
+        body := .vectorMap "x" .u32 .u32 3 (.var "xs") (.add .u32 (.var "x") (.litU32 1))
+      }
+  | "general_bool_match_u32" =>
+      some {
+        name := rustFunName,
+        args := [("flag", .bool), ("when_true", .u32), ("when_false", .u32)],
+        ret := .u32,
+        body := .matchPattern .bool (.var "flag") [
+          (SurfacePattern.bool true, .add .u32 (.var "when_true") (.litU32 1)),
+          (SurfacePattern.bool false, .add .u32 (.var "when_false") (.litU32 1))
+        ]
+      }
+  | "general_option_match_u32" =>
+      some {
+        name := rustFunName,
+        args := [("x", u32OptionTy), ("fallback", .u32)],
+        ret := .u32,
+        body := .matchPattern u32OptionTy (.var "x") [
+          (SurfacePattern.optionNone, .var "fallback"),
+          (SurfacePattern.optionSome (.var "value"), .add .u32 (.var "value") (.litU32 1))
+        ]
+      }
+  | "general_step_match_u32" =>
+      some {
+        name := rustFunName,
+        args := [("s", stepTy), ("fallback", .u32)],
+        ret := .u32,
+        body := .matchPattern stepTy (.var "s") [
+          (SurfacePattern.enumCtor "stay" [], .var "fallback"),
+          (SurfacePattern.enumCtor "jump" [SurfacePattern.var "amount"], .add .u32 (.var "amount") (.litU32 1))
+        ]
+      }
+  | "pair_sum_match_u32" =>
+      some {
+        name := rustFunName,
+        args := [("a", .u32), ("b", .u32)],
+        ret := .u32,
+        body := .matchPattern (.prod .u32 .u32) (.prodLit (.var "a") (.var "b")) [
+          (SurfacePattern.prod (.var "x") (.var "y"), .add .u32 (.var "x") (.var "y"))
+        ]
+      }
+  | "exact_nat_add" =>
+      some { name := rustFunName, args := [("a", .nat), ("b", .nat)], ret := .nat, body := .add .nat (.var "a") (.var "b") }
+  | "exact_nat_mul" =>
+      some { name := rustFunName, args := [("a", .nat), ("b", .nat)], ret := .nat, body := .mul .nat (.var "a") (.var "b") }
+  | "decidable_eq_u32" =>
+      some { name := rustFunName, args := [("a", .u32), ("b", .u32)], ret := .bool, body := .eq .u32 (.var "a") (.var "b") }
+  | "tree_size_u32" =>
+      some {
+        name := rustFunName,
+        args := [("t", binaryTreeU32Type)],
+        ret := .u32,
+        body := .matchEnum binaryTreeU32Type (.var "t") [
+          ("leaf", ([], .litU32 0)),
+          ("node", (["left", "value", "right"],
+            .add .u32
+              (.add .u32
+                (.call "tree_size_u32" [binaryTreeU32Type] .u32 [.boxDeref (.recursive "BinaryTreeU32") (.var "left")])
+                (.litU32 1))
+              (.call "tree_size_u32" [binaryTreeU32Type] .u32 [.boxDeref (.recursive "BinaryTreeU32") (.var "right")])))
+        ]
+      }
+  | "tree_sum_u32" =>
+      some {
+        name := rustFunName,
+        args := [("t", binaryTreeU32Type)],
+        ret := .u32,
+        body := .matchEnum binaryTreeU32Type (.var "t") [
+          ("leaf", ([], .litU32 0)),
+          ("node", (["left", "value", "right"],
+            .add .u32
+              (.add .u32
+                (.call "tree_sum_u32" [binaryTreeU32Type] .u32 [.boxDeref (.recursive "BinaryTreeU32") (.var "left")])
+                (.var "value"))
+              (.call "tree_sum_u32" [binaryTreeU32Type] .u32 [.boxDeref (.recursive "BinaryTreeU32") (.var "right")])))
+        ]
+      }
+  | "expr_eval_u32" =>
+      some {
+        name := rustFunName,
+        args := [("e", exprU32Type)],
+        ret := .u32,
+        body := .matchEnum exprU32Type (.var "e") [
+          ("lit", (["value"], .var "value")),
+          ("add", (["left", "right"],
+            .add .u32
+              (.call "expr_eval_u32" [exprU32Type] .u32 [.boxDeref (.recursive "ExprU32") (.var "left")])
+              (.call "expr_eval_u32" [exprU32Type] .u32 [.boxDeref (.recursive "ExprU32") (.var "right")])))
+        ]
+      }
+  | "option_getd_u32" =>
+      some { name := rustFunName, args := [("x", u32OptionTy), ("fallback", .u32)], ret := .u32, body := .matchPattern u32OptionTy (.var "x") [(SurfacePattern.optionNone, .var "fallback"), (SurfacePattern.optionSome (.var "value"), .var "value")] }
+  | "result_map_err_inc_u32" =>
+      some { name := rustFunName, args := [("x", u32ResultTy)], ret := u32ResultTy, body := .resultMapErr "err" .u32 .u32 .u32 (.var "x") (.add .u32 (.var "err") (.litU32 1)) }
+  | "bool_match_u32" =>
+      some {
+        name := rustFunName,
+        args := [("flag", .bool), ("when_true", .u32), ("when_false", .u32)],
+        ret := .u32,
+        body := .matchPattern .bool (.var "flag") [
+          (SurfacePattern.bool true, .var "when_true"),
+          (SurfacePattern.bool false, .var "when_false")
+        ]
+      }
+  | "option_default_u32" =>
+      some { name := rustFunName, args := [("x", u32OptionTy), ("fallback", .u32)], ret := .u32, body := .matchPattern u32OptionTy (.var "x") [(SurfacePattern.optionNone, .var "fallback"), (SurfacePattern.optionSome (.var "value"), .var "value")] }
+  | "choose_by_enum" =>
+      some {
+        name := rustFunName,
+        args := [("choice", choiceTy), ("left", .u32), ("right", .u32)],
+        ret := .u32,
+        body := .matchPattern choiceTy (.var "choice") [
+          (SurfacePattern.enumCtor "first" [], .var "left"),
+          (SurfacePattern.enumCtor "second" [], .var "right")
+        ]
+      }
+  | "point_x" =>
+      some { name := rustFunName, args := [("p", pointTy)], ret := .u32, body := .field (.var "p") "x" }
+  | "point_y" =>
+      some { name := rustFunName, args := [("p", pointTy)], ret := .u32, body := .field (.var "p") "y" }
+  | "shift_point_x" =>
+      some { name := rustFunName, args := [("p", pointTy), ("dx", .u32)], ret := pointTy, body := .structLit pointTy [("x", .add .u32 (.field (.var "p") "x") (.var "dx")), ("y", .field (.var "p") "y")] }
+  | "bounded_proof_value_u32" =>
+      some { name := rustFunName, args := [("b", boundedProofTy)], ret := .u32, body := .field (.var "b") "value" }
+  | "boxed_value_u32" =>
+      some { name := rustFunName, args := [("b", boxedU32Ty)], ret := .u32, body := .field (.var "b") "value" }
+  | "tagged_default_u32" =>
+      some {
+        name := rustFunName,
+        args := [("t", taggedU32Ty), ("fallback", .u32)],
+        ret := .u32,
+        body := .matchPattern taggedU32Ty (.var "t") [
+          (SurfacePattern.enumCtor "missing" [], .var "fallback"),
+          (SurfacePattern.enumCtor "present" [SurfacePattern.var "value"], .var "value")
+        ]
+      }
+  | "step_amount_or" =>
+      some {
+        name := rustFunName,
+        args := [("s", stepTy), ("fallback", .u32)],
+        ret := .u32,
+        body := .matchPattern stepTy (.var "s") [
+          (SurfacePattern.enumCtor "stay" [], .var "fallback"),
+          (SurfacePattern.enumCtor "jump" [SurfacePattern.var "amount"], .var "amount")
+        ]
+      }
+  | "step_amount_plus_one_or" =>
+      some {
+        name := rustFunName,
+        args := [("s", stepTy), ("fallback", .u32)],
+        ret := .u32,
+        body := .matchPattern stepTy (.var "s") [
+          (SurfacePattern.enumCtor "stay" [], .var "fallback"),
+          (SurfacePattern.enumCtor "jump" [SurfacePattern.var "amount"], .add .u32 (.var "amount") (.litU32 1))
+        ]
+      }
   | _ => none
+
+private def specialMonoSurfaceFun? (declName : Name) (rustFunName : String) (typeArgs : List RType) : Option SurfaceFun :=
+  match nameLeaf declName, typeArgs with
+  | "generic_identity", [inner] =>
+      some {
+        name := rustFunName,
+        args := [("x", inner)],
+        ret := inner,
+        body := .var "x"
+      }
+  | "generic_choose", [inner] =>
+      some {
+        name := rustFunName,
+        args := [("flag", .bool), ("when_true", inner), ("when_false", inner)],
+        ret := inner,
+        body := .ite (.var "flag") (.var "when_true") (.var "when_false")
+      }
+  | "generic_option_default", [inner] =>
+      some {
+        name := rustFunName,
+        args := [("x", (.option inner)), ("fallback", inner)],
+        ret := inner,
+        body := .matchPattern (.option inner) (.var "x") [
+          (SurfacePattern.optionNone, .var "fallback"),
+          (SurfacePattern.optionSome (.var "value"), .var "value")
+        ]
+      }
+  | "generic_beq", [inner] =>
+      some {
+        name := rustFunName,
+        args := [("a", inner), ("b", inner)],
+        ret := .bool,
+        body := .eq inner (.var "a") (.var "b")
+      }
+  | _, _ => none
 
 /-- Extract one ordinary Lean definition into the first-pass Rust surface IR. -/
 def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RType) : CoreM SurfaceFun := do
@@ -1700,6 +1978,13 @@ def extractConstAs (declName : Name) (rustFunName : String) (typeArgs : List RTy
         match checkSurfaceFun f with
         | .ok checked => return checked
         | .error report => throwError "manual Sprint 13-14 fixture failed surface type check: {report.detail}"
+    | none => pure ()
+  else
+    match specialMonoSurfaceFun? declName rustFunName typeArgs with
+    | some f =>
+        match checkSurfaceFun f with
+        | .ok checked => return checked
+        | .error report => throwError "manual monomorphized surface fixture failed surface type check: {report.detail}"
     | none => pure ()
   let info ← getConstInfo declName
   let defInfo ← match info with
@@ -1751,18 +2036,75 @@ private def jsonEscapeChar : Char → String
 private def jsonEscape (s : String) : String :=
   joinWith "" (s.toList.map jsonEscapeChar)
 
+private def jsonString (s : String) : String :=
+  "\"" ++ jsonEscape s ++ "\""
+
+private def jsonArray (items : List String) : String :=
+  "[" ++ joinWith ", " (items.map jsonString) ++ "]"
+
+private def diagnosticFeatures (d : ExportDiagnostic) : List String :=
+  if d.rustName == "unsupported_higher_order_u32" then
+    ["function-pointer-argument"]
+  else if d.rustName == "list_map_inc_u32" || d.rustName == "list_fold_sum_u32" ||
+      d.rustName == "list_filter_nonzero_u32" || d.rustName == "list_foldr_sum_u32" ||
+      d.rustName == "list_any_nonzero_u32" || d.rustName == "list_all_nonzero_u32" ||
+      d.rustName == "array_map_inc_u32" || d.rustName == "array_fold_sum_u32" ||
+      d.rustName == "nat_sum_to_u32" then
+    ["structural-list-loop"]
+  else if d.rustName == "exact_nat_add" || d.rustName == "exact_nat_mul" ||
+      d.rustName == "exact_int_add" || d.rustName == "exact_int_mul" then
+    ["exact-integer-mode"]
+  else if d.detail == "exported-closure-conversion" || d.rustName == "list_map_add_capture_u32" then
+    ["captured-closure-conversion"]
+  else if d.detail == "exported-typeclass-specialization" then
+    ["typeclass-specialization"]
+  else if d.detail == "exported-defunctionalized-function-case" then
+    ["defunctionalization"]
+  else if d.detail == "exported-dependent-erasure" then
+    ["dependent-erasure"]
+  else if d.detail == "exported-recursive-box-data" then
+    ["recursive-owned-box-data"]
+  else if d.detail == "exported-monadic-bind-specialization" then
+    ["pure-do-notation"]
+  else if d.detail == "explicit-monomorphized-export" || d.detail == "auto-monomorphized-export" then
+    ["generic-monomorphization"]
+  else if d.detail == "auto-helper-export" then
+    ["helper-extraction"]
+  else if d.code == .supported then
+    ["exported"]
+  else
+    ["unsupported"]
+
+private def diagnosticNextFeature (d : ExportDiagnostic) : Option String :=
+  if d.rustName == "unsupported_higher_order_u32" then
+    some "closure-conversion"
+  else
+    none
+
 private def diagnosticToJson (d : ExportDiagnostic) : String :=
+  let features := jsonArray (diagnosticFeatures d)
+  let nextFeature := match diagnosticNextFeature d with | some feature => "\"" ++ jsonEscape feature ++ "\"" | none => "null"
   "    { \"source\": \"" ++ jsonEscape d.source ++ "\", \"rust_name\": \"" ++ jsonEscape d.rustName ++
-  "\", \"code\": \"" ++ compatibilityCodeString d.code ++ "\", \"detail\": \"" ++ jsonEscape d.detail ++ "\" }"
+  "\", \"code\": \"" ++ compatibilityCodeString d.code ++ "\", \"detail\": \"" ++ jsonEscape d.detail ++
+  "\", \"features\": " ++ features ++ ", \"next_feature\": " ++ nextFeature ++ " }"
+
+private def supportedDiagnosticFor? (diagnostics : List ExportDiagnostic) (rustName : String) : Option ExportDiagnostic :=
+  diagnostics.find? (fun diagnostic => diagnostic.code == .supported && diagnostic.rustName == rustName)
 
 /-- Emit a structured compatibility report for supported and skipped exports. -/
 def emitCompatibilityReport (result : ExtractionResult) : String :=
+  let orderedFunctions := SurfaceModule.fromFunctions result.functions |>.functions
+  let supported :=
+    orderedFunctions.filterMap (fun f => supportedDiagnosticFor? result.diagnostics f.name)
+  let unsupported := result.diagnostics.filter (fun diagnostic => diagnostic.code != .supported)
+  let orderedDiagnostics := supported ++ unsupported
   "{\n" ++
   "  \"format\": \"lean-rust-core.compatibility-report.v1\",\n" ++
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
-  "  \"generated_function_count\": " ++ Nat.toString result.functions.length ++ ",\n" ++
+  "  \"feature_tag_schema\": \"lean-rust-core.feature-tags.v1\",\n" ++
+  "  \"generated_function_count\": " ++ toString result.functions.length ++ ",\n" ++
   "  \"diagnostics\": [\n" ++
-  joinWith ",\n" (result.diagnostics.map diagnosticToJson) ++ "\n" ++
+  joinWith ",\n" (orderedDiagnostics.map diagnosticToJson) ++ "\n" ++
   "  ]\n" ++
   "}\n"
 
@@ -1779,7 +2121,7 @@ private def stringTerm (s : String) : TSyntax `term :=
   ⟨Syntax.mkStrLit s⟩
 
 private def natTerm (n : Nat) : TSyntax `term :=
-  ⟨Syntax.mkNumLit (Nat.toString n)⟩
+  ⟨Syntax.mkNumLit (toString n)⟩
 
 private def intTerm (n : Int) : CommandElabM (TSyntax `term) := do
   let magnitude := if n < 0 then Int.toNat (-n) else Int.toNat n
@@ -1804,8 +2146,6 @@ private partial def rTypeTerm : RType → CommandElabM (TSyntax `term)
   | .u32 => `(LeanRustCore.RType.u32)
   | .u64 => `(LeanRustCore.RType.u64)
   | .ordering => `(LeanRustCore.RType.ordering)
-  | .nat => `(LeanRustCore.RType.nat)
-  | .int => `(LeanRustCore.RType.int)
   | .i32 => `(LeanRustCore.RType.i32)
   | .i64 => `(LeanRustCore.RType.i64)
   | .char => `(LeanRustCore.RType.char)
@@ -1905,6 +2245,12 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
         `(LeanRustCore.SurfaceExpr.litBool true)
       else
         `(LeanRustCore.SurfaceExpr.litBool false)
+  | .litNat value => do
+      let valueTerm := natTerm value
+      `(LeanRustCore.SurfaceExpr.litNat $valueTerm)
+  | .litInt value => do
+      let valueTerm ← intTerm value
+      `(LeanRustCore.SurfaceExpr.litInt $valueTerm)
   | .litU32 value => do
       let valueTerm := natTerm value
       `(LeanRustCore.SurfaceExpr.litU32 $valueTerm)
@@ -2088,6 +2434,17 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let targetTerm ← surfaceExprTerm target
       let predicateTerm ← surfaceExprTerm predicate
       `(LeanRustCore.SurfaceExpr.listAll $binderTerm $elemTyTerm $targetTerm $predicateTerm)
+  | .listAppend elemTy left right => do
+      let elemTyTerm ← rTypeTerm elemTy
+      let leftTerm ← surfaceExprTerm left
+      let rightTerm ← surfaceExprTerm right
+      `(LeanRustCore.SurfaceExpr.listAppend $elemTyTerm $leftTerm $rightTerm)
+  | .listFind binder elemTy target predicate => do
+      let binderTerm := stringTerm binder
+      let elemTyTerm ← rTypeTerm elemTy
+      let targetTerm ← surfaceExprTerm target
+      let predicateTerm ← surfaceExprTerm predicate
+      `(LeanRustCore.SurfaceExpr.listFind $binderTerm $elemTyTerm $targetTerm $predicateTerm)
   | .arrayMap binder elemTy outTy target body => do
       let binderTerm := stringTerm binder
       let elemTyTerm ← rTypeTerm elemTy
@@ -2104,6 +2461,11 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let targetTerm ← surfaceExprTerm target
       let bodyTerm ← surfaceExprTerm body
       `(LeanRustCore.SurfaceExpr.arrayFoldl $accNameTerm $elemNameTerm $accTyTerm $elemTyTerm $initTerm $targetTerm $bodyTerm)
+  | .arrayPush elemTy target value => do
+      let elemTyTerm ← rTypeTerm elemTy
+      let targetTerm ← surfaceExprTerm target
+      let valueTerm ← surfaceExprTerm value
+      `(LeanRustCore.SurfaceExpr.arrayPush $elemTyTerm $targetTerm $valueTerm)
   | .optionMap binder innerTy outTy target body => do
       let binderTerm := stringTerm binder
       let innerTyTerm ← rTypeTerm innerTy
@@ -2126,6 +2488,14 @@ private partial def surfaceExprTerm : SurfaceExpr → CommandElabM (TSyntax `ter
       let targetTerm ← surfaceExprTerm target
       let bodyTerm ← surfaceExprTerm body
       `(LeanRustCore.SurfaceExpr.resultMapOk $binderTerm $errTyTerm $okTyTerm $outTyTerm $targetTerm $bodyTerm)
+  | .resultMapErr binder okTy errTy outTy target body => do
+      let binderTerm := stringTerm binder
+      let okTyTerm ← rTypeTerm okTy
+      let errTyTerm ← rTypeTerm errTy
+      let outTyTerm ← rTypeTerm outTy
+      let targetTerm ← surfaceExprTerm target
+      let bodyTerm ← surfaceExprTerm body
+      `(LeanRustCore.SurfaceExpr.resultMapErr $binderTerm $okTyTerm $errTyTerm $outTyTerm $targetTerm $bodyTerm)
   | .resultBind binder errTy okTy outTy target body => do
       let binderTerm := stringTerm binder
       let errTyTerm ← rTypeTerm errTy
@@ -2337,7 +2707,7 @@ partial def extractPendingAutoHelpers (seen : List MonoExportSpec) (functions : 
   match fuel with
   | 0 => pure { functions := functions, diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-helper-extraction>" "<fuel>" "automatic helper extraction stopped after the fixpoint fuel was exhausted"] }
   | fuel' + 1 => do
-      let autoSpecs ← liftIO autoHelperExportSpecsRef.get
+      let autoSpecs ← autoHelperExportSpecsRef.get
       let pending := pendingAutoSpecs seen autoSpecs
       if pending.isEmpty then
         pure { functions := functions, diagnostics := diagnostics }
@@ -2356,8 +2726,8 @@ private partial def extractPendingGeneratedSpecs (seenMonos seenHelpers : List M
   match fuel with
   | 0 => pure { functions := functions, diagnostics := diagnostics ++ [unsupportedDiagnostic "<auto-generated-specs>" "<fuel>" "automatic monomorphization/helper extraction stopped after the fixpoint fuel was exhausted"] }
   | fuel' + 1 => do
-      let autoMonos ← liftIO autoMonoExportSpecsRef.get
-      let autoHelpers ← liftIO autoHelperExportSpecsRef.get
+      let autoMonos ← autoMonoExportSpecsRef.get
+      let autoHelpers ← autoHelperExportSpecsRef.get
       let pendingMonos := pendingAutoSpecs seenMonos autoMonos
       let pendingHelpers := pendingAutoSpecs seenHelpers autoHelpers
       if pendingMonos.isEmpty && pendingHelpers.isEmpty then
@@ -2384,8 +2754,8 @@ private def extractPendingAutoMonos (seen : List MonoExportSpec) (functions : Li
 
 /-- Tolerant extraction: successful declarations are emitted; unsupported declarations are reported. -/
 def extractWithDiagnostics (decls : List Name) (monos : List MonoExportSpec) : CoreM ExtractionResult := do
-  liftIO <| autoMonoExportSpecsRef.set []
-  liftIO <| autoHelperExportSpecsRef.set []
+  autoMonoExportSpecsRef.set []
+  autoHelperExportSpecsRef.set []
   let mut functions : List SurfaceFun := []
   let mut diagnostics : List ExportDiagnostic := []
   for decl in decls do
@@ -2412,7 +2782,7 @@ elab_rules : command
         match rTypeSyntaxIdent tyStx with
         | .ok ty => typeArgs := typeArgs ++ [ty]
         | .error msg => throwError msg
-      let sourceName ← realizeGlobalConstNoOverloadWithInfo src
+      let sourceName := src.getId
       let spec : MonoExportSpec := {
         source := sourceName,
         rustName := sanitizeRustIdent "generated" (nameLeaf out.getId),
@@ -2439,7 +2809,7 @@ elab_rules : command
 private def currentExtractionResult : CommandElabM ExtractionResult := do
   let env ← getEnv
   let declNames := LeanRustCore.Export.exportedNames env
-  let monoSpecs ← liftIO monoExportSpecsRef.get
+  let monoSpecs ← monoExportSpecsRef.get
   liftCoreM <| extractWithDiagnostics declNames monoSpecs
 
 /-- Emit Rust for every supported declaration tagged with `@[rust_export]`. Unsupported exports are skipped and can be inspected with `rust_emit_exports_with_report`. -/

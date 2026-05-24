@@ -113,9 +113,23 @@ private partial def splitWordsAux (chars : List Char) (current : List Char) (wor
       else
         splitWordsAux rest [] (pushWord current words)
 
+private def upperFirstPreservingTail (s : String) : String :=
+  match s.toList with
+  | [] => ""
+  | c :: cs => String.mk (upperAscii c :: cs)
+
+private def needsRenderedWordSplit (source : String) : Bool :=
+  source.toList.any (fun c => c == '_' || !(isRustIdentContinue c))
+
 private def upperCamel (fallback source : String) : String :=
-  let words := splitWordsAux source.toList [] []
-  let rendered := joinWithLocal "" (words.map capitalizeWord)
+  let rendered :=
+    if source == "" then
+      fallback
+    else if needsRenderedWordSplit source then
+      let words := splitWordsAux source.toList [] []
+      joinWithLocal "" (words.map capitalizeWord)
+    else
+      upperFirstPreservingTail source
   let base := if rendered == "" then fallback else rendered
   sanitizeRustIdent fallback base
 
@@ -241,11 +255,15 @@ partial def surfaceBinders : SurfaceExpr → List String
   | .listFoldr elemName accName _ _ target init body => elemName :: accName :: surfaceBinders target ++ surfaceBinders init ++ surfaceBinders body
   | .listAny binder _ target predicate => binder :: surfaceBinders target ++ surfaceBinders predicate
   | .listAll binder _ target predicate => binder :: surfaceBinders target ++ surfaceBinders predicate
+  | .listAppend _ left right => surfaceBinders left ++ surfaceBinders right
+  | .listFind binder _ target predicate => binder :: surfaceBinders target ++ surfaceBinders predicate
   | .arrayMap binder _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
   | .arrayFoldl accName elemName _ _ init target body => accName :: elemName :: surfaceBinders init ++ surfaceBinders target ++ surfaceBinders body
+  | .arrayPush _ target value => surfaceBinders target ++ surfaceBinders value
   | .optionMap binder _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
   | .optionBind binder _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
   | .resultMapOk binder _ _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
+  | .resultMapErr binder _ _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
   | .resultBind binder _ _ _ target body => binder :: surfaceBinders target ++ surfaceBinders body
   | .subtypeErase _ value => surfaceBinders value
   | .subtypeVal _ value => surfaceBinders value

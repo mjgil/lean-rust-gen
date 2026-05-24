@@ -259,6 +259,25 @@ fingerprint interpreter.
 C-compatible subset. This file is feature-gated by `rust/src/lib.rs` under the
 Rust `ffi` feature and is not part of the default safe direct-emission lane.
 
+## Generated artifact normalization and lint scope
+
+`scripts/gen.sh` is the source of truth for checked-in generated artifacts. It
+regenerates every Lean-owned artifact and then runs `rustfmt --edition 2021` on
+the generated Rust files:
+
+- `rust/src/generated.rs`
+- `rust/src/ffi_generated.rs`
+- `rust/tests/differential_generated.rs`
+
+`scripts/check-extractor-snapshot.sh` applies the same formatting step to its
+temporary Rust outputs before diffing them against the checked-in files, so the
+snapshot gate and `cargo fmt --check --all` validate the same normalized source.
+
+The generated crate now includes `generated.rs` through a dedicated internal
+module with scoped lint allowances for mechanically emitted patterns. Handwritten
+Rust in the crate still runs under the normal workspace `cargo clippy
+--workspace --all-targets -- -D warnings` policy.
+
 ## Final 16 completion layer
 
 The final completion patch adds metadata and workspace structure around the

@@ -40,6 +40,6 @@ def deterministicSeedCount : Nat :=
 /-- Human-readable summary for validation/proof reports. -/
 def propertyCorpusSummary : String :=
   "property/fuzz corpus requires deterministic CI seeds before completion; families: " ++
-  joinWithLocal ", " (seedFamilies.map (fun family => family.name ++ "=" ++ Nat.toString family.seedCount))
+  joinWithLocal ", " (seedFamilies.map (fun family => family.name ++ "=" ++ toString family.seedCount))
 
 end LeanRustCore.PropertyCorpus

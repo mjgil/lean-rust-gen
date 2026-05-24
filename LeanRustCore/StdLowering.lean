@@ -43,7 +43,7 @@ private def joinWithLocal (sep : String) : List String → String
 
 /-- Compact summary for validation reports. -/
 def stdLoweringSummary : String :=
-  "Sprint 7–8 Std lowering table covers " ++ Nat.toString lowerings.length ++
+  "Sprint 7–8 Std lowering table covers " ++ toString lowerings.length ++
   " monomorphic List/Array/Option/Except/String combinator families using owned safe Rust loops and matches"
 
 /-- Feature names exported for coverage dashboards. -/

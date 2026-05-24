@@ -123,8 +123,8 @@ fn first20_corpus_fixtures_require_tests_and_docs() {
     for fixture in [POSITIVE_FIXTURE, NEGATIVE_FIXTURE, UNSUPPORTED_FIXTURE] {
         let value: serde_json::Value = serde_json::from_str(fixture).unwrap();
         assert_eq!(value["format"], "lean-rust-core.corpus-case.v1");
-        assert!(value["tests"].as_array().unwrap().len() >= 1);
-        assert!(value["documentation"].as_array().unwrap().len() >= 1);
+        assert!(!value["tests"].as_array().unwrap().is_empty());
+        assert!(!value["documentation"].as_array().unwrap().is_empty());
     }
     let negative: serde_json::Value = serde_json::from_str(NEGATIVE_FIXTURE).unwrap();
     assert_eq!(negative["diagnostic_code"], "LRC001");

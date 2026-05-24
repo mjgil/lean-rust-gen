@@ -6,451 +6,61 @@
   "target_validation_format": "lean-rust-core.target-validation.v2",
   "recursive_data_policy": "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work",
   "metrics": [
-    {
-      "denominator": "checklist_rows_1_20",
-      "covered": 20,
-      "total": 20,
-      "percent": 100,
-      "status": "fully-implemented-with-tests-and-docs"
-    },
-    {
-      "denominator": "checklist_rows_21_40",
-      "covered": 20,
-      "total": 20,
-      "percent": 100,
-      "status": "fully-implemented-with-tests-and-docs"
-    },
-    {
-      "denominator": "first20_incomplete_rows",
-      "covered": 5,
-      "total": 5,
-      "percent": 100,
-      "status": "closed-by-this-patch"
-    },
-    {
-      "denominator": "checklist_rows_41_56",
-      "covered": 16,
-      "total": 16,
-      "percent": 100,
-      "status": "implemented-with-tests-and-docs"
-    },
-    {
-      "denominator": "rust_workspace_crates",
-      "covered": 5,
-      "total": 5,
-      "percent": 100,
-      "status": "split-workspace-present"
-    },
-    {
-      "denominator": "final_docs",
-      "covered": 6,
-      "total": 6,
-      "percent": 100,
-      "status": "required-final-docs-present"
-    },
-    {
-      "denominator": "property_seed_families",
-      "covered": 5,
-      "total": 5,
-      "percent": 100,
-      "status": "deterministic-ci-seeds-present"
-    },
-    {
-      "denominator": "release_acceptance_gates",
-      "covered": 12,
-      "total": 12,
-      "percent": 100,
-      "status": "scripted-release-matrix"
-    },
-    {
-      "denominator": "checklist_rows_41_63",
-      "covered": 23,
-      "total": 23,
-      "percent": 100,
-      "status": "fully-implemented-with-tests-and-docs"
-    },
-    {
-      "denominator": "remaining_incomplete_rows",
-      "covered": 10,
-      "total": 10,
-      "percent": 100,
-      "status": "closed-by-this-patch"
-    },
-    {
-      "denominator": "generated_subset_semantics_heads",
-      "covered": 14,
-      "total": 14,
-      "percent": 100,
-      "status": "interpreter-test-doc-owned"
-    },
-    {
-      "denominator": "preservation_obligations",
-      "covered": 7,
-      "total": 7,
-      "percent": 100,
-      "status": "proof-skeleton-test-doc-owned"
-    },
-    {
-      "denominator": "lean_feature_families",
-      "covered": 18,
-      "total": 18,
-      "percent": 100,
-      "status": "feature-complete"
-    },
-    {
-      "denominator": "rust_target_grammar_heads",
-      "covered": 14,
-      "total": 14,
-      "percent": 100,
-      "status": "interpreter-complete"
-    },
-    {
-      "denominator": "property_generators",
-      "covered": 6,
-      "total": 6,
-      "percent": 100,
-      "status": "deterministic-and-fuzz-lane-complete"
-    }
+    { "denominator": "checklist_rows_1_20", "covered": 20, "total": 20, "percent": 100, "status": "fully-implemented-with-tests-and-docs" },
+    { "denominator": "checklist_rows_21_40", "covered": 20, "total": 20, "percent": 100, "status": "fully-implemented-with-tests-and-docs" },
+    { "denominator": "first20_incomplete_rows", "covered": 5, "total": 5, "percent": 100, "status": "closed-by-this-patch" },
+    { "denominator": "checklist_rows_41_56", "covered": 16, "total": 16, "percent": 100, "status": "implemented-with-tests-and-docs" },
+    { "denominator": "checklist_rows_41_63", "covered": 23, "total": 23, "percent": 100, "status": "fully-implemented-with-tests-and-docs" },
+    { "denominator": "remaining_incomplete_rows", "covered": 10, "total": 10, "percent": 100, "status": "closed-by-this-patch" },
+    { "denominator": "generated_subset_semantics_heads", "covered": 14, "total": 14, "percent": 100, "status": "interpreter-test-doc-owned" },
+    { "denominator": "preservation_obligations", "covered": 7, "total": 7, "percent": 100, "status": "proof-skeleton-test-doc-owned" },
+    { "denominator": "lean_feature_families", "covered": 18, "total": 18, "percent": 100, "status": "feature-complete" },
+    { "denominator": "rust_target_grammar_heads", "covered": 14, "total": 14, "percent": 100, "status": "interpreter-complete" },
+    { "denominator": "property_generators", "covered": 6, "total": 6, "percent": 100, "status": "deterministic-and-fuzz-lane-complete" },
+    { "denominator": "rust_workspace_crates", "covered": 5, "total": 5, "percent": 100, "status": "split-workspace-present" },
+    { "denominator": "final_docs", "covered": 6, "total": 6, "percent": 100, "status": "required-final-docs-present" },
+    { "denominator": "property_seed_families", "covered": 5, "total": 5, "percent": 100, "status": "deterministic-ci-seeds-present" },
+    { "denominator": "release_acceptance_gates", "covered": 12, "total": 12, "percent": 100, "status": "scripted-release-matrix" }
   ],
   "entries": [
-    {
-      "feature": "recursive-owned-box-data",
-      "status": "supported-known-slice",
-      "examples": [
-        "BinaryTreeU32",
-        "ExprU32",
-        "tree_size_u32",
-        "expr_eval_u32"
-      ]
-    },
-    {
-      "feature": "target-validation-v2",
-      "status": "supported",
-      "examples": [
-        "FORMAT lean-rust-core.target-validation.v2",
-        "box/deref fingerprints"
-      ]
-    },
-    {
-      "feature": "property-seed-validation",
-      "status": "supported-deterministic-seeds",
-      "examples": [
-        "recursive tree size/sum",
-        "expression evaluation",
-        "closure/defun regression"
-      ]
-    },
-    {
-      "feature": "coverage-dashboard",
-      "status": "supported",
-      "examples": [
-        "rust/coverage-dashboard.json"
-      ]
-    },
-    {
-      "feature": "property-fuzz-corpus",
-      "status": "supported-deterministic-seeds",
-      "examples": [
-        "PropertyCorpus.seedFamilies",
-        "corpus/property/seeds.json",
-        "rust/tests/final16_property_coverage.rs"
-      ]
-    },
-    {
-      "feature": "quantitative-coverage-dashboard",
-      "status": "supported-metrics",
-      "examples": [
-        "CoverageDashboard.metrics",
-        "explicit denominators",
-        "docs/COVERAGE.md"
-      ]
-    },
-    {
-      "feature": "user-facing-diagnostics",
-      "status": "supported-stable-codes",
-      "examples": [
-        "Diagnostics.templates",
-        "LRC001-LRC005",
-        "docs/DIAGNOSTICS.md"
-      ]
-    },
-    {
-      "feature": "rust-workspace-crate-split",
-      "status": "supported-workspace",
-      "examples": [
-        "lean-rust-core-generated",
-        "lean-rust-core-runtime",
-        "lean-rust-core-abi",
-        "lean-rust-core-validate",
-        "lean-rust-core-headers"
-      ]
-    },
-    {
-      "feature": "release-acceptance-matrix",
-      "status": "supported-scripted-gates",
-      "examples": [
-        "ReleaseMatrix.gates",
-        "scripts/check-final-16-completion.py",
-        "docs/RELEASE_CHECKLIST.md"
-      ]
-    },
-    {
-      "feature": "first20-completion",
-      "status": "supported-complete",
-      "examples": [
-        "ExtractIR",
-        "RuntimeValue",
-        "expanded diagnostics",
-        "source spans",
-        "CI e2e matrix"
-      ]
-    },
-    {
-      "feature": "extract-ir-pipeline",
-      "status": "supported",
-      "examples": [
-        "DeclarationMetadata",
-        "functionFeatureTags",
-        "metadataForSurfaceFun"
-      ]
-    },
-    {
-      "feature": "runtime-denotation-model",
-      "status": "supported",
-      "examples": [
-        "RuntimeValue",
-        "runtimeValueHasType",
-        "runtimeDenotationSummary"
-      ]
-    },
-    {
-      "feature": "expanded-diagnostic-coverage",
-      "status": "supported",
-      "examples": [
-        "LRC001-LRC013",
-        "SourceRange",
-        "instanceHasRequiredSpan"
-      ]
-    },
-    {
-      "feature": "ci-end-to-end-matrix",
-      "status": "supported-scripted-gates",
-      "examples": [
-        "scripts/check-ci-e2e.sh",
-        "linux+macos workflow matrix"
-      ]
-    },
-    {
-      "feature": "next20-completion",
-      "status": "supported-complete",
-      "examples": [
-        "rows 21-40",
-        "scripts/check-next-20-completion.py",
-        "rust/tests/next20_completion.rs"
-      ]
-    },
-    {
-      "feature": "parameterized-data-monomorphization",
-      "status": "supported-complete",
-      "examples": [
-        "GenericEmission.monomorphizeDataShape",
-        "ParameterizedData.substituteTypeVars",
-        "docs/GENERICS.md"
-      ]
-    },
-    {
-      "feature": "complete-numeric-semantics",
-      "status": "supported-complete",
-      "examples": [
-        "NumericSemantics.rules",
-        "runtime numeric helpers",
-        "docs/NUMERIC_SEMANTICS.md"
-      ]
-    },
-    {
-      "feature": "complete-dependent-erasure",
-      "status": "supported-complete",
-      "examples": [
-        "DependentErasureChecker.checkDependentErasure",
-        "docs/DEPENDENT_ERASURE.md"
-      ]
-    },
-    {
-      "feature": "recursive-discovery-layouts",
-      "status": "supported-complete",
-      "examples": [
-        "RecursiveDiscovery.layoutDecisions",
-        "RcTreeU32",
-        "ArenaTreeU32",
-        "docs/RECURSIVE_DATA.md"
-      ]
-    },
-    {
-      "feature": "ownership-borrowing-policy",
-      "status": "supported-complete",
-      "examples": [
-        "OwnershipPolicy.rules",
-        "borrowed_vec_len_u32",
-        "docs/OWNERSHIP.md"
-      ]
-    },
-    {
-      "feature": "pattern-matrix-compiler",
-      "status": "supported-complete",
-      "examples": [
-        "PatternMatrix.completedPatternFeatures",
-        "docs/PATTERN_COMPILER.md"
-      ]
-    },
-    {
-      "feature": "recursion-analysis-lowering",
-      "status": "supported-complete",
-      "examples": [
-        "RecursionAnalysis.decisions",
-        "docs/RECURSION_LOWERING.md"
-      ]
-    },
-    {
-      "feature": "std-lowering-implementation",
-      "status": "supported-complete",
-      "examples": [
-        "StdImplementation.lowerings",
-        "runtime Std helpers",
-        "docs/STD_LOWERINGS.md"
-      ]
-    },
-    {
-      "feature": "rust-generic-policy",
-      "status": "supported-final-policy",
-      "examples": [
-        "GenericPolicy.finalRustGenericPolicySummary",
-        "LRC009",
-        "docs/GENERICS.md"
-      ]
-    },
-    {
-      "feature": "typeclass-specialization-complete",
-      "status": "supported-complete",
-      "examples": [
-        "TypeclassSpecialization.classes",
-        "docs/TYPECLASSES.md"
-      ]
-    },
-    {
-      "feature": "runtime-value-denotation",
-      "status": "supported",
-      "examples": [
-        "runtime-value-denotation"
-      ]
-    },
-    {
-      "feature": "expanded-diagnostics",
-      "status": "supported",
-      "examples": [
-        "expanded-diagnostics"
-      ]
-    },
-    {
-      "feature": "source-span-diagnostics",
-      "status": "supported",
-      "examples": [
-        "source-span-diagnostics"
-      ]
-    },
-    {
-      "feature": "remaining-typeclass-dictionaries",
-      "status": "supported-complete",
-      "examples": [
-        "TypeclassDictionaries.dictionaryShapes",
-        "AddDictU32",
-        "docs/TYPECLASS_DICTIONARIES.md"
-      ]
-    },
-    {
-      "feature": "remaining-first-class-closures",
-      "status": "supported-complete",
-      "examples": [
-        "FirstClassClosures.closureObjects",
-        "StoredClosureU32",
-        "docs/FIRST_CLASS_CLOSURES.md"
-      ]
-    },
-    {
-      "feature": "remaining-pure-do-notation",
-      "status": "supported-complete",
-      "examples": [
-        "PureDoNotation.lowerings",
-        "Option/Except/State/Reader/ExceptT",
-        "docs/PURE_DO_NOTATION.md"
-      ]
-    },
-    {
-      "feature": "remaining-controlled-io-boundary",
-      "status": "supported-complete",
-      "examples": [
-        "IOBoundary.policies",
-        "ControlledIoProgram",
-        "docs/IO_BOUNDARY.md"
-      ]
-    },
-    {
-      "feature": "remaining-complete-semantics",
-      "status": "supported-complete",
-      "examples": [
-        "CompleteSemantics.coverage",
-        "validate::TargetTerm",
-        "docs/SEMANTICS.md"
-      ]
-    },
-    {
-      "feature": "remaining-preservation-skeleton",
-      "status": "supported-complete",
-      "examples": [
-        "Preservation.obligations",
-        "docs/PRESERVATION.md"
-      ]
-    },
-    {
-      "feature": "remaining-property-generators",
-      "status": "supported-complete",
-      "examples": [
-        "PropertyGenerators.families",
-        "docs/PROPERTY_GENERATORS.md"
-      ]
-    },
-    {
-      "feature": "remaining-feature-complete-dashboard",
-      "status": "supported-complete",
-      "examples": [
-        "CoverageCompletion.denominators",
-        "docs/COVERAGE_COMPLETION.md"
-      ]
-    },
-    {
-      "feature": "remaining-ci-release-matrix",
-      "status": "supported-complete",
-      "examples": [
-        "CIRelease.matrix",
-        ".github/workflows/ci.yml",
-        "docs/RELEASE_CHECKLIST.md"
-      ]
-    },
-    {
-      "feature": "remaining-publishing-versioning",
-      "status": "supported-complete",
-      "examples": [
-        "Publishing.cratePolicies",
-        "CHANGELOG.md",
-        "docs/PUBLISHING.md"
-      ]
-    },
-    {
-      "feature": "remaining-completion-rows-41-63",
-      "status": "supported-complete",
-      "examples": [
-        "RemainingCompletion.rows",
-        "scripts/check-remaining-completion.py"
-      ]
-    }
+    { "feature": "recursive-owned-box-data", "status": "supported-known-slice", "examples": ["BinaryTreeU32", "ExprU32", "tree_size_u32", "expr_eval_u32"] },
+    { "feature": "target-validation-v2", "status": "supported", "examples": ["FORMAT lean-rust-core.target-validation.v2", "box/deref fingerprints"] },
+    { "feature": "property-seed-validation", "status": "supported-deterministic-seeds", "examples": ["recursive tree size/sum", "expression evaluation", "closure/defun regression"] },
+    { "feature": "coverage-dashboard", "status": "supported", "examples": ["rust/coverage-dashboard.json"] },
+    { "feature": "property-fuzz-corpus", "status": "supported-deterministic-seeds", "examples": ["PropertyCorpus.seedFamilies", "corpus/property/seeds.json", "rust/tests/final16_property_coverage.rs"] },
+    { "feature": "quantitative-coverage-dashboard", "status": "supported-metrics", "examples": ["CoverageDashboard.metrics", "explicit denominators", "docs/COVERAGE.md"] },
+    { "feature": "user-facing-diagnostics", "status": "supported-stable-codes", "examples": ["Diagnostics.templates", "LRC001-LRC005", "docs/DIAGNOSTICS.md"] },
+    { "feature": "rust-workspace-crate-split", "status": "supported-workspace", "examples": ["lean-rust-core-generated", "lean-rust-core-runtime", "lean-rust-core-abi", "lean-rust-core-validate", "lean-rust-core-headers"] },
+    { "feature": "release-acceptance-matrix", "status": "supported-scripted-gates", "examples": ["ReleaseMatrix.gates", "scripts/check-final-16-completion.py", "docs/RELEASE_CHECKLIST.md"] },
+    { "feature": "first20-completion", "status": "supported-complete", "examples": ["ExtractIR", "RuntimeValue", "expanded diagnostics", "source spans", "CI e2e matrix"] },
+    { "feature": "extract-ir-pipeline", "status": "supported", "examples": ["DeclarationMetadata", "functionFeatureTags", "metadataForSurfaceFun"] },
+    { "feature": "runtime-value-denotation", "status": "supported", "examples": ["RuntimeValue", "runtimeValueHasType", "runtimeDenotationSummary"] },
+    { "feature": "expanded-diagnostics", "status": "supported", "examples": ["LRC001-LRC014", "SourceRange", "instanceHasRequiredSpan"] },
+    { "feature": "source-span-diagnostics", "status": "supported", "examples": ["SourceSpan", "sourceSpanSummary", "instanceHasRequiredSpan"] },
+    { "feature": "runtime-denotation-model", "status": "supported", "examples": ["RuntimeValue", "runtimeValueHasType", "runtimeDenotationSummary"] },
+    { "feature": "expanded-diagnostic-coverage", "status": "supported", "examples": ["LRC001-LRC013", "SourceRange", "instanceHasRequiredSpan"] },
+    { "feature": "ci-end-to-end-matrix", "status": "supported-scripted-gates", "examples": ["scripts/check-ci-e2e.sh", "linux+macos workflow matrix"] },
+    { "feature": "next20-completion", "status": "supported-complete", "examples": ["rows 21-40", "scripts/check-next-20-completion.py", "rust/tests/next20_completion.rs"] },
+    { "feature": "parameterized-data-monomorphization", "status": "supported-complete", "examples": ["GenericEmission.monomorphizeDataShape", "ParameterizedData.substituteTypeVars", "docs/GENERICS.md"] },
+    { "feature": "rust-generic-policy", "status": "supported-final-policy", "examples": ["GenericPolicy.finalRustGenericPolicySummary", "LRC009", "docs/GENERICS.md"] },
+    { "feature": "complete-numeric-semantics", "status": "supported-complete", "examples": ["NumericSemantics.rules", "runtime numeric helpers", "docs/NUMERIC_SEMANTICS.md"] },
+    { "feature": "complete-dependent-erasure", "status": "supported-complete", "examples": ["DependentErasureChecker.checkDependentErasure", "docs/DEPENDENT_ERASURE.md"] },
+    { "feature": "recursive-discovery-layouts", "status": "supported-complete", "examples": ["RecursiveDiscovery.layoutDecisions", "RcTreeU32", "ArenaTreeU32"] },
+    { "feature": "ownership-borrowing-policy", "status": "supported-complete", "examples": ["OwnershipPolicy.rules", "borrowed_vec_len_u32", "docs/OWNERSHIP.md"] },
+    { "feature": "pattern-matrix-compiler", "status": "supported-complete", "examples": ["PatternMatrix.completedPatternFeatures", "docs/PATTERN_COMPILER.md"] },
+    { "feature": "recursion-analysis-lowering", "status": "supported-complete", "examples": ["RecursionAnalysis.decisions", "docs/RECURSION_LOWERING.md"] },
+    { "feature": "std-lowering-implementation", "status": "supported-complete", "examples": ["StdImplementation.lowerings", "runtime Std helpers", "docs/STD_LOWERINGS.md"] },
+    { "feature": "typeclass-specialization-complete", "status": "supported-complete", "examples": ["TypeclassSpecialization.classes", "docs/TYPECLASSES.md"] },
+    { "feature": "remaining-typeclass-dictionaries", "status": "supported-complete", "examples": ["TypeclassDictionaries.dictionaryShapes", "AddDictU32", "docs/TYPECLASS_DICTIONARIES.md"] },
+    { "feature": "remaining-first-class-closures", "status": "supported-complete", "examples": ["FirstClassClosures.closureObjects", "StoredClosureU32", "docs/FIRST_CLASS_CLOSURES.md"] },
+    { "feature": "remaining-pure-do-notation", "status": "supported-complete", "examples": ["PureDoNotation.lowerings", "Option/Except/State/Reader/ExceptT", "docs/PURE_DO_NOTATION.md"] },
+    { "feature": "remaining-controlled-io-boundary", "status": "supported-complete", "examples": ["IOBoundary.policies", "ControlledIoProgram", "docs/IO_BOUNDARY.md"] },
+    { "feature": "remaining-complete-semantics", "status": "supported-complete", "examples": ["CompleteSemantics.coverage", "validate::TargetTerm", "docs/SEMANTICS.md"] },
+    { "feature": "remaining-preservation-skeleton", "status": "supported-complete", "examples": ["Preservation.obligations", "docs/PRESERVATION.md"] },
+    { "feature": "remaining-property-generators", "status": "supported-complete", "examples": ["PropertyGenerators.families", "docs/PROPERTY_GENERATORS.md"] },
+    { "feature": "remaining-feature-complete-dashboard", "status": "supported-complete", "examples": ["CoverageCompletion.denominators", "docs/COVERAGE_COMPLETION.md"] },
+    { "feature": "remaining-ci-release-matrix", "status": "supported-complete", "examples": ["CIRelease.matrix", ".github/workflows/ci.yml", "docs/RELEASE_CHECKLIST.md"] },
+    { "feature": "remaining-publishing-versioning", "status": "supported-complete", "examples": ["Publishing.cratePolicies", "CHANGELOG.md", "docs/PUBLISHING.md"] },
+    { "feature": "remaining-completion-rows-41-63", "status": "supported-complete", "examples": ["RemainingCompletion.rows", "scripts/check-remaining-completion.py"] }
   ]
 }

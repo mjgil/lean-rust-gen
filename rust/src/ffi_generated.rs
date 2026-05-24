@@ -6,13 +6,17 @@
 use crate::abi::ChStatus;
 
 #[no_mangle]
-pub extern "C" fn lrc_clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
-    crate::clamp_u32(lo, hi, x)
+pub unsafe extern "C" fn lrc_result_ok_u32(
+    x: u32,
+    out_ok: *mut u32,
+    out_err: *mut u32,
+) -> ChStatus {
+    unsafe { crate::abi::lower_result_u32_u32(crate::result_ok_u32(x), out_ok, out_err) }
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_max_u32(a: u32, b: u32) -> u32 {
-    crate::max_u32(a, b)
+pub extern "C" fn lrc_auto_identity_u32(x: u32) -> u32 {
+    crate::auto_identity_u32(x)
 }
 
 #[no_mangle]
@@ -25,53 +29,13 @@ pub extern "C" fn lrc_is_nonzero_u32(x: u32) -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_add_u32(a: u32, b: u32) -> u32 {
-    crate::add_u32(a, b)
+pub extern "C" fn lrc_subtype_inc_u32(x: u32) -> u32 {
+    crate::subtype_inc_u32(x)
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_mul_u32(a: u32, b: u32) -> u32 {
-    crate::mul_u32(a, b)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_bounded_bump_u32(x: u32) -> u32 {
-    crate::bounded_bump_u32(x)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_echo_u32(x: u32) -> u32 {
-    crate::echo_u32(x)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_echo_u64(x: u64) -> u64 {
-    crate::echo_u64(x)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_echo_i32(x: i32) -> i32 {
-    crate::echo_i32(x)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_echo_i64(x: i64) -> i64 {
-    crate::echo_i64(x)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_general_bool_match_u32(flag: u32, when_true: u32, when_false: u32) -> u32 {
-    crate::general_bool_match_u32(flag != 0, when_true, when_false)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_pair_sum_match_u32(a: u32, b: u32) -> u32 {
-    crate::pair_sum_match_u32(a, b)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_tail_sum_down_u32(n: u32) -> u32 {
-    crate::tail_sum_down_u32(n)
+pub extern "C" fn lrc_bool_match_u32(flag: u32, when_true: u32, when_false: u32) -> u32 {
+    crate::bool_match_u32(flag != 0, when_true, when_false)
 }
 
 #[no_mangle]
@@ -84,8 +48,13 @@ pub extern "C" fn lrc_decidable_eq_u32(a: u32, b: u32) -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_nat_sum_to_u32(n: u32) -> u32 {
-    crate::nat_sum_to_u32(n)
+pub extern "C" fn lrc_clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
+    crate::clamp_u32(lo, hi, x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_pair_sum_match_u32(a: u32, b: u32) -> u32 {
+    crate::pair_sum_match_u32(a, b)
 }
 
 #[no_mangle]
@@ -94,13 +63,8 @@ pub extern "C" fn lrc_subtype_val_u32(x: u32) -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_fin_val10_u32(i: u32) -> u32 {
-    crate::fin_val10_u32(i)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
-    crate::closure_apply_capture_u32(delta, x)
+pub extern "C" fn lrc_inc_twice_u32(x: u32) -> u32 {
+    crate::inc_twice_u32(x)
 }
 
 #[no_mangle]
@@ -114,8 +78,8 @@ pub extern "C" fn lrc_defun_compose_inc_double_u32(x: u32) -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_defun_apply_add5_u32(x: u32) -> u32 {
-    crate::defun_apply_add5_u32(x)
+pub extern "C" fn lrc_add_u32(a: u32, b: u32) -> u32 {
+    crate::add_u32(a, b)
 }
 
 #[no_mangle]
@@ -124,32 +88,68 @@ pub extern "C" fn lrc_add_u64(a: u64, b: u64) -> u64 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_defun_apply_add5_u32(x: u32) -> u32 {
+    crate::defun_apply_add5_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_reader_add_env_u32(env: u32, x: u32) -> u32 {
+    crate::reader_add_env_u32(env, x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_bounded_bump_u32(x: u32) -> u32 {
+    crate::bounded_bump_u32(x)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_inc_u32(x: u32) -> u32 {
     crate::inc_u32(x)
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_inc_twice_u32(x: u32) -> u32 {
-    crate::inc_twice_u32(x)
+pub extern "C" fn lrc_closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
+    crate::closure_apply_capture_u32(delta, x)
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_proof_erased_u32(x: u32) -> u32 {
-    crate::proof_erased_u32(x)
+pub extern "C" fn lrc_subtype_roundtrip_u32(x: u32) -> u32 {
+    crate::subtype_roundtrip_u32(x)
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_bool_match_u32(flag: u32, when_true: u32, when_false: u32) -> u32 {
-    crate::bool_match_u32(flag != 0, when_true, when_false)
+pub extern "C" fn lrc_general_bool_match_u32(flag: u32, when_true: u32, when_false: u32) -> u32 {
+    crate::general_bool_match_u32(flag != 0, when_true, when_false)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lrc_result_ok_u32(
-    x: u32,
-    out_ok: *mut u32,
-    out_err: *mut u32,
-) -> ChStatus {
-    unsafe { crate::abi::lower_result_u32_u32(crate::result_ok_u32(x), out_ok, out_err) }
+pub extern "C" fn lrc_fin_val10_u32(i: u32) -> u32 {
+    crate::fin_val10_u32(i)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_echo_i64(x: i64) -> i64 {
+    crate::echo_i64(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_echo_i32(x: i32) -> i32 {
+    crate::echo_i32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_helper_chain_u32(x: u32) -> u32 {
+    crate::helper_chain_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_max_u32(a: u32, b: u32) -> u32 {
+    crate::max_u32(a, b)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_mul_u32(a: u32, b: u32) -> u32 {
+    crate::mul_u32(a, b)
 }
 
 #[no_mangle]
@@ -162,13 +162,28 @@ pub unsafe extern "C" fn lrc_result_err_u32(
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_subtype_inc_u32(x: u32) -> u32 {
-    crate::subtype_inc_u32(x)
+pub extern "C" fn lrc_tail_sum_down_u32(n: u32) -> u32 {
+    crate::tail_sum_down_u32(n)
 }
 
 #[no_mangle]
-pub extern "C" fn lrc_subtype_roundtrip_u32(x: u32) -> u32 {
-    crate::subtype_roundtrip_u32(x)
+pub extern "C" fn lrc_echo_u32(x: u32) -> u32 {
+    crate::echo_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_nat_sum_to_u32(n: u32) -> u32 {
+    crate::nat_sum_to_u32(n)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_proof_erased_u32(x: u32) -> u32 {
+    crate::proof_erased_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_echo_u64(x: u64) -> u64 {
+    crate::echo_u64(x)
 }
 
 #[no_mangle]
@@ -198,49 +213,4 @@ pub extern "C" fn lrc_generic_identity__u32(x: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn lrc_helper_inc_fixed(x: u32) -> u32 {
     crate::helper_inc_fixed(x)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_helper_chain_u32(x: u32) -> u32 {
-    crate::helper_chain_u32(x)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_auto_identity_u32(x: u32) -> u32 {
-    crate::auto_identity_u32(x)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_option_getd_u32(x_is_some: u32, x_value: u32, fallback: u32) -> u32 {
-    let x = if x_is_some != 0 { Some(x_value) } else { None };
-    crate::option_getd_u32(x, fallback)
-}
-
-#[no_mangle]
-pub extern "C" fn lrc_reader_add_env_u32(env: u32, x: u32) -> u32 {
-    crate::reader_add_env_u32(env, x)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lrc_result_map_err_inc_u32(
-    is_ok: u32,
-    value: u32,
-    out_ok: *mut u32,
-    out_err: *mut u32,
-) -> ChStatus {
-    let input = if is_ok != 0 { Ok(value) } else { Err(value) };
-    unsafe {
-        crate::abi::lower_result_u32_u32(crate::result_map_err_inc_u32(input), out_ok, out_err)
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lrc_except_do_inc_u32(
-    is_ok: u32,
-    value: u32,
-    out_ok: *mut u32,
-    out_err: *mut u32,
-) -> ChStatus {
-    let input = if is_ok != 0 { Ok(value) } else { Err(value) };
-    unsafe { crate::abi::lower_result_u32_u32(crate::except_do_inc_u32(input), out_ok, out_err) }
 }

@@ -3,74 +3,7 @@
   "architecture": "direct-lean-emits-rust",
   "lean_toolchain": "leanprover/lean4:v4.22.0",
   "rust_toolchain": "1.85.0",
-  "trusted_core": [
-    "Lean kernel",
-    "LeanRustCore.Extract.extractConst",
-    "LeanRustCore.Extract.extractWithDiagnostics",
-    "LeanRustCore.Extract.extractPendingAutoHelpers",
-    "LeanRustCore.Examples.extractedSurfaceFunctions",
-    "LeanRustCore.Surface.typeOfExpected",
-    "LeanRustCore.Surface.evalSurfaceFun",
-    "LeanRustCore.RustHygiene.validateSurfaceModuleHygiene",
-    "LeanRustCore.EmitRust.emitSurfaceRustModule",
-    "LeanRustCore.TargetValidation.targetValidationSnapshot",
-    "LeanRustCore.RecursiveData.recursiveDataSummary",
-    "LeanRustCore.ValidationV2.coverageDashboardJson",
-    "LeanRustCore.BoundaryExport.generatedBoundaryRust",
-    "LeanRustCore.DependentErasure.dependentErasureSummary",
-    "LeanRustCore.ExtractIR.functionFeatures",
-    "LeanRustCore.ClosureConversion.closureConversionSummary",
-    "LeanRustCore.Defunctionalization.defunctionalizationSummary",
-    "rust/tests/parser_validation.rs",
-    "rust/tests/semantic_validation.rs",
-    "rust/tests/target_interpreter.rs",
-    "LeanRustCore.IR.eval",
-    "LeanRustCore.PureEffects",
-    "LeanRustCore.StdLowering",
-    "LeanRustCore.TypeclassPolicy",
-    "LeanRustCore.PropertyCorpus.seedFamilies",
-    "LeanRustCore.CoverageDashboard.metrics",
-    "LeanRustCore.Diagnostics.templates",
-    "LeanRustCore.CrateDesign.workspaceCrates",
-    "LeanRustCore.ReleaseMatrix.gates",
-    "LeanRustCore.ExtractIR.metadataForSurfaceFun",
-    "LeanRustCore.IR.runtimeValueHasType",
-    "LeanRustCore.IR.runtimeDenotationSummary",
-    "LeanRustCore.Diagnostics.SourceRange",
-    "LeanRustCore.Diagnostics.instanceHasRequiredSpan",
-    "scripts/check-ci-e2e.sh",
-    "LeanRustCore.GenericEmission.monomorphizeDataShape",
-    "LeanRustCore.NumericSemantics.rules",
-    "LeanRustCore.DependentErasure.checkDependentErasure",
-    "LeanRustCore.RecursiveDiscovery.chooseLayout",
-    "LeanRustCore.OwnershipPolicy.rules",
-    "LeanRustCore.PatternMatrix.checkMatrix",
-    "LeanRustCore.RecursionAnalysis.decideFunction",
-    "LeanRustCore.StdImplementation.implemented",
-    "rust/tests/next20_completion.rs",
-    "scripts/check-next-20-completion.py",
-    "LeanRustCore.ParameterizedData.substituteTypeVars",
-    "LeanRustCore.GenericPolicy.finalRustGenericPolicySummary",
-    "LeanRustCore.DependentErasureChecker.checkDependentErasure",
-    "LeanRustCore.RecursiveDiscovery.layoutDecisions",
-    "LeanRustCore.PatternMatrix.completedPatternFeatures",
-    "LeanRustCore.RecursionAnalysis.decisions",
-    "LeanRustCore.StdImplementation.lowerings",
-    "LeanRustCore.TypeclassSpecialization.classes",
-    "LeanRustCore.ExtractIR.lowerExpr?",
-    "LeanRustCore.Diagnostics.SourceSpan",
-    "LeanRustCore.TypeclassDictionaries.dictionaryShapes",
-    "LeanRustCore.FirstClassClosures.closureObjects",
-    "LeanRustCore.PureDoNotation.lowerings",
-    "LeanRustCore.IOBoundary.policies",
-    "LeanRustCore.CompleteSemantics.coverage",
-    "LeanRustCore.Preservation.obligations",
-    "LeanRustCore.PropertyGenerators.families",
-    "LeanRustCore.CoverageCompletion.denominators",
-    "LeanRustCore.CIRelease.matrix",
-    "LeanRustCore.Publishing.cratePolicies",
-    "LeanRustCore.RemainingCompletion.allRemainingComplete"
-  ],
+  "trusted_core": ["Lean kernel", "LeanRustCore.Extract.extractConst", "LeanRustCore.Extract.extractWithDiagnostics", "LeanRustCore.Extract.extractPendingAutoHelpers", "LeanRustCore.Examples.extractedSurfaceFunctions", "LeanRustCore.Surface.typeOfExpected", "LeanRustCore.Surface.evalSurfaceFun", "LeanRustCore.RustHygiene.validateSurfaceModuleHygiene", "LeanRustCore.EmitRust.emitSurfaceRustModule", "LeanRustCore.TargetValidation.targetValidationSnapshot", "LeanRustCore.RecursiveData.recursiveDataSummary", "LeanRustCore.ValidationV2.coverageDashboardJson", "LeanRustCore.BoundaryExport.generatedBoundaryRust", "LeanRustCore.DependentErasure.dependentErasureSummary", "LeanRustCore.ExtractIR.functionFeatures", "LeanRustCore.ExtractIR.lowerExpr?", "LeanRustCore.ExtractIR.metadataForSurfaceFun", "LeanRustCore.IR.runtimeValueHasType", "LeanRustCore.IR.runtimeDenotationSummary", "LeanRustCore.Diagnostics.SourceSpan", "LeanRustCore.Diagnostics.SourceRange", "LeanRustCore.Diagnostics.instanceHasRequiredSpan", "scripts/check-ci-e2e.sh", "LeanRustCore.ClosureConversion.closureConversionSummary", "LeanRustCore.Defunctionalization.defunctionalizationSummary", "rust/tests/parser_validation.rs", "rust/tests/semantic_validation.rs", "rust/tests/target_interpreter.rs", "LeanRustCore.IR.eval", "LeanRustCore.PureEffects", "LeanRustCore.StdLowering", "LeanRustCore.TypeclassPolicy", "LeanRustCore.PropertyCorpus.seedFamilies", "LeanRustCore.CoverageDashboard.metrics", "LeanRustCore.Diagnostics.templates", "LeanRustCore.CrateDesign.workspaceCrates", "LeanRustCore.ReleaseMatrix.gates", "LeanRustCore.GenericEmission.monomorphizeDataShape", "LeanRustCore.ParameterizedData.substituteTypeVars", "LeanRustCore.GenericPolicy.finalRustGenericPolicySummary", "LeanRustCore.NumericSemantics.rules", "LeanRustCore.DependentErasureChecker.checkDependentErasure", "LeanRustCore.RecursiveDiscovery.layoutDecisions", "LeanRustCore.OwnershipPolicy.rules", "LeanRustCore.PatternMatrix.completedPatternFeatures", "LeanRustCore.RecursionAnalysis.decisions", "LeanRustCore.StdImplementation.lowerings", "LeanRustCore.TypeclassSpecialization.classes", "LeanRustCore.TypeclassDictionaries.dictionaryShapes", "LeanRustCore.FirstClassClosures.closureObjects", "LeanRustCore.PureDoNotation.lowerings", "LeanRustCore.IOBoundary.policies", "LeanRustCore.CompleteSemantics.coverage", "LeanRustCore.Preservation.obligations", "LeanRustCore.PropertyGenerators.families", "LeanRustCore.CoverageCompletion.denominators", "LeanRustCore.CIRelease.matrix", "LeanRustCore.Publishing.cratePolicies", "LeanRustCore.RemainingCompletion.allRemainingComplete"],
   "policy": {
     "generated_rust_unsafe": false,
     "source_string_matching": false,
@@ -96,27 +29,24 @@
     "user_facing_diagnostics": true,
     "rust_workspace_crate_split": true,
     "release_acceptance_matrix": true,
-    "coverage_dashboard": "rust/coverage-dashboard.json",
     "first20_completion": true,
     "source_span_diagnostics": true,
     "extract_ir_pipeline": true,
+    "runtime_value_denotation": true,
     "runtime_denotation_model": true,
+    "expanded_diagnostic_codes": "LRC001-LRC014",
     "ci_end_to_end_matrix": true,
     "next20_completion": true,
     "parameterized_data_monomorphization": true,
-    "rust_generic_policy_finalized": "monomorphization-only default lane",
+    "rust_generic_emission_policy_final": true,
     "numeric_semantics_complete": true,
     "dependent_erasure_complete": true,
     "recursive_discovery_complete": true,
-    "recursive_layout_modes": "Box/Rc/arena",
     "ownership_policy_complete": true,
     "pattern_matrix_complete": true,
     "recursion_analysis_complete": true,
     "std_lowering_implementation_complete": true,
-    "rust_generic_emission_policy_final": true,
     "typeclass_specialization_complete": true,
-    "runtime_value_denotation": true,
-    "expanded_diagnostic_codes": "LRC001-LRC014",
     "generated_typeclass_dictionaries_complete": true,
     "first_class_closure_objects_complete": true,
     "pure_do_notation_complete": true,
@@ -127,220 +57,99 @@
     "feature_complete_coverage_dashboard": true,
     "ci_release_matrix_complete": true,
     "publishing_versioning_complete": true,
-    "remaining_completion_rows_41_63": true
+    "remaining_completion_rows_41_63": true,
+    "coverage_dashboard": "rust/coverage-dashboard.json"
   },
   "facts": [
-    {
-      "name": "extractor_reads_elaborated_definitions",
-      "statement": "rust_emit_exports collects @[rust_export] declarations and uses Lean constant bodies, not source-string matching"
-    },
-    {
-      "name": "surface_type_check",
-      "statement": "extracted SurfaceFun bodies are type-checked before Rust emission"
-    },
-    {
-      "name": "extract_ir_feature_tags",
-      "statement": "LeanRustCore.ExtractIR.functionFeatures records feature tags for compatibility reporting and validation summaries"
-    },
-    {
-      "name": "standard_combinator_lowering",
-      "statement": "recognized list/array/option/result combinators lower to checked first-order SurfaceExpr nodes"
-    },
-    {
-      "name": "general_pattern_compiler",
-      "statement": "SurfacePattern and SurfaceExpr.matchPattern represent a checked general constructor-pattern fragment for Bool, Option, Prod, and closed enums"
-    },
-    {
-      "name": "tail_recursion_loop_lowering",
-      "statement": "recognized Nat accumulator tail recursion lowers to SurfaceExpr.tailRecNat and safe Rust while loops"
-    },
-    {
-      "name": "list_length_structural_lowering",
-      "statement": "List.length lowers to SurfaceExpr.listLength and Rust Vec::len in the owned List representation"
-    },
-    {
-      "name": "dependent_shape_erasure",
-      "statement": "Sprint 10\u201312 dependent erasure supports Subtype/Fin/Vector runtime carriers and proof-only constructor-field erasure for Eq/True/False/And/Or/Not/Iff/Exists/LT/LE-shaped fields; non-erasable dependent computation remains rejected"
-    },
-    {
-      "name": "dependent_erasure_policy",
-      "statement": "Subtype erases to its carrier, Fin lowers to u32-shaped values, Vector lowers to Vec<T> with source-side length evidence, and proof-only structure fields are removed from safe Rust layouts when unused computationally"
-    },
-    {
-      "name": "proof_field_erasure",
-      "statement": "proof-only constructor fields are skipped during runtime payload lowering and are absent from emitted Rust structs"
-    },
-    {
-      "name": "exact_integer_modes",
-      "statement": "@[rust_nat_exact] and @[rust_int_exact] lower Lean Nat/Int boundaries to exact num_bigint BigUint/BigInt Rust values"
-    },
-    {
-      "name": "captured_closure_conversion",
-      "statement": "captured lambdas inside recognized structural combinators lower to loop bodies that close over ordinary Rust locals"
-    },
-    {
-      "name": "closure_converted_environments",
-      "statement": "captured unary lambdas lower either to immediate closure-apply SurfaceExpr nodes or to explicit first-order environment structs; escaping or stored dynamic closures remain rejected"
-    },
-    {
-      "name": "finite_defunctionalization",
-      "statement": "known finite higher-order function families lower to monomorphic enum cases plus first-order apply functions; captured values become enum payloads or explicit closure environment fields"
-    },
-    {
-      "name": "target_validation_snapshot",
-      "statement": "LeanRustCore.TargetValidation.targetValidationSnapshot is generated from the extractor-owned SurfaceFun artifact"
-    },
-    {
-      "name": "target_fingerprint_interpreter",
-      "statement": "rust/tests/target_interpreter.rs samples selected target fingerprints against compiled generated Rust functions"
-    },
-    {
-      "name": "ffi_boundary_exporter",
-      "statement": "LeanRustCore.BoundaryExport.generatedBoundaryRust emits optional feature-gated raw ABI wrappers for primitive and Result<u32,u32> exports"
-    },
-    {
-      "name": "std_lowering_policy",
-      "statement": "LeanRustCore.StdLowering records the supported monomorphic List/Array/Option/Except lowerings used by the current direct Rust lane"
-    },
-    {
-      "name": "pure_effect_lowering",
-      "statement": "LeanRustCore.PureEffects records the pure do-notation lowering lane for Option, Except, ReaderT, and StateM"
-    },
-    {
-      "name": "typeclass_specialization_policy",
-      "statement": "LeanRustCore.TypeclassPolicy records the resolved-dictionary specialization lane for common executable classes"
-    },
-    {
-      "name": "recursive_box_owned_data_layout",
-      "statement": "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work"
-    },
-    {
-      "name": "target_validation_v2_dashboard",
-      "statement": "target-validation v2 records box/deref fingerprints for recursive data, and rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
-    },
-    {
-      "name": "property_fuzz_corpus",
-      "statement": "property/fuzz corpus requires deterministic CI seeds before completion; families: numeric-edge-cases=12, container-roundtrip=10, closure-and-dictionary=8, ffi-handle-lifecycle=9, generated-subset-target-grammar=14"
-    },
-    {
-      "name": "quantitative_coverage_dashboard",
-      "statement": "coverage dashboard records explicit denominators: checklist_rows_41_56=100%; rust_workspace_crates=100%; final_docs=100%; property_seed_families=100%; release_acceptance_gates=100%"
-    },
-    {
-      "name": "user_facing_diagnostics",
-      "statement": "user-facing diagnostics use stable LRC codes with source declaration, construct kind, next feature, and docs: LRC001, LRC002, LRC003, LRC004, LRC005"
-    },
-    {
-      "name": "rust_workspace_crate_split",
-      "statement": "Rust workspace split: lean-rust-core-generated@rust, lean-rust-core-runtime@crates/runtime, lean-rust-core-abi@crates/abi, lean-rust-core-validate@crates/validate, lean-rust-core-headers@crates/headers"
-    },
-    {
-      "name": "release_acceptance_matrix",
-      "statement": "release acceptance matrix contains 12 required gates covering Lean, generated artifacts, Rust workspace, FFI, diagnostics, docs, and headers"
-    },
-    {
-      "name": "extract_ir_normalized_pipeline",
-      "statement": "ExtractIR records origin names, source ranges, erased binder counts, recognized recursors, resolved dictionaries, features, diagnostics, and next-feature routing before checked SurfaceExpr emission"
-    },
-    {
-      "name": "runtime_denotation_model",
-      "statement": "RType.Denote uses RuntimeValue subtype witnesses for generated structs, enums, and recursive payloads instead of placeholder aggregate semantics"
-    },
-    {
-      "name": "expanded_diagnostic_templates",
-      "statement": "Diagnostics LRC001-LRC013 cover unresolved dictionaries, dependent matches, escaping closures, IO, hygiene, recursors, Std constants, proof erasure, numeric modes, closure ownership, recursive layout, FFI ABI rejection, and artifact drift"
-    },
-    {
-      "name": "source_span_diagnostics",
-      "statement": "Diagnostic instances carry optional SourceRange values and templates declare whether spans are required"
-    },
-    {
-      "name": "ci_end_to_end_matrix",
-      "statement": "scripts/check-ci-e2e.sh and the GitHub Actions matrix run Lean, snapshot, Rust workspace, FFI, fmt, clippy, and header gates"
-    },
-    {
-      "name": "parameterized_data_monomorphization",
-      "statement": "Rows 23/25 use deterministic concrete monomorphization and explicitly disable Rust generic emission in the default lane"
-    },
-    {
-      "name": "numeric_semantics_complete",
-      "statement": "Row 27 requires exact, wrapping, checked, saturating, and preconditioned numeric modes with edge-case tests"
-    },
-    {
-      "name": "dependent_erasure_complete",
-      "statement": "Rows 28/29 classify runtime/proof/index values and check Subtype/Fin/Vector/Sigma/equality-cast erasure"
-    },
-    {
-      "name": "recursive_discovery_complete",
-      "statement": "Rows 30-32 classify recursive type graphs and provide Box, Rc, and arena layout policies"
-    },
-    {
-      "name": "ownership_policy_complete",
-      "statement": "Row 33 records owned/borrowed/cloned/moved/boxed Rust ownership modes"
-    },
-    {
-      "name": "pattern_matrix_complete",
-      "statement": "Rows 34/35 implement a pattern-matrix model for nested constructor/List/Nat/as/inaccessible patterns"
-    },
-    {
-      "name": "recursion_analysis_complete",
-      "statement": "Rows 36/37 classify recursive SCCs and choose loop/direct/explicit-stack/reject policies"
-    },
-    {
-      "name": "std_lowering_implementation_complete",
-      "statement": "Rows 38/39 map common Std APIs to concrete Rust shapes with ownership modes"
-    },
-    {
-      "name": "typeclass_specialization_complete",
-      "statement": "Row 40 keeps specialization-first typeclass handling and rejects unresolved dictionaries"
-    },
-    {
-      "name": "rust_generic_policy_final",
-      "statement": "the default Rust-facing generic policy is monomorphization-only; Rust generic emission is rejected with LRC009 until a verified trait-bound lane exists"
-    },
-    {
-      "name": "generated_typeclass_dictionaries_complete",
-      "statement": "generated monomorphic dictionary structs are implemented with tests and docs"
-    },
-    {
-      "name": "first_class_closure_objects_complete",
-      "statement": "returned/stored/composed monomorphic closure objects are implemented with tests and docs"
-    },
-    {
-      "name": "full_pure_do_notation_complete",
-      "statement": "Option/Except/State/Reader/ExceptT pure do lowering has implementation, tests, and docs"
-    },
-    {
-      "name": "controlled_io_boundary_complete",
-      "statement": "controlled IO is transcript-based and documented/tested"
-    },
-    {
-      "name": "complete_generated_subset_semantics",
-      "statement": "all target grammar heads have interpreter/test/doc owners"
-    },
-    {
-      "name": "preservation_skeleton_complete",
-      "statement": "preservation seams have proof-skeleton metadata with test/doc owners"
-    },
-    {
-      "name": "property_generators_complete",
-      "statement": "deterministic and optional fuzz generator families are complete"
-    },
-    {
-      "name": "coverage_dashboard_feature_complete",
-      "statement": "coverage dashboard includes all feature/test/doc/proof denominators"
-    },
-    {
-      "name": "ci_release_matrix_complete",
-      "statement": "linux/macos and default/ffi CI lanes are scripted and documented"
-    },
-    {
-      "name": "publishing_versioning_complete",
-      "statement": "all crates have versioning/publishing policy, changelog, docs, and dry-run commands"
-    },
-    {
-      "name": "remaining_completion_rows_41_63",
-      "statement": "all checklist rows 41-63 are complete"
-    }
+    { "name": "extractor_reads_elaborated_definitions", "statement": "rust_emit_exports collects @[rust_export] declarations and uses Lean constant bodies, not source-string matching" },
+    { "name": "surface_type_check", "statement": "extracted SurfaceFun bodies are type-checked before Rust emission" },
+    { "name": "clamp_refines_spec", "statement": "eval clampBody = clampSpec" },
+    { "name": "max_refines_spec", "statement": "eval maxBody = maxSpec" },
+    { "name": "nonzero_refines_spec", "statement": "eval nonzeroBody = nonzeroSpec" },
+    { "name": "add_refines_wrapping_spec", "statement": "eval addBody = u32 wrapping-add spec" },
+    { "name": "bounded_bump_refines_spec", "statement": "eval boundedBumpBody = let/arithmetic spec" },
+    { "name": "option_default_refines_spec", "statement": "eval optionDefaultBody = Option-match spec" },
+    { "name": "fixed_width_type_extraction", "statement": "rust_export extraction recognizes UInt32, UInt64, Int32, Int64, Unit, Option, Except, and simple closed enums; Nat-to-u32 lowering requires explicit rust_nat_wrapping_u32 opt-in" },
+    { "name": "match_lowering", "statement": "Bool, Option, and closed enum matches, including payload variant binders, lower from elaborated recursor/casesOn forms" },
+    { "name": "struct_enum_declarations", "statement": "SurfaceStruct and SurfaceEnum declarations are emitted before generated Rust functions" },
+    { "name": "expected_type_propagation", "statement": "nested Option and Except constructors are checked with the Rust-facing expected type" },
+    { "name": "generic_monomorphization", "statement": "rust_mono_export registers concrete type instantiations of generic Lean definitions and emits concrete Rust functions" },
+    { "name": "automatic_monomorphization", "statement": "generic calls discovered inside concrete exported declarations enqueue and emit concrete monomorphized Rust functions" },
+    { "name": "phase_1_recursion_policy", "statement": "the default direct Rust lane permits first-order generated call cycles; the surface evaluator bounds recursive calls with fuel" },
+    { "name": "parameterized_data_monomorphization", "statement": "index-free parameterized structures and enums lower to concrete Rust declarations after substituting concrete type arguments" },
+    { "name": "standard_container_shapes", "statement": "RType represents Char, String, List, Array, Prod, Sum, and unary function types with safe Rust type spellings" },
+    { "name": "standard_combinator_lowering", "statement": "List, Array, Option, and Except combinators lower to checked loop or match SurfaceExpr nodes" },
+    { "name": "structural_recursion_loop_lowering", "statement": "Nat.rec accumulator shapes and list folds lower to explicit safe Rust loops" },
+    { "name": "general_pattern_compiler", "statement": "SurfacePattern and SurfaceExpr.matchPattern represent a checked general constructor-pattern fragment for Bool, Option, Prod, and closed enums" },
+    { "name": "tail_recursion_loop_lowering", "statement": "recognized Nat accumulator tail recursion lowers to SurfaceExpr.tailRecNat and safe Rust while loops" },
+    { "name": "list_length_structural_lowering", "statement": "List.length lowers to SurfaceExpr.listLength and Rust Vec::len in the owned List representation" },
+    { "name": "dependent_shape_erasure", "statement": "rows 28/29 complete: dependent erasure classifies runtime/proof/index fields, erases Subtype carriers, checks Fin bounds and Vector lengths, permits equality casts only when erased runtime representations agree, admits Sigma-like runtime pairs, and rejects dependent branch shapes whose erased index changes runtime behavior" },
+    { "name": "dependent_erasure_policy", "statement": "Subtype erases to its carrier, Fin lowers to u32-shaped values, Vector lowers to Vec<T> with source-side length evidence, and proof-only structure fields are removed from safe Rust layouts when unused computationally" },
+    { "name": "proof_field_erasure", "statement": "proof-only constructor fields are skipped during runtime payload lowering and are absent from emitted Rust structs" },
+    { "name": "structural_recursion_lowering", "statement": "recognized List.map, List.foldl, and Nat.rec shapes lower to explicit safe Rust loop-shaped SurfaceExpr nodes" },
+    { "name": "exact_integer_modes", "statement": "@[rust_nat_exact] and @[rust_int_exact] lower Lean Nat/Int boundaries to exact num_bigint BigUint/BigInt Rust values" },
+    { "name": "captured_closure_conversion", "statement": "captured lambdas inside recognized structural combinators lower to loop bodies that close over ordinary Rust locals" },
+    { "name": "typeclass_dictionary_erasure", "statement": "resolved monomorphic dictionaries for BEq, Decidable, DecidableEq, Ord, LT, LE, HAdd, HSub, HMul, OfNat, Inhabited, ToString, Repr, Functor.Option, Functor.Except, Applicative.Option, Applicative.Except, Monad.Option, Monad.Except specialize into first-order SurfaceExpr nodes; unresolved dictionaries and runtime dictionary passing remain rejected" },
+    { "name": "closure_conversion_policy", "statement": "captured unary lambdas lower either to immediate closure-apply SurfaceExpr nodes or to explicit first-order environment structs; escaping or stored dynamic closures remain rejected" },
+    { "name": "extract_ir_feature_tags", "statement": "ExtractIR is an explicit pre-Surface stage carrying source spans, erased binders, recursor metadata, resolved dictionaries, feature tags, and next-feature diagnostics; only discharged SurfaceExpr nodes may reach Rust emission" },
+    { "name": "extract_ir_normalized_pipeline", "statement": "ExtractIR records origin names, source ranges, erased binder counts, recognized recursors, resolved dictionaries, features, diagnostics, and next-feature routing before checked SurfaceExpr emission" },
+    { "name": "runtime_denotation_model", "statement": "RType.Denote uses precise Lean values for primitives/containers/functions and RuntimeValue subtype witnesses for generated structs, enums, and named recursive payloads; placeholder Unit/Nat aggregate semantics are no longer used" },
+    { "name": "expanded_diagnostic_templates", "statement": "user-facing diagnostics use stable LRC codes, source declarations, source-span metadata when available, construct kind, next feature, and docs: LRC001, LRC002, LRC003, LRC004, LRC005, LRC006, LRC007, LRC008, LRC009, LRC010, LRC011, LRC012, LRC013, LRC014" },
+    { "name": "source_span_diagnostics", "statement": "diagnostic instances carry optional SourceRange values and templates declare when a range is required" },
+    { "name": "ci_end_to_end_matrix", "statement": "scripts/check-ci-e2e.sh and the GitHub Actions matrix run Lean generation, snapshot checks, Rust workspace tests, fmt, clippy, FFI, and artifact consistency gates" },
+    { "name": "transitive_helper_extraction", "statement": "first-order helper definitions reached from exported bodies are enqueued and emitted as auto-helper-export functions" },
+    { "name": "proof_erased_binders", "statement": "conservative proof-shaped binders are erased from Rust signatures when their values are not used computationally" },
+    { "name": "limited_higher_order_function_pointer", "statement": "unary function-typed arguments lower to Rust fn-pointer arguments and SurfaceExpr.callValue nodes" },
+    { "name": "closure_converted_environments", "statement": "captured unary lambdas lower either to immediate closure-apply SurfaceExpr nodes or to explicit first-order environment structs; escaping or stored dynamic closures remain rejected" },
+    { "name": "finite_defunctionalization", "statement": "known finite higher-order function families lower to monomorphic enum cases plus first-order apply functions; captured values become enum payloads or explicit closure environment fields" },
+    { "name": "recursive_box_owned_data_layout", "statement": "recursive index-free user inductives lower through owned Box<T> payload fields in the safe Rust lane; arena/Rc layouts and mutually recursive SCCs remain future work" },
+    { "name": "target_validation_v2_dashboard", "statement": "target-validation v2 records box/deref fingerprints, completed rows 21-40 numeric/generic/dependent-erasure/recursive-layout/ownership/pattern-matrix/recursion-analysis/Std/typeclass coverage, first-20 ExtractIR/runtime-denotation/diagnostic/source-span/CI coverage, and remaining rows 41-63 dictionary/closure/pure-do/IO/semantics/preservation/generator/coverage/CI/publishing coverage; rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface" },
+    { "name": "std_library_lowering_table", "statement": "Sprint 7–8 Std lowering table covers 16 monomorphic List/Array/Option/Except/String combinator families using owned safe Rust loops and matches" },
+    { "name": "typeclass_specialization_policy", "statement": "resolved monomorphic dictionaries for BEq, Decidable, DecidableEq, Ord, LT, LE, HAdd, HSub, HMul, OfNat, Inhabited, ToString, Repr, Functor.Option, Functor.Except, Applicative.Option, Applicative.Except, Monad.Option, Monad.Except specialize into first-order SurfaceExpr nodes; unresolved dictionaries and runtime dictionary passing remain rejected" },
+    { "name": "pure_monadic_do_lowering", "statement": "Sprint 9 lowers pure do-notation for Option, Except, StateM, ReaderT into matches, explicit state tuples, or explicit environment arguments; IO remains outside the safe direct lane" },
+    { "name": "property_fuzz_corpus", "statement": "property/fuzz corpus requires deterministic CI seeds before completion; families: numeric-edge-cases=12, container-roundtrip=10, closure-and-dictionary=8, ffi-handle-lifecycle=9, generated-subset-target-grammar=14" },
+    { "name": "quantitative_coverage_dashboard", "statement": "coverage dashboard records explicit denominators: checklist_rows_1_20=100%; checklist_rows_21_40=100%; first20_incomplete_rows=100%; checklist_rows_41_56=100%; checklist_rows_41_63=100%; remaining_incomplete_rows=100%; generated_subset_semantics_heads=100%; preservation_obligations=100%; lean_feature_families=100%; rust_target_grammar_heads=100%; property_generators=100%; rust_workspace_crates=100%; final_docs=100%; property_seed_families=100%; release_acceptance_gates=100%" },
+    { "name": "user_facing_diagnostics", "statement": "user-facing diagnostics use stable LRC codes, source declarations, source-span metadata when available, construct kind, next feature, and docs: LRC001, LRC002, LRC003, LRC004, LRC005, LRC006, LRC007, LRC008, LRC009, LRC010, LRC011, LRC012, LRC013, LRC014" },
+    { "name": "rust_workspace_crate_split", "statement": "Rust workspace split: lean-rust-core-generated@rust, lean-rust-core-runtime@crates/runtime, lean-rust-core-abi@crates/abi, lean-rust-core-validate@crates/validate, lean-rust-core-headers@crates/headers" },
+    { "name": "release_acceptance_matrix", "statement": "release acceptance matrix contains 12 required gates covering Lean, generated artifacts, Rust workspace, FFI, diagnostics, docs, and headers" },
+    { "name": "toolchain_pins", "statement": "Lean and Rust toolchains are pinned exactly and checked before CI/release validation" },
+    { "name": "release_fallback_ban", "statement": "checked-in generated.rs fallback is disabled for CI and release builds" },
+    { "name": "compatibility_reporting", "statement": "unsupported tagged exports are skipped and recorded in a structured compatibility report" },
+    { "name": "payload_enum_branch_binders", "statement": "payload enum pattern matching stores checked branch binders and emits Rust variant patterns" },
+    { "name": "first_order_function_calls", "statement": "calls to other tagged first-order exports lower to checked SurfaceExpr.call nodes and Rust function calls" },
+    { "name": "surface_expr_evaluator", "statement": "evalSurfaceFun interprets the checked SurfaceExpr subset used by the direct Lean-to-Rust emitter" },
+    { "name": "extracted_surface_artifact", "statement": "rust_emit_exports_with_report_and_surface emits the same checked SurfaceFun list that generated Rust uses, and the differential suite consumes that artifact instead of hand-mirrored fixtures" },
+    { "name": "expanded_surface_differential", "statement": "Lean-generated differential tests compute extracted struct, enum, Result, call, and monomorphization expectations with evalSurfaceFun" },
+    { "name": "rust_identifier_hygiene", "statement": "validateSurfaceModuleHygiene rejects generated modules whose sanitized Rust identifiers collide" },
+    { "name": "syn_parser_backed_validation", "statement": "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset" },
+    { "name": "json_artifact_parse_validation", "statement": "rust/tests/validation_report.rs parses generated JSON artifacts and checks report counts against parsed generated Rust" },
+    { "name": "rust_to_target_ir_validation", "statement": "rust/tests/semantic_validation.rs parses generated.rs, reconstructs target fingerprints, and compares them to LeanRustCore.TargetValidation.targetValidationSnapshot" },
+    { "name": "target_validation_snapshot", "statement": "LeanRustCore.TargetValidation.targetValidationSnapshot is generated from the extractor-owned SurfaceFun artifact" },
+    { "name": "ffi_boundary_exporter", "statement": "LeanRustCore.BoundaryExport.generatedBoundaryRust emits optional feature-gated raw ABI wrappers for primitive and Result<u32,u32> exports" },
+    { "name": "ffi_feature_isolation", "statement": "raw ABI wrappers are isolated under the Rust ffi feature and are not emitted into rust/src/generated.rs" },
+    { "name": "rust_adapter_owned_rejected", "statement": "owned Rust values cannot cross the raw FFI boundary" },
+    { "name": "result_u32_i32_lowering", "statement": "Result<u32,i32> lowers to status plus two out parameters" },
+    { "name": "next20_base_type_universe", "statement": "Rows 21-22 keep every admitted runtime type and monomorphic struct/enum layout covered by parser, semantic, and report tests" },
+    { "name": "parameterized_data_monomorphization", "statement": "rows 23/25 complete: parameterized Lean data is accepted through deterministic concrete monomorphization; Rust generic emission is explicitly disabled in the safe default lane until a verified generic/bounds lane is added" },
+    { "name": "numeric_semantics_complete", "statement": "numeric completion defines exact, wrapping, checked, saturating, and preconditioned modes for Nat/Int/fixed-width operations; division/modulus-by-zero and cast overflow require explicit checked/preconditioned semantics" },
+    { "name": "rust_generic_policy_final", "statement": "row 25 complete: default generated Rust emits monomorphic concrete declarations only; generic Rust signatures are rejected with LRC009 until a verified generic lane exists" },
+    { "name": "dependent_erasure_complete", "statement": "rows 28/29 complete: dependent erasure classifies runtime/proof/index fields, erases Subtype carriers, checks Fin bounds and Vector lengths, permits equality casts only when erased runtime representations agree, admits Sigma-like runtime pairs, and rejects dependent branch shapes whose erased index changes runtime behavior" },
+    { "name": "recursive_discovery_complete", "statement": "recursive data completion models direct/nested/mutual SCC edges, keeps Box<T> as default, and adds explicit safe Rc<T> and arena-index layout modes with tests/docs before either mode may be selected" },
+    { "name": "ownership_policy_complete", "statement": "ownership completion keeps owned values as default, allows audited shared borrows for read-only helpers, records clone/move/box decisions, and rejects ad-hoc lifetime/reference emission outside the policy table" },
+    { "name": "pattern_matrix_complete", "statement": "pattern-matrix completion covers nested constructors, tuple/product, List nil/cons, Nat zero/succ, as-pattern metadata, proof-pattern erasure, and rejects guarded or non-erasable dependent runtime patterns" },
+    { "name": "recursion_analysis_complete", "statement": "recursion completion classifies nonrecursive/direct-tail/direct-structural/mutual/explicit-stack SCCs, records decreasing arguments, lowers tail calls to loops, and rejects partial/non-structural recursion with stable diagnostics" },
+    { "name": "std_lowering_implementation_complete", "statement": "Std completion implements 24 List/Array/Option/Except/String lowerings with explicit owned/borrowed ownership shapes, tests, and docs" },
+    { "name": "typeclass_specialization_complete", "statement": "row 40 complete: resolved monomorphic dictionaries specialize to first-order SurfaceExpr lowerings; unresolved dictionaries remain rejected with stable diagnostics" },
+    { "name": "generated_typeclass_dictionaries_complete", "statement": "generated monomorphic dictionary structs: BeqDictU32, OrdDictU32, AddDictU32, DefaultDictU32, ToStringDictU32; no trait objects or dynamic dispatch in the default lane" },
+    { "name": "first_class_closure_objects_complete", "statement": "first-class non-mutating monomorphic closure objects are returnable, storable, composable, and test/doc gated: U32ClosureObject, StoredClosureU32" },
+    { "name": "full_pure_do_notation_complete", "statement": "pure do-notation lowers pure/bind/map/seq/lift for Option, Except, StateM, ReaderT, and ExceptT(StateM) into safe first-order Rust control flow" },
+    { "name": "controlled_io_boundary_complete", "statement": "controlled IO is explicit and transcript-based; the default lane remains pure, and arbitrary IO/EIO/Task/external effects are rejected" },
+    { "name": "complete_generated_subset_semantics", "statement": "complete generated-subset target grammar has interpreter/test/doc owners for literals, variables, let/if/match/loops, calls, structs/enums, boxes, closures, dictionaries, and pure effects" },
+    { "name": "preservation_skeleton_complete", "statement": "preservation skeleton covers extraction, erasure, Surface typing/evaluation, target fingerprints, Rust AST validation, and target semantics with test/doc owners" },
+    { "name": "property_generators_complete", "statement": "deterministic generators with optional fuzz expansion cover: base-scalars, containers, recursive-data, closures-and-dictionaries, target-grammar, ffi-handles" },
+    { "name": "coverage_dashboard_feature_complete", "statement": "coverage dashboard is feature-complete across Lean features, Rust grammar, Std lowerings, diagnostics, property generators, proof obligations, and workspace crates" },
+    { "name": "ci_release_matrix_complete", "statement": "CI release matrix covers linux/macos and default/ffi feature combinations with Lean build, workspace tests, fmt, clippy, and docs gates" },
+    { "name": "publishing_versioning_complete", "statement": "crate publishing/versioning policy covers all five workspace crates with semver, changelog, readme, docs, dependency audit, and cargo publish dry-run commands" },
+    { "name": "remaining_completion_rows_41_63", "statement": "checklist rows 41-63 are complete: generated dictionaries, first-class closures, pure do, IO boundary, complete semantics, preservation skeleton, property generators, coverage completion, CI matrix, crate publishing, and crate split" }
   ]
 }

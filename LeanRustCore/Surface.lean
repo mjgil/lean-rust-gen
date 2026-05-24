@@ -87,11 +87,15 @@ inductive SurfaceExpr where
   | listFoldr : String → String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | listAny : String → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | listAll : String → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | listAppend : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | listFind : String → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | arrayMap : String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | arrayFoldl : String → String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | arrayPush : RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | optionMap : String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | optionBind : String → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | resultMapOk : String → RType → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
+  | resultMapErr : String → RType → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | resultBind : String → RType → RType → RType → SurfaceExpr → SurfaceExpr → SurfaceExpr
   | subtypeErase : RType → SurfaceExpr → SurfaceExpr
   | subtypeVal : RType → SurfaceExpr → SurfaceExpr
@@ -516,6 +520,14 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       discard <| typeOfExpected ctx target (some (.list elemTy))
       discard <| typeOfExpected ((binder, elemTy) :: ctx) predicate (some .bool)
       applyExpected expected .bool
+  | .listAppend elemTy left right => do
+      discard <| typeOfExpected ctx left (some (.list elemTy))
+      discard <| typeOfExpected ctx right (some (.list elemTy))
+      applyExpected expected (.list elemTy)
+  | .listFind binder elemTy target predicate => do
+      discard <| typeOfExpected ctx target (some (.list elemTy))
+      discard <| typeOfExpected ((binder, elemTy) :: ctx) predicate (some .bool)
+      applyExpected expected (.option elemTy)
   | .arrayMap binder elemTy outTy target body => do
       discard <| typeOfExpected ctx target (some (.array elemTy))
       discard <| typeOfExpected ((binder, elemTy) :: ctx) body (some outTy)
@@ -525,6 +537,10 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       discard <| typeOfExpected ctx target (some (.array elemTy))
       discard <| typeOfExpected ((elemName, elemTy) :: (accName, accTy) :: ctx) body (some accTy)
       applyExpected expected accTy
+  | .arrayPush elemTy target value => do
+      discard <| typeOfExpected ctx target (some (.array elemTy))
+      discard <| typeOfExpected ctx value (some elemTy)
+      applyExpected expected (.array elemTy)
   | .optionMap binder innerTy outTy target body => do
       discard <| typeOfExpected ctx target (some (.option innerTy))
       discard <| typeOfExpected ((binder, innerTy) :: ctx) body (some outTy)
@@ -537,6 +553,10 @@ partial def typeOfExpected (ctx : List RArg) (expr : SurfaceExpr) (expected : Op
       discard <| typeOfExpected ctx target (some (.result okTy errTy))
       discard <| typeOfExpected ((binder, okTy) :: ctx) body (some outTy)
       applyExpected expected (.result outTy errTy)
+  | .resultMapErr binder okTy errTy outErr target body => do
+      discard <| typeOfExpected ctx target (some (.result okTy errTy))
+      discard <| typeOfExpected ((binder, errTy) :: ctx) body (some outErr)
+      applyExpected expected (.result okTy outErr)
   | .resultBind binder errTy okTy outTy target body => do
       discard <| typeOfExpected ctx target (some (.result okTy errTy))
       discard <| typeOfExpected ((binder, okTy) :: ctx) body (some (.result outTy errTy))
@@ -1405,6 +1425,24 @@ mutual
                 pure ()
             pure (.bool out)
         | _ => evalError .unsupportedType "List.all target is not a List value"
+    | .listAppend elemTy left right => do
+        match (← evalSurfaceExprWithFuel fuel functions env left), (← evalSurfaceExprWithFuel fuel functions env right) with
+        | .list leftValues, .list rightValues => do
+            for value in leftValues do
+              assertValueType value elemTy
+            for value in rightValues do
+              assertValueType value elemTy
+            pure (.list (leftValues ++ rightValues))
+        | _, _ => evalError .unsupportedType "List.append operands are not List values"
+    | .listFind binder elemTy target predicate => do
+        match (← evalSurfaceExprWithFuel fuel functions env target) with
+        | .list values => do
+            for value in values do
+              assertValueType value elemTy
+              if (← checkedBool (← evalSurfaceExprWithFuel fuel functions ((binder, value) :: env) predicate)) then
+                return .optionSome value
+            pure (.optionNone elemTy)
+        | _ => evalError .unsupportedType "List.find? target is not a List value"
     | .arrayMap binder elemTy outTy target body => do
         match (← evalSurfaceExprWithFuel fuel functions env target) with
         | .array values => do
@@ -1429,6 +1467,15 @@ mutual
               acc := next
             pure acc
         | _ => evalError .unsupportedType "Array.foldl target is not an Array value"
+    | .arrayPush elemTy target value => do
+        let pushed ← evalSurfaceExprWithFuel fuel functions env value
+        assertValueType pushed elemTy
+        match (← evalSurfaceExprWithFuel fuel functions env target) with
+        | .array values => do
+            for entry in values do
+              assertValueType entry elemTy
+            pure (.array (values ++ [pushed]))
+        | _ => evalError .unsupportedType "Array.push target is not an Array value"
     | .optionMap binder innerTy outTy target body => do
         match (← evalSurfaceExprWithFuel fuel functions env target) with
         | .optionNone _ => pure (.optionNone outTy)
@@ -1456,6 +1503,17 @@ mutual
             assertValueType mapped outTy
             pure (.resultOk mapped)
         | _ => evalError .unsupportedType "Except.map target is not an Except/Result value"
+    | .resultMapErr binder okTy errTy outErr target body => do
+        match (← evalSurfaceExprWithFuel fuel functions env target) with
+        | .resultErr value => do
+            assertValueType value errTy
+            let mapped ← evalSurfaceExprWithFuel fuel functions ((binder, value) :: env) body
+            assertValueType mapped outErr
+            pure (.resultErr mapped)
+        | .resultOk value => do
+            assertValueType value okTy
+            pure (.resultOk value)
+        | _ => evalError .unsupportedType "Except.mapError target is not an Except/Result value"
     | .resultBind binder errTy okTy outTy target body => do
         match (← evalSurfaceExprWithFuel fuel functions env target) with
         | .resultErr value => do

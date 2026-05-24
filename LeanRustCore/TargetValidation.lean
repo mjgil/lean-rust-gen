@@ -74,7 +74,7 @@ where
     | [] => none
     | (candidate, payload) :: rest => if candidate == name then some payload else lookupVariantPayloadLocal rest name
 
-private def fingerprintDefaultValue : RType → String
+private partial def fingerprintDefaultValue : RType → String
   | .unit => "default(())"
   | .bool => "default(bool)"
   | .ordering => "default(Ordering)"
@@ -114,13 +114,13 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
   | .litUnit => "unit"
   | .litBool true => "bool(true)"
   | .litBool false => "bool(false)"
-  | .litNat n => "lit(" ++ Nat.toString n ++ ")"
+  | .litNat n => "lit(" ++ toString n ++ ")"
   | .litInt n => "lit(" ++ toString n ++ ")"
-  | .litU32 n => "lit(" ++ Nat.toString n ++ ")"
-  | .litU64 n => "lit(" ++ Nat.toString n ++ ")"
+  | .litU32 n => "lit(" ++ toString n ++ ")"
+  | .litU64 n => "lit(" ++ toString n ++ ")"
   | .litI32 n => "lit(" ++ toString n ++ ")"
   | .litI64 n => "lit(" ++ toString n ++ ")"
-  | .litChar c => "char(" ++ Nat.toString c.toNat ++ ")"
+  | .litChar c => "char(" ++ toString c.toNat ++ ")"
   | .litString s => "string(" ++ escape s ++ ")"
   | .letIn name value body =>
       "let(" ++ rustValueIdent "tmp" name ++ "," ++ fingerprintSurfaceExpr value ++ "," ++ fingerprintSurfaceExpr body ++ ")"
@@ -198,27 +198,35 @@ partial def fingerprintSurfaceExpr : SurfaceExpr → String
       "list_any(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr predicate ++ ")"
   | .listAll binder _ target predicate =>
       "list_all(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr predicate ++ ")"
+  | .listAppend _ left right =>
+      "list_append(" ++ fingerprintSurfaceExpr left ++ "," ++ fingerprintSurfaceExpr right ++ ")"
+  | .listFind binder _ target predicate =>
+      "list_find(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr predicate ++ ")"
   | .arrayMap binder _ _ target body =>
       "list_map(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
   | .arrayFoldl accName elemName _ _ init target body =>
       "list_foldl(" ++ rustValueIdent "acc" accName ++ "," ++ rustValueIdent "item" elemName ++ "," ++
       fingerprintSurfaceExpr init ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
+  | .arrayPush _ target value =>
+      "array_push(" ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr value ++ ")"
   | .optionMap binder _ _ target body =>
       "match_option(" ++ fingerprintSurfaceExpr target ++ ",none=>none|some(" ++ rustValueIdent "value" binder ++ ")=>some(" ++ fingerprintSurfaceExpr body ++ "))"
   | .optionBind binder _ _ target body =>
       "match_option(" ++ fingerprintSurfaceExpr target ++ ",none=>none|some(" ++ rustValueIdent "value" binder ++ ")=>" ++ fingerprintSurfaceExpr body ++ ")"
   | .resultMapOk binder _ _ _ target body =>
       "match_enum(" ++ fingerprintSurfaceExpr target ++ ",Err(__lrc_err)=>err(var(__lrc_err))|Ok(" ++ rustValueIdent "value" binder ++ ")=>ok(" ++ fingerprintSurfaceExpr body ++ "))"
+  | .resultMapErr binder _ _ _ target body =>
+      "result_map_error(" ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
   | .resultBind binder _ _ _ target body =>
       "match_enum(" ++ fingerprintSurfaceExpr target ++ ",Err(__lrc_err)=>err(var(__lrc_err))|Ok(" ++ rustValueIdent "value" binder ++ ")=>" ++ fingerprintSurfaceExpr body ++ ")"
   | .subtypeErase _ value => fingerprintSurfaceExpr value
   | .subtypeVal _ value => fingerprintSurfaceExpr value
   | .finCheck bound value =>
-      "if(lt(" ++ fingerprintSurfaceExpr value ++ ",lit(" ++ Nat.toString bound ++ ")),some(" ++ fingerprintSurfaceExpr value ++ "),none)"
+      "if(lt(" ++ fingerprintSurfaceExpr value ++ ",lit(" ++ toString bound ++ ")),some(" ++ fingerprintSurfaceExpr value ++ "),none)"
   | .finMk _ value => fingerprintSurfaceExpr value
   | .finVal _ value => fingerprintSurfaceExpr value
   | .vectorCheck elemTy bound value =>
-      "vector_check(" ++ rustType elemTy ++ "," ++ Nat.toString bound ++ "," ++ fingerprintSurfaceExpr value ++ ")"
+      "vector_check(" ++ rustType elemTy ++ "," ++ toString bound ++ "," ++ fingerprintSurfaceExpr value ++ ")"
   | .vectorErase _ _ value => fingerprintSurfaceExpr value
   | .vectorMap binder _ _ _ target body =>
       "list_map(" ++ rustValueIdent "value" binder ++ "," ++ fingerprintSurfaceExpr target ++ "," ++ fingerprintSurfaceExpr body ++ ")"
@@ -261,8 +269,8 @@ def targetValidationSnapshot : String :=
   joinWith "\n" (
     [ "FORMAT\t" ++ targetValidationFormat,
       "ARCH\tdirect-lean-emits-rust",
-      "TYPE_COUNT\t" ++ Nat.toString typeLines.length,
-      "FN_COUNT\t" ++ Nat.toString funLines.length ] ++
+      "TYPE_COUNT\t" ++ toString typeLines.length,
+      "FN_COUNT\t" ++ toString funLines.length ] ++
     typeLines ++ funLines) ++ "\n"
 
 end LeanRustCore.TargetValidation

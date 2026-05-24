@@ -13,6 +13,9 @@ code, validation tooling, and header generation.
 
 A crate row is complete only when the crate is a Cargo workspace member, has its
 own tests, has crate-level documentation, and is included in the release matrix.
+The current workspace proof is `cargo metadata --no-deps --format-version 1`,
+which lists all five crates as workspace members, and `./scripts/check.sh`,
+which drives `cargo test --workspace` across the same set.
 
 ## Publishing metadata
 

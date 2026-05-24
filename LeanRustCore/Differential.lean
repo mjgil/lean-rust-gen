@@ -21,10 +21,10 @@ structure RustAssertion where
   deriving Repr, BEq
 
 private def rustU32 (n : Nat) : String :=
-  Nat.toString (u32Wrap n) ++ "u32"
+  toString (u32Wrap n) ++ "u32"
 
 private def rustU64 (n : Nat) : String :=
-  Nat.toString (u64Wrap n) ++ "u64"
+  toString (u64Wrap n) ++ "u64"
 
 private def rustI32 (n : Int) : String :=
   toString n ++ "i32"
@@ -41,13 +41,13 @@ private def rustOrdering : Ordering → String
   | Ordering.gt => "Ordering::Gt"
 
 private def rustNatExact (n : Nat) : String :=
-  "num_bigint::BigUint::parse_bytes(b\"" ++ Nat.toString n ++ "\", 10).unwrap()"
+  "num_bigint::BigUint::parse_bytes(b\"" ++ toString n ++ "\", 10).unwrap()"
 
 private def rustIntExact (n : Int) : String :=
   "num_bigint::BigInt::parse_bytes(b\"" ++ toString n ++ "\", 10).unwrap()"
 
 private def rustChar (c : Char) : String :=
-  "char::from_u32(" ++ Nat.toString c.toNat ++ ").unwrap()"
+  "char::from_u32(" ++ toString c.toNat ++ ").unwrap()"
 
 private def rustStringLiteral (s : String) : String :=
   "String::from(\"" ++ s ++ "\")"
@@ -75,6 +75,7 @@ private partial def rustSurfaceValue : SurfaceValue → String
   | .optionSome value => "Some(" ++ rustSurfaceValue value ++ ")"
   | .resultOk value => "Ok(" ++ rustSurfaceValue value ++ ")"
   | .resultErr value => "Err(" ++ rustSurfaceValue value ++ ")"
+  | .boxed value => "Box::new(" ++ rustSurfaceValue value ++ ")"
   | .structVal name fields =>
       let rendered := fields.map (fun field => rustFieldIdent field.1 ++ ": " ++ rustSurfaceValue field.2)
       rustTypeIdent name ++ " { " ++ joinWith ", " rendered ++ " }"

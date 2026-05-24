@@ -2,79 +2,102 @@
 // The checked-in rust/src/generated.rs is a fallback snapshot; scripts/gen.sh regenerates it.
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Point { pub x: u32, pub y: u32 }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BoundedProof { pub value: u32 }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BoxedU32 { pub value: u32 }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct AddDeltaU32Env { pub delta: u32 }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Choice { First, Second }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TaggedU32 { Missing, Present(u32) }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Step { Stay, Jump(u32) }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum U32FnCase { Inc, Double, Add(u32) }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum BinaryTreeU32 { Leaf, Node(Box<BinaryTreeU32>, u32, Box<BinaryTreeU32>) }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ExprU32 { Lit(u32), Add(Box<ExprU32>, Box<ExprU32>) }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Ordering { Lt, Eq, Gt }
-
-pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
-    if x < lo { lo } else { if hi < x { hi } else { x } }
+pub struct BoundedProof {
+    pub value: u32,
 }
 
-pub fn max_u32(a: u32, b: u32) -> u32 {
-    if a < b { b } else { a }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AddDeltaU32Env {
+    pub delta: u32,
 }
 
-pub fn is_nonzero_u32(x: u32) -> bool {
-    if x == 0 { false } else { true }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BoxedU32 {
+    pub value: u32,
 }
 
-pub fn add_u32(a: u32, b: u32) -> u32 {
-    (a).wrapping_add(b)
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Point {
+    pub x: u32,
+    pub y: u32,
 }
 
-pub fn mul_u32(a: u32, b: u32) -> u32 {
-    (a).wrapping_mul(b)
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ExprU32 {
+    Lit(u32),
+    Add(Box<ExprU32>, Box<ExprU32>),
 }
 
-pub fn bounded_bump_u32(x: u32) -> u32 {
-    { let y = (x).wrapping_add(1); if 10 < y { 10 } else { y } }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Choice {
+    First,
+    Second,
 }
 
-pub fn echo_u32(x: u32) -> u32 {
-    x
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Ordering {
+    Lt,
+    Eq,
+    Gt,
 }
 
-pub fn echo_u64(x: u64) -> u64 {
-    x
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum U32FnCase {
+    Inc,
+    Double,
+    Add(u32),
 }
 
-pub fn echo_i32(x: i32) -> i32 {
-    x
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TaggedU32 {
+    Missing,
+    Present(u32),
 }
 
-pub fn echo_i64(x: i64) -> i64 {
-    x
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BinaryTreeU32 {
+    Leaf,
+    Node(Box<BinaryTreeU32>, u32, Box<BinaryTreeU32>),
 }
 
-pub fn echo_char(x: char) -> char {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Step {
+    Stay,
+    Jump(u32),
+}
+
+pub fn inhabited_default_u32(_x: ()) -> u32 {
+    0
+}
+
+pub fn some_u32(x: u32) -> Option<u32> {
+    Some(x)
+}
+
+pub fn exact_int_mul(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt {
+    (&(a)) * (&(b))
+}
+
+pub fn result_ok_u32(x: u32) -> Result<u32, u32> {
+    Ok(x)
+}
+
+pub fn general_step_match_u32(s: Step, fallback: u32) -> u32 {
+    match s {
+        Step::Stay => fallback,
+        Step::Jump(amount) => (amount).wrapping_add(1),
+    }
+}
+
+pub fn list_append_u32(xs: Vec<u32>, ys: Vec<u32>) -> Vec<u32> {
+    {
+        let mut __lrc_vec = xs;
+        __lrc_vec.extend(ys);
+        __lrc_vec
+    }
+}
+
+pub fn option_identity_u32(x: Option<u32>) -> Option<u32> {
     x
 }
 
@@ -82,168 +105,130 @@ pub fn echo_string(x: String) -> String {
     x
 }
 
-pub fn echo_list_u32(xs: Vec<u32>) -> Vec<u32> {
-    xs
-}
-
-pub fn echo_array_u32(xs: Vec<u32>) -> Vec<u32> {
-    xs
-}
-
-pub fn list_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
-    { let mut __lrc_out = Vec::new(); for x in xs { __lrc_out.push((x).wrapping_add(1)); } __lrc_out }
-}
-
-pub fn list_fold_sum_u32(xs: Vec<u32>) -> u32 {
-    { let mut acc: u32 = 0; for x in xs { acc = (acc).wrapping_add(x); } acc }
-}
-
-pub fn list_map_add_capture_u32(delta: u32, xs: Vec<u32>) -> Vec<u32> {
-    { let mut __lrc_out = Vec::new(); for x in xs { __lrc_out.push((x).wrapping_add(delta)); } __lrc_out }
-}
-
-pub fn list_filter_nonzero_u32(xs: Vec<u32>) -> Vec<u32> {
-    { let mut __lrc_out = Vec::new(); for x in xs { if 0 < x { __lrc_out.push(x); } } __lrc_out }
-}
-
-pub fn list_foldr_sum_u32(xs: Vec<u32>) -> u32 {
-    { let mut acc: u32 = 0; for x in (xs).into_iter().rev() { acc = (x).wrapping_add(acc); } acc }
-}
-
-pub fn list_any_nonzero_u32(xs: Vec<u32>) -> bool {
-    { let mut __lrc_any = false; for x in xs { if 0 < x { __lrc_any = true; break; } } __lrc_any }
-}
-
-pub fn list_all_nonzero_u32(xs: Vec<u32>) -> bool {
-    { let mut __lrc_all = true; for x in xs { if !(0 < x) { __lrc_all = false; break; } } __lrc_all }
-}
-
-pub fn array_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
-    { let mut __lrc_out = Vec::new(); for x in xs { __lrc_out.push((x).wrapping_add(1)); } __lrc_out }
-}
-
-pub fn array_fold_sum_u32(xs: Vec<u32>) -> u32 {
-    { let mut acc: u32 = 0; for x in xs { acc = (acc).wrapping_add(x); } acc }
-}
-
-pub fn option_map_inc_u32(x: Option<u32>) -> Option<u32> {
-    match x { None => None::<u32>, Some(y) => Some((y).wrapping_add(1)) }
-}
-
-pub fn option_bind_inc_u32(x: Option<u32>) -> Option<u32> {
-    match x { None => None::<u32>, Some(y) => Some((y).wrapping_add(1)) }
-}
-
-pub fn result_bind_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
-    match x { Err(__lrc_err) => Err::<_, u32>(__lrc_err), Ok(y) => Ok((y).wrapping_add(1)) }
-}
-
-pub fn nat_sum_to_u32(n: u32) -> u32 {
-    { let mut acc: u32 = 0; for k in 0..(n) { acc = (acc).wrapping_add(k); } acc }
-}
-
-pub fn subtype_val_u32(x: u32) -> u32 {
+pub fn echo_char(x: char) -> char {
     x
 }
 
-pub fn subtype_inc_u32(x: u32) -> u32 {
-    x.wrapping_add(1)
+pub fn exact_nat_add(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint {
+    (&(a)) + (&(b))
 }
 
-pub fn fin_val10_u32(i: u32) -> u32 {
-    i
+pub fn expr_lit_u32(value: u32) -> ExprU32 {
+    ExprU32::Lit(value)
+}
+
+pub fn tagged_present_u32(x: u32) -> TaggedU32 {
+    TaggedU32::Present(x)
+}
+
+pub fn unsupported_higher_order_u32(f: fn(u32) -> u32, x: u32) -> u32 {
+    f(x)
+}
+
+pub fn is_nonzero_u32(x: u32) -> bool {
+    if x == 0 {
+        false
+    } else {
+        true
+    }
+}
+
+pub fn subtype_inc_u32(x: u32) -> u32 {
+    (x).wrapping_add(1)
+}
+
+pub fn step_amount_plus_one_or(s: Step, fallback: u32) -> u32 {
+    match s {
+        Step::Stay => fallback,
+        Step::Jump(amount) => (amount).wrapping_add(1),
+    }
 }
 
 pub fn fin_checked10_u32(x: u32) -> Option<u32> {
-    if x < 10 { Some(x) } else { None }
-}
-
-pub fn fin_succ_checked10_u32(i: u32) -> Option<u32> {
-    {
-        let j = i.wrapping_add(1);
-        if j < 10 { Some(j) } else { None }
+    if x < 10 {
+        Some(x)
+    } else {
+        None
     }
 }
 
-pub fn vector_echo3_u32(xs: Vec<u32>) -> Vec<u32> {
-    xs
+pub fn shift_point_x(p: Point, dx: u32) -> Point {
+    Point {
+        x: ((p).x).wrapping_add(dx),
+        y: (p).y,
+    }
 }
 
-pub fn vector_map_inc3_u32(xs: Vec<u32>) -> Vec<u32> {
+pub fn array_fold_sum_u32(xs: Vec<u32>) -> u32 {
     {
-        let mut __lrc_out = Vec::new();
+        let mut acc: u32 = 0;
         for x in xs {
-            __lrc_out.push(x.wrapping_add(1));
+            acc = (acc).wrapping_add(x);
         }
-        __lrc_out
+        acc
     }
 }
 
-pub fn general_bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
-    match flag { true => (when_true).wrapping_add(1), false => (when_false).wrapping_add(1) }
+pub fn bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
+    match flag {
+        true => when_true,
+        false => when_false,
+    }
 }
 
-pub fn general_option_match_u32(x: Option<u32>, fallback: u32) -> u32 {
-    match x { None => fallback, Some(value) => (value).wrapping_add(1) }
-}
-
-pub fn general_step_match_u32(s: Step, fallback: u32) -> u32 {
-    match s { Step::Stay => fallback, Step::Jump(amount) => (amount).wrapping_add(1) }
-}
-
-pub fn pair_sum_match_u32(a: u32, b: u32) -> u32 {
-    match (a, b) { (x, y) => (x).wrapping_add(y) }
-}
-
-pub fn list_length_u32(xs: Vec<u32>) -> u32 {
-    (xs).len() as u32
-}
-
-pub fn tail_sum_down_u32(n: u32) -> u32 {
-    { let mut k = n; let mut acc: u32 = 0; while k != 0 { acc = (acc).wrapping_add(k); k = (k).wrapping_sub(1); } acc }
+pub fn tree_node_u32(left: BinaryTreeU32, value: u32, right: BinaryTreeU32) -> BinaryTreeU32 {
+    BinaryTreeU32::Node(Box::new(left), value, Box::new(right))
 }
 
 pub fn decidable_eq_u32(a: u32, b: u32) -> bool {
     a == b
 }
 
-pub fn inhabited_default_u32(_x: ()) -> u32 {
-    0
+pub fn echo_list_u32(xs: Vec<u32>) -> Vec<u32> {
+    xs
 }
 
-pub fn to_string_u32(x: u32) -> String {
-    (x).to_string()
+pub fn tree_leaf_u32(_x: ()) -> BinaryTreeU32 {
+    BinaryTreeU32::Leaf
 }
 
-pub fn repr_u32(x: u32) -> String {
-    format!("{:?}", x)
-}
-
-pub fn ord_compare_u32(a: u32, b: u32) -> Ordering {
-    if a < b { Ordering::Lt } else if a == b { Ordering::Eq } else { Ordering::Gt }
-}
-
-pub fn option_do_inc_u32(x: Option<u32>) -> Option<u32> {
-    match x { None => None::<u32>, Some(v) => Some((v).wrapping_add(1)) }
-}
-
-pub fn closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
-    { let y = x; (y).wrapping_add(delta) }
-}
-
-pub fn closure_env_apply_add_delta_u32(delta: u32, x: u32) -> u32 {
-    { let env = AddDeltaU32Env { delta: delta }; (x).wrapping_add((env).delta) }
-}
-
-pub fn closure_env_map_add_delta_u32(delta: u32, xs: Vec<u32>) -> Vec<u32> {
-    {
-        let env = AddDeltaU32Env { delta: delta };
-        let mut out = Vec::new();
-        for x in xs {
-            out.push((x).wrapping_add((env).delta));
+pub fn clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
+    if x < lo {
+        lo
+    } else {
+        if x > hi {
+            hi
+        } else {
+            x
         }
-        out
     }
+}
+
+pub fn vector_map_inc3_u32(xs: Vec<u32>) -> Vec<u32> {
+    {
+        let mut __lrc_out = Vec::new();
+        for x in xs {
+            __lrc_out.push((x).wrapping_add(1));
+        }
+        __lrc_out
+    }
+}
+
+pub fn pair_sum_match_u32(a: u32, b: u32) -> u32 {
+    match (a, b) {
+        (x, y) => (x).wrapping_add(y),
+    }
+}
+
+pub fn result_map_err_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x {
+        Ok(err) => Ok::<u32, _>(err),
+        Err(err) => Err((err).wrapping_add(1)),
+    }
+}
+
+pub fn subtype_val_u32(x: u32) -> u32 {
+    x
 }
 
 pub fn defun_apply_u32(f: U32FnCase, x: u32) -> u32 {
@@ -254,56 +239,6 @@ pub fn defun_apply_u32(f: U32FnCase, x: u32) -> u32 {
     }
 }
 
-pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
-    defun_apply_u32(U32FnCase::Double, defun_apply_u32(U32FnCase::Inc, x))
-}
-
-pub fn defun_apply_add5_u32(x: u32) -> u32 {
-    defun_apply_u32(U32FnCase::Add(5), x)
-}
-
-pub fn defun_map_selected_u32(use_double: bool, xs: Vec<u32>) -> Vec<u32> {
-    let mut out = Vec::new();
-    for x in xs {
-        out.push(if use_double {
-            defun_apply_u32(U32FnCase::Double, x)
-        } else {
-            defun_apply_u32(U32FnCase::Inc, x)
-        });
-    }
-    out
-}
-
-pub fn tree_leaf_u32(_x: ()) -> BinaryTreeU32 {
-    BinaryTreeU32::Leaf
-}
-
-pub fn tree_node_u32(left: BinaryTreeU32, value: u32, right: BinaryTreeU32) -> BinaryTreeU32 {
-    BinaryTreeU32::Node(Box::new(left), value, Box::new(right))
-}
-
-pub fn tree_size_u32(t: BinaryTreeU32) -> u32 {
-    match t {
-        BinaryTreeU32::Leaf => 0,
-        BinaryTreeU32::Node(left, _value, right) => {
-            (tree_size_u32(*left)).wrapping_add(1).wrapping_add(tree_size_u32(*right))
-        }
-    }
-}
-
-pub fn tree_sum_u32(t: BinaryTreeU32) -> u32 {
-    match t {
-        BinaryTreeU32::Leaf => 0,
-        BinaryTreeU32::Node(left, value, right) => {
-            (tree_sum_u32(*left)).wrapping_add(value).wrapping_add(tree_sum_u32(*right))
-        }
-    }
-}
-
-pub fn expr_lit_u32(value: u32) -> ExprU32 {
-    ExprU32::Lit(value)
-}
-
 pub fn expr_add_u32(left: ExprU32, right: ExprU32) -> ExprU32 {
     ExprU32::Add(Box::new(left), Box::new(right))
 }
@@ -311,141 +246,154 @@ pub fn expr_add_u32(left: ExprU32, right: ExprU32) -> ExprU32 {
 pub fn expr_eval_u32(e: ExprU32) -> u32 {
     match e {
         ExprU32::Lit(value) => value,
-        ExprU32::Add(left, right) => (expr_eval_u32(*left)).wrapping_add(expr_eval_u32(*right)),
+        ExprU32::Add(left, right) => (expr_eval_u32(*(left))).wrapping_add(expr_eval_u32(*(right))),
     }
-}
-
-
-pub fn list_append_u32(mut xs: Vec<u32>, ys: Vec<u32>) -> Vec<u32> {
-    xs.extend(ys);
-    xs
 }
 
 pub fn list_find_nonzero_u32(xs: Vec<u32>) -> Option<u32> {
-    for x in xs {
-        if 0 < x {
-            return Some(x);
+    {
+        for x in xs {
+            if 0 < x {
+                return Some(x);
+            }
         }
+        None
     }
-    None
 }
 
-pub fn array_push_u32(mut xs: Vec<u32>, x: u32) -> Vec<u32> {
-    xs.push(x);
-    xs
-}
-
-pub fn option_getd_u32(x: Option<u32>, fallback: u32) -> u32 {
-    match x { None => fallback, Some(value) => value }
-}
-
-pub fn result_map_err_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
-    match x { Ok(value) => Ok(value), Err(err) => Err((err).wrapping_add(1)) }
-}
-
-pub fn except_do_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
-    match x { Err(__lrc_err) => Err::<_, u32>(__lrc_err), Ok(v) => Ok((v).wrapping_add(1)) }
-}
-
-pub fn reader_add_env_u32(env: u32, x: u32) -> u32 {
-    (x).wrapping_add(env)
-}
-
-pub fn state_tick_u32(s: u32) -> (u32, u32) {
-    (s, (s).wrapping_add(1))
-}
-
-pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32) {
-    x
-}
-
-pub fn echo_sum_u32(x: Result<u32, u32>) -> Result<u32, u32> {
-    x
-}
-
-
-pub fn exact_nat_add(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint {
-    a + b
+pub fn list_any_nonzero_u32(xs: Vec<u32>) -> bool {
+    {
+        let mut __lrc_any = false;
+        for x in xs {
+            if x > 0 {
+                __lrc_any = true;
+                break;
+            }
+        }
+        __lrc_any
+    }
 }
 
 pub fn exact_nat_mul(a: num_bigint::BigUint, b: num_bigint::BigUint) -> num_bigint::BigUint {
-    a * b
+    (&(a)) * (&(b))
 }
 
-pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt {
-    a + b
+pub fn step_jump(amount: u32) -> Step {
+    Step::Jump(amount)
 }
 
-pub fn exact_int_mul(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt {
-    a * b
+pub fn defun_map_selected_u32(use_double: bool, xs: Vec<u32>) -> Vec<u32> {
+    {
+        let mut __lrc_out = Vec::new();
+        for x in xs {
+            __lrc_out.push(if use_double {
+                defun_apply_u32(U32FnCase::Double, x)
+            } else {
+                defun_apply_u32(U32FnCase::Inc, x)
+            });
+        }
+        __lrc_out
+    }
 }
 
-pub fn add_u64(a: u64, b: u64) -> u64 {
-    (a).wrapping_add(b)
-}
-
-pub fn inc_u32(x: u32) -> u32 {
-    (x).wrapping_add(1)
-}
-
-pub fn inc_twice_u32(x: u32) -> u32 {
-    inc_u32(inc_u32(x))
-}
-
-pub fn proof_erased_u32(x: u32) -> u32 {
-    x
-}
-
-pub fn unit_roundtrip(x: ()) -> () {
-    x
-}
-
-pub fn bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
-    match flag { true => when_true, false => when_false }
-}
-
-pub fn option_identity_u32(x: Option<u32>) -> Option<u32> {
-    x
+pub fn choose_by_enum(choice: Choice, left: u32, right: u32) -> u32 {
+    match choice {
+        Choice::First => left,
+        Choice::Second => right,
+    }
 }
 
 pub fn none_u32(_x: ()) -> Option<u32> {
     None
 }
 
-pub fn some_u32(x: u32) -> Option<u32> {
-    Some(x)
+pub fn step_amount_or(s: Step, fallback: u32) -> u32 {
+    match s {
+        Step::Stay => fallback,
+        Step::Jump(amount) => amount,
+    }
 }
 
-pub fn option_default_u32(x: Option<u32>, fallback: u32) -> u32 {
-    match x { None => fallback, Some(value) => value }
+pub fn closure_env_apply_add_delta_u32(delta: u32, x: u32) -> u32 {
+    {
+        let env = AddDeltaU32Env { delta: delta };
+        (x).wrapping_add((env).delta)
+    }
 }
 
-pub fn result_ok_u32(x: u32) -> Result<u32, u32> {
-    Ok(x)
+pub fn option_bind_inc_u32(x: Option<u32>) -> Option<u32> {
+    match x {
+        None => None::<u32>,
+        Some(y) => Some((y).wrapping_add(1)),
+    }
 }
 
-pub fn result_err_u32(e: u32) -> Result<u32, u32> {
-    Err(e)
+pub fn ord_compare_u32(a: u32, b: u32) -> Ordering {
+    if a < b {
+        Ordering::Lt
+    } else if a == b {
+        Ordering::Eq
+    } else {
+        Ordering::Gt
+    }
 }
 
-pub fn choose_by_enum(choice: Choice, left: u32, right: u32) -> u32 {
-    match choice { Choice::First => left, Choice::Second => right }
+pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
+    defun_apply_u32(U32FnCase::Double, defun_apply_u32(U32FnCase::Inc, x))
 }
 
-pub fn make_point(x: u32, y: u32) -> Point {
-    Point { x: x, y: y }
+pub fn add_u32(a: u32, b: u32) -> u32 {
+    (a).wrapping_add(b)
+}
+
+pub fn repr_u32(x: u32) -> String {
+    format!("{:?}", x)
+}
+
+pub fn list_filter_nonzero_u32(xs: Vec<u32>) -> Vec<u32> {
+    {
+        let mut __lrc_out = Vec::new();
+        for x in xs {
+            if x > 0 {
+                __lrc_out.push(x);
+            }
+        }
+        __lrc_out
+    }
 }
 
 pub fn point_x(p: Point) -> u32 {
     (p).x
 }
 
-pub fn point_y(p: Point) -> u32 {
-    (p).y
+pub fn add_u64(a: u64, b: u64) -> u64 {
+    (a).wrapping_add(b)
 }
 
-pub fn shift_point_x(p: Point, dx: u32) -> Point {
-    Point { x: ((p).x).wrapping_add(dx), y: (p).y }
+pub fn boxed_u32(x: u32) -> BoxedU32 {
+    BoxedU32 { value: x }
+}
+
+pub fn defun_apply_add5_u32(x: u32) -> u32 {
+    defun_apply_u32(U32FnCase::Add(5), x)
+}
+
+pub fn echo_prod_u32(x: (u32, u32)) -> (u32, u32) {
+    x
+}
+
+pub fn option_getd_u32(x: Option<u32>, fallback: u32) -> u32 {
+    match x {
+        None => fallback,
+        Some(value) => value,
+    }
+}
+
+pub fn reader_add_env_u32(env: u32, x: u32) -> u32 {
+    {
+        let cfg = env;
+        (x).wrapping_add(cfg)
+    }
 }
 
 pub fn bounded_proof_make_u32(x: u32) -> BoundedProof {
@@ -456,60 +404,325 @@ pub fn bounded_proof_value_u32(b: BoundedProof) -> u32 {
     (b).value
 }
 
+pub fn bounded_bump_u32(x: u32) -> u32 {
+    {
+        let y = (x).wrapping_add(1);
+        if y > 10 {
+            10
+        } else {
+            y
+        }
+    }
+}
+
+pub fn unit_roundtrip(x: ()) -> () {
+    x
+}
+
+pub fn inc_u32(x: u32) -> u32 {
+    (x).wrapping_add(1)
+}
+
+pub fn result_bind_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x {
+        Err(__lrc_err) => Err::<_, u32>(__lrc_err),
+        Ok(y) => Ok((y).wrapping_add(1)),
+    }
+}
+
+pub fn make_point(x: u32, y: u32) -> Point {
+    Point { x: x, y: y }
+}
+
+pub fn closure_apply_capture_u32(delta: u32, x: u32) -> u32 {
+    {
+        let y = x;
+        (y).wrapping_add(delta)
+    }
+}
+
 pub fn subtype_roundtrip_u32(x: u32) -> u32 {
     x
 }
 
-pub fn boxed_u32(x: u32) -> BoxedU32 {
-    BoxedU32 { value: x }
+pub fn tree_sum_u32(t: BinaryTreeU32) -> u32 {
+    match t {
+        BinaryTreeU32::Leaf => 0,
+        BinaryTreeU32::Node(left, value, right) => {
+            ((tree_sum_u32(*(left))).wrapping_add(value)).wrapping_add(tree_sum_u32(*(right)))
+        }
+    }
 }
 
-pub fn boxed_value_u32(b: BoxedU32) -> u32 {
-    (b).value
-}
-
-pub fn tagged_missing_u32(_x: ()) -> TaggedU32 {
-    TaggedU32::Missing
-}
-
-pub fn tagged_present_u32(x: u32) -> TaggedU32 {
-    TaggedU32::Present(x)
-}
-
-pub fn tagged_default_u32(t: TaggedU32, fallback: u32) -> u32 {
-    match t { TaggedU32::Missing => fallback, TaggedU32::Present(value) => value }
-}
-
-pub fn step_stay(_x: ()) -> Step {
-    Step::Stay
-}
-
-pub fn step_jump(amount: u32) -> Step {
-    Step::Jump(amount)
-}
-
-pub fn step_amount_or(s: Step, fallback: u32) -> u32 {
-    match s { Step::Stay => fallback, Step::Jump(amount) => amount }
-}
-
-pub fn step_amount_plus_one_or(s: Step, fallback: u32) -> u32 {
-    match s { Step::Stay => fallback, Step::Jump(amount) => (amount).wrapping_add(1) }
-}
-
-pub fn nested_none_u32(_x: ()) -> Option<Option<u32>> {
-    Some(None)
-}
-
-pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32> {
-    Ok(None)
+pub fn fin_succ_checked10_u32(i: u32) -> Option<u32> {
+    if (i).wrapping_add(1) < 10 {
+        Some((i).wrapping_add(1))
+    } else {
+        None
+    }
 }
 
 pub fn result_err_some_u32(e: u32) -> Result<u32, Option<u32>> {
     Err(Some(e))
 }
 
-pub fn unsupported_higher_order_u32(f: fn(u32) -> u32, x: u32) -> u32 {
-    f(x)
+pub fn list_map_add_capture_u32(delta: u32, xs: Vec<u32>) -> Vec<u32> {
+    {
+        let mut __lrc_out = Vec::new();
+        for x in xs {
+            __lrc_out.push((x).wrapping_add(delta));
+        }
+        __lrc_out
+    }
+}
+
+pub fn general_bool_match_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
+    match flag {
+        true => (when_true).wrapping_add(1),
+        false => (when_false).wrapping_add(1),
+    }
+}
+
+pub fn option_map_inc_u32(x: Option<u32>) -> Option<u32> {
+    match x {
+        None => None::<u32>,
+        Some(y) => Some((y).wrapping_add(1)),
+    }
+}
+
+pub fn echo_sum_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    x
+}
+
+pub fn fin_val10_u32(i: u32) -> u32 {
+    i
+}
+
+pub fn to_string_u32(x: u32) -> String {
+    (x).to_string()
+}
+
+pub fn echo_i64(x: i64) -> i64 {
+    x
+}
+
+pub fn step_stay(_x: ()) -> Step {
+    Step::Stay
+}
+
+pub fn point_y(p: Point) -> u32 {
+    (p).y
+}
+
+pub fn general_option_match_u32(x: Option<u32>, fallback: u32) -> u32 {
+    match x {
+        None => fallback,
+        Some(value) => (value).wrapping_add(1),
+    }
+}
+
+pub fn option_do_inc_u32(x: Option<u32>) -> Option<u32> {
+    match x {
+        None => None::<u32>,
+        Some(v) => Some((v).wrapping_add(1)),
+    }
+}
+
+pub fn echo_i32(x: i32) -> i32 {
+    x
+}
+
+pub fn except_do_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
+    match x {
+        Err(__lrc_err) => Err::<_, u32>(__lrc_err),
+        Ok(v) => Ok((v).wrapping_add(1)),
+    }
+}
+
+pub fn result_ok_none_u32(_x: ()) -> Result<Option<u32>, u32> {
+    Ok(None)
+}
+
+pub fn list_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
+    {
+        let mut __lrc_out = Vec::new();
+        for x in xs {
+            __lrc_out.push((x).wrapping_add(1));
+        }
+        __lrc_out
+    }
+}
+
+pub fn echo_array_u32(xs: Vec<u32>) -> Vec<u32> {
+    xs
+}
+
+pub fn tagged_default_u32(t: TaggedU32, fallback: u32) -> u32 {
+    match t {
+        TaggedU32::Missing => fallback,
+        TaggedU32::Present(value) => value,
+    }
+}
+
+pub fn array_map_inc_u32(xs: Vec<u32>) -> Vec<u32> {
+    {
+        let mut __lrc_out = Vec::new();
+        for x in xs {
+            __lrc_out.push((x).wrapping_add(1));
+        }
+        __lrc_out
+    }
+}
+
+pub fn closure_env_map_add_delta_u32(delta: u32, xs: Vec<u32>) -> Vec<u32> {
+    {
+        let env = AddDeltaU32Env { delta: delta };
+        {
+            let mut __lrc_out = Vec::new();
+            for x in xs {
+                __lrc_out.push((x).wrapping_add((env).delta));
+            }
+            __lrc_out
+        }
+    }
+}
+
+pub fn option_default_u32(x: Option<u32>, fallback: u32) -> u32 {
+    match x {
+        None => fallback,
+        Some(value) => value,
+    }
+}
+
+pub fn nested_none_u32(_x: ()) -> Option<Option<u32>> {
+    Some(None)
+}
+
+pub fn array_push_u32(xs: Vec<u32>, x: u32) -> Vec<u32> {
+    {
+        let mut __lrc_vec = xs;
+        __lrc_vec.push(x);
+        __lrc_vec
+    }
+}
+
+pub fn max_u32(a: u32, b: u32) -> u32 {
+    if a < b {
+        b
+    } else {
+        a
+    }
+}
+
+pub fn mul_u32(a: u32, b: u32) -> u32 {
+    (a).wrapping_mul(b)
+}
+
+pub fn vector_echo3_u32(xs: Vec<u32>) -> Vec<u32> {
+    xs
+}
+
+pub fn result_err_u32(e: u32) -> Result<u32, u32> {
+    Err(e)
+}
+
+pub fn boxed_value_u32(b: BoxedU32) -> u32 {
+    (b).value
+}
+
+pub fn tail_sum_down_u32(n: u32) -> u32 {
+    {
+        let mut k = n;
+        let mut acc: u32 = 0;
+        while k != 0 {
+            acc = (acc).wrapping_add(k);
+            k = (k).wrapping_sub(1);
+        }
+        acc
+    }
+}
+
+pub fn tagged_missing_u32(_x: ()) -> TaggedU32 {
+    TaggedU32::Missing
+}
+
+pub fn echo_u32(x: u32) -> u32 {
+    x
+}
+
+pub fn nat_sum_to_u32(n: u32) -> u32 {
+    {
+        let mut acc: u32 = 0;
+        for k in 0..(n) {
+            acc = (acc).wrapping_add(k);
+        }
+        acc
+    }
+}
+
+pub fn proof_erased_u32(x: u32) -> u32 {
+    x
+}
+
+pub fn tree_size_u32(t: BinaryTreeU32) -> u32 {
+    match t {
+        BinaryTreeU32::Leaf => 0,
+        BinaryTreeU32::Node(left, value, right) => {
+            ((tree_size_u32(*(left))).wrapping_add(1)).wrapping_add(tree_size_u32(*(right)))
+        }
+    }
+}
+
+pub fn list_fold_sum_u32(xs: Vec<u32>) -> u32 {
+    {
+        let mut acc: u32 = 0;
+        for x in xs {
+            acc = (acc).wrapping_add(x);
+        }
+        acc
+    }
+}
+
+pub fn echo_u64(x: u64) -> u64 {
+    x
+}
+
+pub fn state_tick_u32(s: u32) -> (u32, u32) {
+    {
+        let old = s;
+        (old, (s).wrapping_add(1))
+    }
+}
+
+pub fn list_foldr_sum_u32(xs: Vec<u32>) -> u32 {
+    {
+        let mut acc: u32 = 0;
+        for x in (xs).into_iter().rev() {
+            acc = (x).wrapping_add(acc);
+        }
+        acc
+    }
+}
+
+pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint::BigInt {
+    (&(a)) + (&(b))
+}
+
+pub fn list_length_u32(xs: Vec<u32>) -> u32 {
+    (xs).len() as u32
+}
+
+pub fn list_all_nonzero_u32(xs: Vec<u32>) -> bool {
+    {
+        let mut __lrc_all = true;
+        for x in xs {
+            if !(x > 0) {
+                __lrc_all = false;
+                break;
+            }
+        }
+        __lrc_all
+    }
 }
 
 pub fn identity_u64(x: u64) -> u64 {
@@ -517,43 +730,61 @@ pub fn identity_u64(x: u64) -> u64 {
 }
 
 pub fn choose_generic_u32(flag: bool, when_true: u32, when_false: u32) -> u32 {
-    if flag { when_true } else { when_false }
+    if flag {
+        when_true
+    } else {
+        when_false
+    }
 }
 
 pub fn option_default_u64(x: Option<u64>, fallback: u64) -> u64 {
-    match x { None => fallback, Some(value) => value }
+    match x {
+        None => fallback,
+        Some(value) => value,
+    }
 }
 
 pub fn generic_beq_u32(a: u32, b: u32) -> bool {
     a == b
 }
 
+pub fn generic_choose__point(flag: bool, when_true: Point, when_false: Point) -> Point {
+    if flag {
+        when_true
+    } else {
+        when_false
+    }
+}
+
 pub fn generic_identity__u32(x: u32) -> u32 {
     x
 }
 
-pub fn generic_choose__point(flag: bool, when_true: Point, when_false: Point) -> Point {
-    if flag { when_true } else { when_false }
-}
-
 pub fn generic_option_default__step(x: Option<Step>, fallback: Step) -> Step {
-    match x { None => fallback, Some(value) => value }
+    match x {
+        None => fallback,
+        Some(value) => value,
+    }
 }
 
 pub fn helper_inc_fixed(x: u32) -> u32 {
     (x).wrapping_add(1)
 }
 
-pub fn helper_chain_u32(x: u32) -> u32 {
-    helper_inc_fixed(helper_inc_fixed(x))
+pub fn auto_choose_point(flag: bool, left: Point, right: Point) -> Point {
+    generic_choose__point(flag, left, right)
 }
 
 pub fn auto_identity_u32(x: u32) -> u32 {
     generic_identity__u32(x)
 }
 
-pub fn auto_choose_point(flag: bool, left: Point, right: Point) -> Point {
-    generic_choose__point(flag, left, right)
+pub fn inc_twice_u32(x: u32) -> u32 {
+    inc_u32(inc_u32(x))
+}
+
+pub fn helper_chain_u32(x: u32) -> u32 {
+    helper_inc_fixed(helper_inc_fixed(x))
 }
 
 pub fn auto_option_default_step(x: Option<Step>, fallback: Step) -> Step {

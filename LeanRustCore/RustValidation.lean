@@ -65,142 +65,13 @@ structure ValidationCheck where
   deriving Repr, BEq
 
 /-- Function names that the current generated Rust snapshot is expected to expose. -/
-def requiredFunctionNames : List String := [
-  "clamp_u32",
-  "max_u32",
-  "is_nonzero_u32",
-  "add_u32",
-  "mul_u32",
-  "bounded_bump_u32",
-  "echo_u32",
-  "echo_u64",
-  "echo_i32",
-  "echo_i64",
-  "echo_char",
-  "echo_string",
-  "echo_list_u32",
-  "echo_array_u32",
-  "list_map_inc_u32",
-  "list_fold_sum_u32",
-  "list_map_add_capture_u32",
-  "list_filter_nonzero_u32",
-  "list_foldr_sum_u32",
-  "list_any_nonzero_u32",
-  "list_all_nonzero_u32",
-  "array_map_inc_u32",
-  "array_fold_sum_u32",
-  "option_map_inc_u32",
-  "option_bind_inc_u32",
-  "result_bind_inc_u32",
-  "nat_sum_to_u32",
-  "subtype_val_u32",
-  "subtype_inc_u32",
-  "fin_val10_u32",
-  "fin_checked10_u32",
-  "fin_succ_checked10_u32",
-  "vector_echo3_u32",
-  "vector_map_inc3_u32",
-  "general_bool_match_u32",
-  "general_option_match_u32",
-  "general_step_match_u32",
-  "pair_sum_match_u32",
-  "list_length_u32",
-  "tail_sum_down_u32",
-  "decidable_eq_u32",
-  "inhabited_default_u32",
-  "to_string_u32",
-  "repr_u32",
-  "ord_compare_u32",
-  "option_do_inc_u32",
-  "closure_apply_capture_u32",
-  "closure_env_apply_add_delta_u32",
-  "closure_env_map_add_delta_u32",
-  "defun_apply_u32",
-  "defun_compose_inc_double_u32",
-  "defun_apply_add5_u32",
-  "defun_map_selected_u32",
-  "tree_leaf_u32",
-  "tree_node_u32",
-  "tree_size_u32",
-  "tree_sum_u32",
-  "expr_lit_u32",
-  "expr_add_u32",
-  "expr_eval_u32",
-  "list_append_u32",
-  "list_find_nonzero_u32",
-  "array_push_u32",
-  "option_getd_u32",
-  "result_map_err_inc_u32",
-  "except_do_inc_u32",
-  "reader_add_env_u32",
-  "state_tick_u32",
-  "echo_prod_u32",
-  "echo_sum_u32",
-  "exact_nat_add",
-  "exact_nat_mul",
-  "exact_int_add",
-  "exact_int_mul",
-  "add_u64",
-  "inc_u32",
-  "inc_twice_u32",
-  "proof_erased_u32",
-  "unit_roundtrip",
-  "bool_match_u32",
-  "option_identity_u32",
-  "none_u32",
-  "some_u32",
-  "option_default_u32",
-  "result_ok_u32",
-  "result_err_u32",
-  "choose_by_enum",
-  "make_point",
-  "point_x",
-  "point_y",
-  "shift_point_x",
-  "bounded_proof_make_u32",
-  "bounded_proof_value_u32",
-  "subtype_roundtrip_u32",
-  "boxed_u32",
-  "boxed_value_u32",
-  "tagged_missing_u32",
-  "tagged_present_u32",
-  "tagged_default_u32",
-  "step_stay",
-  "step_jump",
-  "step_amount_or",
-  "step_amount_plus_one_or",
-  "nested_none_u32",
-  "result_ok_none_u32",
-  "result_err_some_u32",
-  "unsupported_higher_order_u32",
-  "identity_u64",
-  "choose_generic_u32",
-  "option_default_u64",
-  "generic_beq_u32",
-  "generic_identity__u32",
-  "generic_choose__point",
-  "generic_option_default__step",
-  "helper_inc_fixed",
-  "helper_chain_u32",
-  "auto_identity_u32",
-  "auto_choose_point",
-  "auto_option_default_step"
-]
+def requiredFunctionNames : List String :=
+  LeanRustCore.TargetValidation.targetValidationModule.functions.map (fun f => f.name)
 
 /-- Declarations that should exist before generated functions. -/
-def requiredTypeNames : List String := [
-  "Point",
-  "BoundedProof",
-  "BoxedU32",
-  "AddDeltaU32Env",
-  "Choice",
-  "TaggedU32",
-  "Step",
-  "U32FnCase",
-  "BinaryTreeU32",
-  "ExprU32",
-  "Ordering"
-]
+def requiredTypeNames : List String :=
+  LeanRustCore.TargetValidation.targetValidationModule.structs.map (fun s => rustTypeIdent s.name) ++
+  LeanRustCore.TargetValidation.targetValidationModule.enums.map (fun e => rustTypeIdent e.name)
 
 /-- Validation checks completed for the current generated subset. -/
 def checks : List ValidationCheck := [
@@ -499,7 +370,7 @@ def checks : List ValidationCheck := [
   {
     name := "ffi-boundary-exporter",
     status := "passed",
-    detail := "LeanRustCore.BoundaryExport emits optional C ABI wrappers for the conservative primitive/result subset; generated wrapper count: " ++ Nat.toString LeanRustCore.BoundaryExport.boundaryExportCount
+    detail := "LeanRustCore.BoundaryExport emits optional C ABI wrappers for the conservative primitive/result subset; generated wrapper count: " ++ toString LeanRustCore.BoundaryExport.boundaryExportCount
   },
   {
     name := "ffi-feature-isolation",
@@ -581,7 +452,7 @@ private def featureSummaryJson : String :=
   "  \"feature_summary\": {\n" ++
   "    \"structural_list_loop_functions\": 11,\n" ++
   "    \"exact_integer_functions\": 4,\n" ++
-  "    \"ffi_wrapper_count\": " ++ Nat.toString LeanRustCore.BoundaryExport.boundaryExportCount ++ ",\n" ++
+  "    \"ffi_wrapper_count\": " ++ toString LeanRustCore.BoundaryExport.boundaryExportCount ++ ",\n" ++
   "    \"pattern_matching_functions\": 4,\n" ++
   "    \"tail_recursion_loop_functions\": 1,\n" ++
   "    \"std_lowerings\": [\"List.map\", \"List.filter\", \"List.foldl\", \"List.foldr\", \"List.any\", \"List.all\", \"List.append\", \"List.find?\", \"Array.map\", \"Array.foldl\", \"Array.push\", \"Option.map\", \"Option.bind\", \"Option.getD\", \"Except.bind\", \"Except.mapError\"],\n" ++
@@ -599,11 +470,11 @@ def validationReportJson : String :=
   "  \"architecture\": \"direct-lean-emits-rust\",\n" ++
   "  \"lean_toolchain\": " ++ jsonString leanToolchain ++ ",\n" ++
   "  \"rust_toolchain\": " ++ jsonString rustToolchain ++ ",\n" ++
-  "  \"generated_function_count\": " ++ Nat.toString requiredFunctionNames.length ++ ",\n" ++
-  "  \"generated_type_count\": " ++ Nat.toString requiredTypeNames.length ++ ",\n" ++
-  "  \"differential_assertion_count\": " ++ Nat.toString (evaluatorAssertions.length + extractedDeclarationAssertions.length) ++ ",\n" ++
+  "  \"generated_function_count\": " ++ toString requiredFunctionNames.length ++ ",\n" ++
+  "  \"generated_type_count\": " ++ toString requiredTypeNames.length ++ ",\n" ++
+  "  \"differential_assertion_count\": " ++ toString (evaluatorAssertions.length + extractedDeclarationAssertions.length) ++ ",\n" ++
   "  \"target_validation_format\": " ++ jsonString LeanRustCore.TargetValidation.targetValidationFormat ++ ",\n" ++
-  "  \"ffi_boundary_export_count\": " ++ Nat.toString LeanRustCore.BoundaryExport.boundaryExportCount ++ ",\n" ++
+  "  \"ffi_boundary_export_count\": " ++ toString LeanRustCore.BoundaryExport.boundaryExportCount ++ ",\n" ++
   featureSummaryJson ++
   "  \"required_functions\": " ++ jsonArray requiredFunctionNames ++ ",\n" ++
   "  \"required_types\": " ++ jsonArray requiredTypeNames ++ ",\n" ++

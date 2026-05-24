@@ -47,6 +47,6 @@ def metricPercent (m : CoverageMetric) : Nat :=
 /-- Human-readable summary for validation/proof reports. -/
 def quantitativeCoverageSummary : String :=
   "coverage dashboard records explicit denominators: " ++
-  joinWithLocal "; " (metrics.map (fun m => m.denominator ++ "=" ++ Nat.toString (metricPercent m) ++ "%"))
+  joinWithLocal "; " (metrics.map (fun m => m.denominator ++ "=" ++ toString (metricPercent m) ++ "%"))
 
 end LeanRustCore.CoverageDashboard

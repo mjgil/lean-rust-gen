@@ -73,7 +73,7 @@ fn development_fallback_allowed() -> bool {
     let explicit = env::var(ALLOW_FALLBACK_ENV).ok().as_deref() == Some("1");
     let profile = env::var("PROFILE").unwrap_or_default();
     let ci = env::var("CI")
-        .map(|value| value != "" && value != "0" && value != "false")
+        .map(|value| !value.is_empty() && value != "0" && value != "false")
         .unwrap_or(false);
 
     explicit && profile != "release" && !ci

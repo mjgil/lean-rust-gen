@@ -80,6 +80,9 @@ def coverageEntries : List CoverageEntry := [
   { feature := "release-acceptance-matrix", status := "supported-scripted-gates", examples := ["ReleaseMatrix.gates", "scripts/check-final-16-completion.py", "docs/RELEASE_CHECKLIST.md"] },
   { feature := "first20-completion", status := "supported-complete", examples := ["ExtractIR", "RuntimeValue", "expanded diagnostics", "source spans", "CI e2e matrix"] },
   { feature := "extract-ir-pipeline", status := "supported", examples := ["DeclarationMetadata", "functionFeatureTags", "metadataForSurfaceFun"] },
+  { feature := "runtime-value-denotation", status := "supported", examples := ["RuntimeValue", "runtimeValueHasType", "runtimeDenotationSummary"] },
+  { feature := "expanded-diagnostics", status := "supported", examples := ["LRC001-LRC014", "SourceRange", "instanceHasRequiredSpan"] },
+  { feature := "source-span-diagnostics", status := "supported", examples := ["SourceSpan", "sourceSpanSummary", "instanceHasRequiredSpan"] },
   { feature := "runtime-denotation-model", status := "supported", examples := ["RuntimeValue", "runtimeValueHasType", "runtimeDenotationSummary"] },
   { feature := "expanded-diagnostic-coverage", status := "supported", examples := ["LRC001-LRC013", "SourceRange", "instanceHasRequiredSpan"] },
   { feature := "ci-end-to-end-matrix", status := "supported-scripted-gates", examples := ["scripts/check-ci-e2e.sh", "linux+macos workflow matrix"] },
@@ -114,9 +117,9 @@ private def coverageEntryJson (entry : CoverageEntry) : String :=
 
 private def coverageMetricJson (metric : LeanRustCore.CoverageDashboard.CoverageMetric) : String :=
   "    { \"denominator\": " ++ jsonString metric.denominator ++
-  ", \"covered\": " ++ Nat.toString metric.covered ++
-  ", \"total\": " ++ Nat.toString metric.total ++
-  ", \"percent\": " ++ Nat.toString (LeanRustCore.CoverageDashboard.metricPercent metric) ++
+  ", \"covered\": " ++ toString metric.covered ++
+  ", \"total\": " ++ toString metric.total ++
+  ", \"percent\": " ++ toString (LeanRustCore.CoverageDashboard.metricPercent metric) ++
   ", \"status\": " ++ jsonString metric.status ++ " }"
 
 /-- Machine-readable coverage dashboard emitted by `lake exe gen_coverage_dashboard`. -/

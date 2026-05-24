@@ -1,9 +1,8 @@
 import LeanRustCore.TargetValidation
 
 /-- Generate the Lean-side target-validation snapshot. Usage: `lake exe gen_target_validation [path]`. -/
-def main : IO Unit := do
-  let args ← IO.getArgs
-  let out := match args.toList with
+def main (args : List String) : IO Unit := do
+  let out := match args with
     | path :: _ => path
     | [] => "rust/target-validation.txt"
   IO.FS.writeFile out LeanRustCore.TargetValidation.targetValidationSnapshot

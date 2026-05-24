@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports, clippy::cmp_owned)]
+
 use std::collections::BTreeSet;
 
 #[path = "support/semantic_validation_fingerprint.rs"]

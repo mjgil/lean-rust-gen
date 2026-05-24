@@ -1,16 +1,27 @@
 #![cfg_attr(not(feature = "ffi"), forbid(unsafe_code))]
-#![allow(
-    clippy::needless_bool,
-    non_snake_case,
-    clippy::redundant_field_names,
-    clippy::unused_unit
-)]
 
 pub mod abi;
 pub use lean_rust_core_runtime as runtime;
 pub use lean_rust_core_runtime as runtime_crate;
 
-include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+mod generated {
+    #![allow(
+        clippy::collapsible_else_if,
+        clippy::comparison_chain,
+        clippy::manual_map,
+        clippy::match_single_binding,
+        clippy::needless_bool,
+        clippy::nonminimal_bool,
+        clippy::redundant_field_names,
+        clippy::unused_unit,
+        non_snake_case,
+        unused_variables
+    )]
+
+    include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+}
+
+pub use generated::*;
 
 #[cfg(feature = "ffi")]
 pub use lean_rust_core_abi as abi_crate;

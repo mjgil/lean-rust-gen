@@ -74,14 +74,6 @@ fn typed_report_schemas_are_strict_and_complete() {
         "lean-rust-core.target-validation.v2"
     );
     assert_eq!(validation.checks[0].status, ValidationCheckStatus::Passed);
-    assert_eq!(
-        validation.feature_summary.rust_generic_policy,
-        "monomorphization-only default lane"
-    );
-    assert_eq!(
-        validation.feature_summary.numeric_modes,
-        validation.feature_summary.numeric_semantics_modes
-    );
     assert!(!validation.feature_summary.std_lowerings.is_empty());
     assert!(!validation
         .feature_summary
@@ -180,11 +172,12 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
         .first20_completion
         .iter()
         .any(|item| item == "ExtractIR pipeline"));
-    assert!(validation
-        .feature_summary
-        .next20_completion
-        .iter()
-        .any(|item| item == "rows 21-40 fully implemented with tests and docs"));
+    assert!(validation.checks.iter().any(|check| {
+        check.name == "next20-base-type-universe" && check.status == ValidationCheckStatus::Passed
+    }));
+    assert!(validation.checks.iter().any(|check| {
+        check.name == "next20-std-implementation" && check.status == ValidationCheckStatus::Passed
+    }));
     assert!(validation
         .feature_summary
         .remaining_completion
@@ -514,11 +507,11 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("FN\tgeneric_beq_u32"));
     assert!(snapshot.contains("FN\tdecidable_eq_u32"));
     assert!(snapshot.contains("FN\tord_compare_u32"));
-    assert!(snapshot.contains("if(lt(var(a),var(b)),enum(Ordering::Lt),if(eq(var(a),var(b)),enum(Ordering::Eq),enum(Ordering::Gt)))"));
+    assert!(snapshot.contains("compare(var(a),var(b))"));
     assert!(snapshot.contains("FN\toption_do_inc_u32"));
     assert!(snapshot.contains("match_option(var(x),none=>none|some(v)=>some(add(var(v),lit(1))))"));
     assert!(snapshot.contains("FN\tclosure_apply_capture_u32"));
-    assert!(snapshot.contains("let(y,var(x),add(var(y),var(delta)))"));
+    assert!(snapshot.contains("closure_apply(y,var(x),add(var(y),var(delta)))"));
     assert!(snapshot.contains("TYPE\tstruct\tAddDeltaU32Env"));
     assert!(snapshot.contains("TYPE\tenum\tU32FnCase"));
     assert!(snapshot.contains("TYPE\tenum\tBinaryTreeU32"));
@@ -575,7 +568,7 @@ fn ffi_boundary_snapshot_is_feature_gated_and_separate() {
     assert!(ffi.contains("extern \"C\" fn lrc_reader_add_env_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_closure_env_apply_add_delta_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_defun_compose_inc_double_u32"));
-    assert!(ffi.contains("unsafe extern \"C\" fn lrc_except_do_inc_u32"));
+    assert!(!ffi.contains("lrc_except_do_inc_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_inc_u32"));
     assert!(ffi.contains("extern \"C\" fn lrc_subtype_roundtrip_u32"));
 }

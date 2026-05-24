@@ -51,9 +51,6 @@ private def containsStringLocal (needle : String) : List String → Bool
 def classifyNode (_graph : List TypeGraphNode) (node : TypeGraphNode) : RecursionKind :=
   if containsStringLocal node.name node.references then .direct else .nonrecursive
 
-def chooseLayout (_graph : List TypeGraphNode) (node : TypeGraphNode) : RecursiveLayoutDecision :=
-  { scc := [node.name], layout := .boxOwned, reason := "default safe layout uses Box<T> on cycle edges", requiredTests := ["recursive discovery policy test"], requiredDocs := ["docs/RECURSIVE_DATA.md"] }
-
 structure RecursiveEdge where
   fromType : String
   toType : String
@@ -68,6 +65,9 @@ structure RecursiveLayoutDecision where
   requiredTests : List String
   requiredDocs : List String
   deriving Repr, BEq
+
+def chooseLayout (_graph : List TypeGraphNode) (node : TypeGraphNode) : RecursiveLayoutDecision :=
+  { scc := [node.name], layout := .boxOwned, reason := "default safe layout uses Box<T> on cycle edges", requiredTests := ["recursive discovery policy test"], requiredDocs := ["docs/RECURSIVE_DATA.md"] }
 
 def edgeIsRecursive (edge : RecursiveEdge) : Bool :=
   edge.fromType == edge.toType || edge.kind == .mutual

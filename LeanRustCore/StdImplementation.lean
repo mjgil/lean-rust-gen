@@ -59,6 +59,6 @@ def implementedLoweringCount : Nat := lowerings.length
 
 
 def stdImplementationSummary : String :=
-  "Std completion implements " ++ Nat.toString implementedLoweringCount ++ " List/Array/Option/Except/String lowerings with explicit owned/borrowed ownership shapes, tests, and docs"
+  "Std completion implements " ++ toString implementedLoweringCount ++ " List/Array/Option/Except/String lowerings with explicit owned/borrowed ownership shapes, tests, and docs"
 
 end LeanRustCore.StdImplementation

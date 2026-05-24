@@ -90,8 +90,8 @@ private def typeSuffix : RType → String
   | .boxed t => "box_" ++ typeSuffix t
   | .recursive n => rustTypeIdent n
   | .subtype t => "subtype_" ++ typeSuffix t
-  | .fin n => "fin" ++ Nat.toString n
-  | .vector t n => "vector" ++ Nat.toString n ++ "_" ++ typeSuffix t
+  | .fin n => "fin" ++ toString n
+  | .vector t n => "vector" ++ toString n ++ "_" ++ typeSuffix t
   | .struct n _ => rustTypeIdent n
   | .enum n _ => rustTypeIdent n
 

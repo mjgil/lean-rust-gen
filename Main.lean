@@ -1,9 +1,8 @@
 import LeanRustCore.Examples
 
 /-- Generate Rust source. Usage: `lake exe gen_rust [path]`. -/
-def main : IO Unit := do
-  let args ← IO.getArgs
-  let out := match args.toList with
+def main (args : List String) : IO Unit := do
+  let out := match args with
     | path :: _ => path
     | [] => "rust/src/generated.rs"
   IO.FS.writeFile out LeanRustCore.Examples.generatedRust

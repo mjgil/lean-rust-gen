@@ -601,7 +601,11 @@ def clampSpec (a : ClampArgs) : Nat :=
 
 theorem clamp_refines_spec (a : ClampArgs) :
   eval clampBody a = clampSpec a := by
-  simp [clampBody, clampSpec, vLo, vHi, vX, eval]
+  by_cases hLo : a.x < a.lo
+  · simp [clampBody, clampSpec, vLo, vHi, vX, eval, hLo]
+  · by_cases hHi : a.hi < a.x
+    · simp [clampBody, clampSpec, vLo, vHi, vX, eval, hLo, hHi]
+    · simp [clampBody, clampSpec, vLo, vHi, vX, eval, hLo, hHi]
 
 structure MaxArgs where
   a : Nat
@@ -633,7 +637,7 @@ def nonzeroSpec (a : NonzeroArgs) : Bool :=
 
 theorem nonzero_refines_spec (a : NonzeroArgs) :
   eval nonzeroBody a = nonzeroSpec a := by
-  simp [nonzeroBody, nonzeroSpec, nzX, eval]
+  simp [nonzeroBody, nonzeroSpec, nzX, eval, u32Wrap]
 
 structure AddArgs where
   a : Nat
@@ -668,7 +672,11 @@ def boundedBumpSpec (a : BumpArgs) : Nat :=
 
 theorem bounded_bump_refines_spec (a : BumpArgs) :
   eval boundedBumpBody a = boundedBumpSpec a := by
-  simp [boundedBumpBody, boundedBumpSpec, bumpX, bumpY, eval, u32Wrap]
+  have hTen : 10 % u32Modulus = 10 := by
+    native_decide
+  by_cases h : 10 < (a.x + 1) % u32Modulus
+  · simp [boundedBumpBody, boundedBumpSpec, bumpX, bumpY, eval, u32Wrap, h, hTen]
+  · simp [boundedBumpBody, boundedBumpSpec, bumpX, bumpY, eval, u32Wrap, h, hTen]
 
 structure OptionArgs where
   x : Option Nat
@@ -688,7 +696,9 @@ def optionDefaultSpec (a : OptionArgs) : Nat :=
 
 theorem option_default_refines_spec (a : OptionArgs) :
   eval optionDefaultBody a = optionDefaultSpec a := by
-  cases a.x <;> simp [optionDefaultBody, optionDefaultSpec, optX, optFallback, optValue, eval]
+  cases a with
+  | mk x fallback =>
+      cases x <;> simp [optionDefaultBody, optionDefaultSpec, optX, optFallback, optValue, eval]
 
 /-- Proof-carrying examples retained for evaluator/codegen regression checks. -/
 def proofCarryingFunctions : List RFun := [

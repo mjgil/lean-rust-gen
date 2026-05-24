@@ -34,6 +34,6 @@ def gates : List ReleaseGate := [
 
 /-- Human-readable summary for validation/proof reports. -/
 def releaseMatrixSummary : String :=
-  "release acceptance matrix contains " ++ Nat.toString gates.length ++ " required gates covering Lean, generated artifacts, Rust workspace, FFI, diagnostics, docs, and headers"
+  "release acceptance matrix contains " ++ toString gates.length ++ " required gates covering Lean, generated artifacts, Rust workspace, FFI, diagnostics, docs, and headers"
 
 end LeanRustCore.ReleaseMatrix
