@@ -35,7 +35,8 @@ The first-20 implementation gate must pass before release:
 scripts/check-first-20-completion.py
 ```
 
-It verifies ExtractIR, runtime denotation coverage, expanded diagnostics,
+It verifies ExtractIR, runtime denotation coverage, exhaustive `SurfaceExpr`
+constructor coverage, expanded diagnostics,
 source-span metadata, corpus fixtures, generated report metadata, the mandatory
 `rust/extract-ir.txt` snapshot, and the docs required for every feature in rows
 1 through 20.

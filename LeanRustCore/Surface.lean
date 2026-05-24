@@ -1542,7 +1542,10 @@ mutual
     | .finVal bound value => do
         let value ← evalSurfaceExprWithFuel fuel functions env value
         assertValueType value (.fin bound)
-        pure value
+        match value with
+        | .fin _ n => pure (.u32 n)
+        | .u32 n => pure (.u32 n)
+        | _ => evalError .unsupportedType "Fin.val expected a Fin-compatible carrier during surface evaluation"
     | .vectorCheck elemTy bound value => do
         match (← evalSurfaceExprWithFuel fuel functions env value) with
         | .list values =>

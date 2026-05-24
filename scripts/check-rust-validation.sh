@@ -236,9 +236,11 @@ grep -q '"name": "source-span-aware-diagnostics"' "$validation_report"
 grep -q '"name": "extract-ir-normalized-pipeline"' "$validation_report"
 grep -q '"name": "extract-ir-mandatory-stage"' "$validation_report"
 grep -q '"name": "runtime-denotation-model"' "$validation_report"
+grep -q '"name": "surface-expr-node-coverage"' "$validation_report"
 grep -q '"name": "ci-end-to-end-matrix"' "$validation_report"
 grep -q 'first_twenty_completion_metadata_is_present' rust/tests/first20_completion.rs
 grep -q 'expanded_diagnostics_and_corpus_are_complete' rust/tests/first20_completion.rs
+grep -q 'surface_expr_constructor_coverage_is_exhaustive' rust/tests/first20_completion.rs
 grep -q 'checklist_rows_1_20' "$coverage_dashboard"
 grep -q 'FORMAT[[:space:]]lean-rust-core.extract-ir.v1' "$extract_ir"
 grep -q '^IR-FN[[:space:]]clamp_u32' "$extract_ir"

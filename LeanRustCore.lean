@@ -28,6 +28,7 @@ import LeanRustCore.ValidationV2
 import LeanRustCore.PropertyCorpus
 import LeanRustCore.CoverageDashboard
 import LeanRustCore.Diagnostics
+import LeanRustCore.SurfaceCoverage
 import LeanRustCore.CrateDesign
 import LeanRustCore.ReleaseMatrix
 import LeanRustCore.TypeclassSpecialization

@@ -35,6 +35,7 @@ def check_required_files() -> None:
         "LeanRustCore/ExtractIR.lean",
         "LeanRustCore/Diagnostics.lean",
         "LeanRustCore/IR.lean",
+        "LeanRustCore/SurfaceCoverage.lean",
         "docs/EXTRACT_IR.md",
         "docs/RUNTIME_SEMANTICS.md",
         "docs/DIAGNOSTICS.md",
@@ -46,6 +47,35 @@ def check_required_files() -> None:
         "rust/tests/first20_completion.rs",
     ]:
         require((ROOT / path).exists(), f"missing first-20 artifact {path}")
+
+
+def parse_surface_expr_constructors() -> list[str]:
+    names: list[str] = []
+    in_surface_expr = False
+    for line in read("LeanRustCore/Surface.lean").splitlines():
+        trimmed = line.strip()
+        if trimmed == "inductive SurfaceExpr where":
+            in_surface_expr = True
+            continue
+        if in_surface_expr:
+            if trimmed.startswith("deriving "):
+                break
+            if trimmed.startswith("| "):
+                names.append(trimmed[2:].split()[0])
+    return names
+
+
+def parse_surface_coverage_constructors() -> list[str]:
+    text = read("LeanRustCore/SurfaceCoverage.lean")
+    start = text.find("BEGIN_SURFACE_CONSTRUCTOR_COVERAGE_NAMES")
+    end = text.find("END_SURFACE_CONSTRUCTOR_COVERAGE_NAMES")
+    require(start != -1 and end != -1 and start < end, "SurfaceCoverage constructor markers missing")
+    names: list[str] = []
+    for line in text[start:end].splitlines():
+        match = re.search(r'"([^"]+)"', line)
+        if match:
+            names.append(match.group(1))
+    return names
 
 
 def check_extract_ir() -> None:
@@ -82,6 +112,25 @@ def check_runtime_denotation() -> None:
     require(".struct name fields => { value : RuntimeValue" in text, "struct Denote must use RuntimeValue subtype")
     require(".enum name variants => { value : RuntimeValue" in text, "enum Denote must use RuntimeValue subtype")
     require(".recursive name => { value : RuntimeValue" in text, "recursive Denote must use RuntimeValue subtype")
+
+
+def check_surface_coverage() -> None:
+    text = read("LeanRustCore/SurfaceCoverage.lean")
+    for needle in [
+        "surfaceCoverageConstructorNames",
+        "surfaceCoverageChecks",
+        "surfaceCoverageComplete",
+        "surfaceCoverageSummary",
+        "surface_coverage_complete",
+    ]:
+        require(needle in text, f"SurfaceCoverage missing {needle}")
+    require("import LeanRustCore.SurfaceCoverage" in read("LeanRustCore.lean"), "LeanRustCore.lean missing SurfaceCoverage import")
+    constructors = parse_surface_expr_constructors()
+    covered = parse_surface_coverage_constructors()
+    require(constructors == covered, "SurfaceCoverage constructor list must match SurfaceExpr exactly")
+    runtime_doc = read("docs/RUNTIME_SEMANTICS.md")
+    for name in constructors:
+        require(f"`{name}`" in runtime_doc, f"docs/RUNTIME_SEMANTICS.md must explain `{name}`")
 
 
 def check_diagnostics() -> None:
@@ -127,6 +176,7 @@ def check_reports() -> None:
         "extract-ir-pipeline",
         "extract-ir-mandatory-stage",
         "runtime-value-denotation",
+        "surface-expr-node-coverage",
         "expanded-diagnostic-codes",
         "source-span-diagnostics",
         "first20-completion-gate",
@@ -140,16 +190,17 @@ def check_reports() -> None:
         "LeanRustCore.ExtractIR.lowerDecl?",
         "LeanRustCore.ExtractIR.extractIRSnapshot",
         "LeanRustCore.IR.runtimeValueHasType",
+        "LeanRustCore.SurfaceCoverage.surfaceCoverageComplete",
         "LeanRustCore.Diagnostics.SourceSpan",
     ]:
         require(needle in trusted, f"proof-report missing trusted core {needle}")
     policy = proof.get("policy", {})
-    for flag in ["extract_ir_pipeline", "runtime_value_denotation", "source_span_diagnostics"]:
+    for flag in ["extract_ir_pipeline", "runtime_value_denotation", "surface_expr_constructor_coverage", "source_span_diagnostics"]:
         require(policy.get(flag) is True, f"proof-report policy missing {flag}")
     require(policy.get("expanded_diagnostic_codes") == "LRC001-LRC014", "proof report must record expanded diagnostic range")
 
     features = {entry.get("feature") for entry in coverage.get("entries", [])}
-    for feature in ["extract-ir-pipeline", "runtime-value-denotation", "expanded-diagnostics", "source-span-diagnostics", "first20-completion"]:
+    for feature in ["extract-ir-pipeline", "runtime-value-denotation", "surface-expr-node-coverage", "expanded-diagnostics", "source-span-diagnostics", "first20-completion"]:
         require(feature in features, f"coverage-dashboard missing {feature}")
 
 
@@ -175,6 +226,7 @@ def check_tests_and_docs() -> None:
         "first20_diagnostics_are_expanded_and_source_spanned",
         "first20_extract_ir_and_runtime_semantics_are_documented",
         "extract_ir_snapshot_tracks_generated_function_order",
+        "surface_expr_constructor_coverage_is_exhaustive",
         "LRC014",
         "runtimeValueHasType",
     ]:
@@ -218,6 +270,7 @@ def main() -> None:
     check_required_files()
     check_extract_ir()
     check_runtime_denotation()
+    check_surface_coverage()
     check_diagnostics()
     check_corpus()
     check_reports()

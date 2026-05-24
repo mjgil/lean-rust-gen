@@ -168,6 +168,11 @@ fixtures or hard-coded expected values. The differential test suite covers
 structs, enums, `Result`, monomorphized exports, payload matches, and call chains
 against the generated Rust crate.
 
+`LeanRustCore.SurfaceCoverage` now closes the remaining gap for the checked
+surface layer: it enumerates every `SurfaceExpr` constructor, runs
+`typeOfExpected` and `evalSurfaceExpr` coverage for each node, and is enforced
+by the first-20 completion gate plus `rust/tests/first20_completion.rs`.
+
 ## Newly completed: Rust identifier hygiene and parser-backed validation
 
 `LeanRustCore.RustHygiene` is now the single place that maps source names to
@@ -364,3 +369,8 @@ and `runtimeValueHasType`, so structs, enums, and recursive payload names have a
 checked semantic carrier rather than placeholder values. This is covered by
 `docs/RUNTIME_SEMANTICS.md`, `rust/tests/first20_completion.rs`, and
 `scripts/check-first-20-completion.py`.
+
+The same first-20 gate now also proves exhaustive `SurfaceExpr` node coverage.
+`LeanRustCore.SurfaceCoverage.surfaceCoverageConstructorNames` must match the
+current `SurfaceExpr` definition exactly, and `docs/RUNTIME_SEMANTICS.md` must
+document every constructor by name.

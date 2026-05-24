@@ -18,6 +18,7 @@ import LeanRustCore.Defunctionalization
 import LeanRustCore.PropertyCorpus
 import LeanRustCore.CoverageDashboard
 import LeanRustCore.Diagnostics
+import LeanRustCore.SurfaceCoverage
 import LeanRustCore.CrateDesign
 import LeanRustCore.ReleaseMatrix
 import LeanRustCore.TypeclassSpecialization
@@ -318,6 +319,11 @@ def checks : List ValidationCheck := [
     detail := LeanRustCore.runtimeDenotationSummary
   },
   {
+    name := "surface-expr-node-coverage",
+    status := "passed",
+    detail := LeanRustCore.SurfaceCoverage.surfaceCoverageSummary
+  },
+  {
     name := "ci-end-to-end-matrix",
     status := "passed",
     detail := "scripts/check-ci-e2e.sh and the GitHub Actions matrix run Lean build/generation, snapshot checks, artifact consistency, Rust workspace tests, fmt, clippy, FFI feature tests, and header/runtime/validator crate tests"
@@ -464,7 +470,7 @@ private def featureSummaryJson : String :=
   "    \"typeclass_specialization\": [\"BEq\", \"Decidable\", \"DecidableEq\", \"Ord\", \"Inhabited\", \"ToString\", \"Repr\", \"Monad.Option\", \"Monad.Except\"],\n" ++
   "    \"pure_effects\": [\"Option\", \"Except\", \"ReaderT\", \"StateM\"],\n" ++
   "    \"final16_completion\": [\"property/fuzz corpus\", \"quantitative coverage\", \"diagnostics\", \"workspace crate split\", \"generated/runtime/ABI/validate/headers crates\", \"release matrix\"],\n" ++
-  "    \"first20_completion\": [\"ci end-to-end matrix\", \"expanded diagnostics\", \"source spans\", \"ExtractIR pipeline\", \"RuntimeValue denotation\"],\n" ++
+  "    \"first20_completion\": [\"ci end-to-end matrix\", \"expanded diagnostics\", \"source spans\", \"ExtractIR pipeline\", \"RuntimeValue denotation\", \"SurfaceExpr coverage\"],\n" ++
   "    \"remaining_completion\": [\"generated dictionaries\", \"first-class closures\", \"pure do\", \"controlled IO\", \"complete semantics\", \"preservation skeleton\", \"property generators\", \"feature-complete coverage\", \"CI matrix\", \"publishing\"]\n" ++
   "  },\n"
 

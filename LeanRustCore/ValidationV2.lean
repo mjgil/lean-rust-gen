@@ -5,6 +5,7 @@ import LeanRustCore.Toolchain
 import LeanRustCore.PropertyCorpus
 import LeanRustCore.CoverageDashboard
 import LeanRustCore.Diagnostics
+import LeanRustCore.SurfaceCoverage
 import LeanRustCore.CrateDesign
 import LeanRustCore.ReleaseMatrix
 import LeanRustCore.TypeclassSpecialization
@@ -78,9 +79,10 @@ def coverageEntries : List CoverageEntry := [
   { feature := "user-facing-diagnostics", status := "supported-stable-codes", examples := ["Diagnostics.templates", "LRC001-LRC005", "docs/DIAGNOSTICS.md"] },
   { feature := "rust-workspace-crate-split", status := "supported-workspace", examples := ["lean-rust-core-generated", "lean-rust-core-runtime", "lean-rust-core-abi", "lean-rust-core-validate", "lean-rust-core-headers"] },
   { feature := "release-acceptance-matrix", status := "supported-scripted-gates", examples := ["ReleaseMatrix.gates", "scripts/check-final-16-completion.py", "docs/RELEASE_CHECKLIST.md"] },
-  { feature := "first20-completion", status := "supported-complete", examples := ["ExtractIR", "RuntimeValue", "expanded diagnostics", "source spans", "CI e2e matrix"] },
+  { feature := "first20-completion", status := "supported-complete", examples := ["ExtractIR", "RuntimeValue", "SurfaceExpr coverage", "expanded diagnostics", "source spans", "CI e2e matrix"] },
   { feature := "extract-ir-pipeline", status := "supported", examples := ["DeclarationMetadata", "functionFeatureTags", "extractIRSnapshot"] },
   { feature := "runtime-value-denotation", status := "supported", examples := ["RuntimeValue", "runtimeValueHasType", "runtimeDenotationSummary"] },
+  { feature := "surface-expr-node-coverage", status := "supported", examples := ["SurfaceCoverage.surfaceCoverageComplete", "typeOfExpected", "evalSurfaceExpr"] },
   { feature := "expanded-diagnostics", status := "supported", examples := ["LRC001-LRC014", "SourceRange", "instanceHasRequiredSpan"] },
   { feature := "source-span-diagnostics", status := "supported", examples := ["SourceSpan", "sourceSpanSummary", "instanceHasRequiredSpan"] },
   { feature := "runtime-denotation-model", status := "supported", examples := ["RuntimeValue", "runtimeValueHasType", "runtimeDenotationSummary"] },
@@ -141,6 +143,6 @@ def coverageDashboardJson : String :=
 
 /-- Human-readable validation-v2 summary. -/
 def validationV2Summary : String :=
-  "target-validation v2 records box/deref fingerprints, completed rows 21-40 numeric/generic/dependent-erasure/recursive-layout/ownership/pattern-matrix/recursion-analysis/Std/typeclass coverage, first-20 ExtractIR/runtime-denotation/diagnostic/source-span/CI coverage, and remaining rows 41-63 dictionary/closure/pure-do/IO/semantics/preservation/generator/coverage/CI/publishing coverage; rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
+  "target-validation v2 records box/deref fingerprints, completed rows 21-40 numeric/generic/dependent-erasure/recursive-layout/ownership/pattern-matrix/recursion-analysis/Std/typeclass coverage, first-20 ExtractIR/runtime-denotation/SurfaceExpr-coverage/diagnostic/source-span/CI coverage, and remaining rows 41-63 dictionary/closure/pure-do/IO/semantics/preservation/generator/coverage/CI/publishing coverage; rust/coverage-dashboard.json records feature-family coverage from the same trusted metadata surface"
 
 end LeanRustCore.ValidationV2

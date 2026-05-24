@@ -172,8 +172,16 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
         .first20_completion
         .iter()
         .any(|item| item == "ExtractIR pipeline"));
+    assert!(validation
+        .feature_summary
+        .first20_completion
+        .iter()
+        .any(|item| item == "SurfaceExpr coverage"));
     assert!(validation.checks.iter().any(|check| {
         check.name == "next20-base-type-universe" && check.status == ValidationCheckStatus::Passed
+    }));
+    assert!(validation.checks.iter().any(|check| {
+        check.name == "surface-expr-node-coverage" && check.status == ValidationCheckStatus::Passed
     }));
     assert!(validation.checks.iter().any(|check| {
         check.name == "next20-std-implementation" && check.status == ValidationCheckStatus::Passed
@@ -206,6 +214,7 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
     );
     assert!(proof.policy.extract_ir_pipeline);
     assert!(proof.policy.runtime_value_denotation);
+    assert!(proof.policy.surface_expr_constructor_coverage);
     assert!(proof.policy.source_span_diagnostics);
     assert!(proof.policy.ci_end_to_end_matrix);
     assert!(proof.policy.remaining_completion_rows_41_63);
@@ -234,6 +243,10 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
         .entries
         .iter()
         .any(|entry| entry.feature == "extract-ir-pipeline"));
+    assert!(coverage
+        .entries
+        .iter()
+        .any(|entry| entry.feature == "surface-expr-node-coverage"));
     assert!(coverage
         .entries
         .iter()
@@ -347,6 +360,7 @@ fn validation_report_records_current_subset_gates() {
     assert!(report.contains("finite-defunctionalization"));
     assert!(report.contains("recursive-user-data-box-layout"));
     assert!(report.contains("target-validation-v2-coverage-dashboard"));
+    assert!(report.contains("surface-expr-node-coverage"));
     assert!(report.contains("coverage-dashboard-json-parse-validation"));
     assert!(report.contains("typeclass-dictionary-erasure"));
     assert!(report.contains("transitive-helper-extraction"));

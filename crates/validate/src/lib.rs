@@ -156,6 +156,7 @@ pub struct ProofPolicy {
     pub remaining_completion_rows_41_63: bool,
     pub runtime_denotation_model: bool,
     pub runtime_value_denotation: bool,
+    pub surface_expr_constructor_coverage: bool,
     pub rust_generic_emission_policy_final: bool,
     pub rust_workspace_crate_split: bool,
     pub source_span_diagnostics: bool,

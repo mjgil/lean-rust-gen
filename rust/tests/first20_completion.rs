@@ -7,6 +7,8 @@ const GENERATED_SOURCE: &str = include_str!("../src/generated.rs");
 const EXTRACT_IR_SNAPSHOT: &str = include_str!("../extract-ir.txt");
 const EXTRACT_IR: &str = include_str!("../../LeanRustCore/ExtractIR.lean");
 const IR: &str = include_str!("../../LeanRustCore/IR.lean");
+const SURFACE: &str = include_str!("../../LeanRustCore/Surface.lean");
+const SURFACE_COVERAGE: &str = include_str!("../../LeanRustCore/SurfaceCoverage.lean");
 const DIAGNOSTICS: &str = include_str!("../../LeanRustCore/Diagnostics.lean");
 const DIAGNOSTICS_DOC: &str = include_str!("../../docs/DIAGNOSTICS.md");
 const EXTRACT_IR_DOC: &str = include_str!("../../docs/EXTRACT_IR.md");
@@ -24,6 +26,55 @@ fn generated_function_names() -> Vec<&'static str> {
         .collect()
 }
 
+fn surface_expr_constructor_names() -> Vec<String> {
+    let mut in_surface_expr = false;
+    let mut names = Vec::new();
+    for line in SURFACE.lines() {
+        let trimmed = line.trim();
+        if trimmed == "inductive SurfaceExpr where" {
+            in_surface_expr = true;
+            continue;
+        }
+        if in_surface_expr {
+            if trimmed.starts_with("deriving ") {
+                break;
+            }
+            if let Some(rest) = trimmed.strip_prefix("| ") {
+                let name = rest
+                    .split_whitespace()
+                    .next()
+                    .expect("SurfaceExpr constructor should have a name");
+                names.push(name.to_string());
+            }
+        }
+    }
+    names
+}
+
+fn covered_surface_expr_constructor_names() -> Vec<String> {
+    let start = SURFACE_COVERAGE
+        .find("BEGIN_SURFACE_CONSTRUCTOR_COVERAGE_NAMES")
+        .expect("SurfaceCoverage should mark constructor coverage names");
+    let end = SURFACE_COVERAGE
+        .find("END_SURFACE_CONSTRUCTOR_COVERAGE_NAMES")
+        .expect("SurfaceCoverage should mark constructor coverage names end");
+    SURFACE_COVERAGE[start..end]
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            if trimmed.starts_with('"') {
+                trimmed
+                    .trim_end_matches(',')
+                    .strip_prefix('"')
+                    .and_then(|value| value.strip_suffix('"'))
+                    .map(ToOwned::to_owned)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 #[test]
 fn first20_reports_record_required_completion_metadata() {
     let proof: serde_json::Value = serde_json::from_str(PROOF_REPORT).unwrap();
@@ -37,6 +88,7 @@ fn first20_reports_record_required_completion_metadata() {
         "LeanRustCore.ExtractIR.lowerDecl?",
         "LeanRustCore.ExtractIR.extractIRSnapshot",
         "LeanRustCore.IR.runtimeValueHasType",
+        "LeanRustCore.SurfaceCoverage.surfaceCoverageComplete",
         "LeanRustCore.Diagnostics.SourceSpan",
     ] {
         assert!(
@@ -48,6 +100,7 @@ fn first20_reports_record_required_completion_metadata() {
     let policy = proof["policy"].as_object().unwrap();
     assert_eq!(policy["extract_ir_pipeline"], true);
     assert_eq!(policy["runtime_value_denotation"], true);
+    assert_eq!(policy["surface_expr_constructor_coverage"], true);
     assert_eq!(policy["expanded_diagnostic_codes"], "LRC001-LRC014");
     assert_eq!(policy["source_span_diagnostics"], true);
 
@@ -61,6 +114,7 @@ fn first20_reports_record_required_completion_metadata() {
         "extract-ir-pipeline",
         "extract-ir-mandatory-stage",
         "runtime-value-denotation",
+        "surface-expr-node-coverage",
         "expanded-diagnostic-codes",
         "source-span-diagnostics",
         "first20-completion-gate",
@@ -77,6 +131,7 @@ fn first20_reports_record_required_completion_metadata() {
     for required in [
         "extract-ir-pipeline",
         "runtime-value-denotation",
+        "surface-expr-node-coverage",
         "expanded-diagnostics",
         "source-span-diagnostics",
         "first20-completion",
@@ -129,6 +184,27 @@ fn first20_extract_ir_and_runtime_semantics_are_documented() {
     assert!(!IR.contains("| .enum _ _ => Nat"));
     assert!(!IR.contains("| .recursive _ => Unit"));
     assert!(RUNTIME_DOC.contains("RuntimeValue subtype witnesses"));
+}
+
+#[test]
+fn surface_expr_constructor_coverage_is_exhaustive() {
+    let surface = surface_expr_constructor_names();
+    let covered = covered_surface_expr_constructor_names();
+    assert_eq!(surface, covered);
+
+    let surface_set = surface.iter().cloned().collect::<BTreeSet<_>>();
+    let covered_set = covered.iter().cloned().collect::<BTreeSet<_>>();
+    assert_eq!(surface_set, covered_set);
+
+    for name in &surface {
+        assert!(
+            RUNTIME_DOC.contains(&format!("`{name}`")),
+            "runtime semantics docs should explain `{name}`"
+        );
+    }
+
+    assert!(SURFACE_COVERAGE.contains("surfaceCoverageComplete"));
+    assert!(SURFACE_COVERAGE.contains("surfaceCoverageSummary"));
 }
 
 #[test]
