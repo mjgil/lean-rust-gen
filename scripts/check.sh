@@ -3,6 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ./scripts/check-no-placeholders.sh
+./scripts/check-open-source-surface.sh
 ./scripts/check-toolchain-pins.sh
 ./scripts/check-first-20-completion.py
 ./scripts/check-next-20-completion.py

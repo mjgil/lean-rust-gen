@@ -1,6 +1,8 @@
 /.lake/
 /target/
 /rust/target/
+.ai-history/
+repomix-output.xml
 *.olean
 *.ilean
 *.c

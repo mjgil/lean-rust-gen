@@ -5,6 +5,9 @@
 - Productionized workspace publishing/versioning checks with manifest metadata,
   dependency/license audit, changelog validation, docs build verification, and
   per-crate `cargo publish --dry-run` release gating.
+- Removed tracked local artifacts from the public release surface, added
+  explicit open-source hygiene checks, and replaced the placeholder repository
+  license file with full Apache-2.0 and MIT license texts.
 
 ## 0.2.0
 

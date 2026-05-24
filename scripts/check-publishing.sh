@@ -12,7 +12,9 @@ mkdir -p "$tmpdir/repo"
 rsync \
   -a \
   --exclude '.git' \
+  --exclude '.ai-history' \
   --exclude '.lake' \
+  --exclude 'repomix-output.xml' \
   --exclude 'target' \
   --exclude '__pycache__' \
   --exclude '*.pyc' \

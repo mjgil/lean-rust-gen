@@ -47,7 +47,9 @@ It runs the metadata/changelog audit in-place, then copies the repo to a clean
 temporary release tree before running the workspace docs build, dependency tree,
 and exact `cargo publish --dry-run -p <crate>` commands. The copy step avoids
 false negatives from unrelated local worktree changes while still validating the
-checked source.
+checked source. Local-only artifacts such as `.ai-history/` state files and
+`repomix-output.xml` are excluded from that release tree and are guarded by
+`scripts/check-open-source-surface.sh`.
 
 For `lean-rust-core-generated`, package verification intentionally uses the
 checked-in `src/generated.rs` when the packaged tarball does not contain the
