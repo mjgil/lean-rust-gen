@@ -687,3 +687,16 @@ boundary contract without exposing host IO, ambient environment reads, or task
 scheduling in the default lane. Ambient effects such as `IO.FS.readFile`,
 arbitrary `IO` / `EIO`, and `Task` remain in the `LRC004` rejection path and
 are still covered by the unsupported corpus.
+
+## Final release signoff
+
+The final release architecture now ends in two matching proofs:
+
+- local scripted release parity via `./scripts/check-open-source-surface.sh`,
+  `./scripts/check-publishing.sh`, and `./scripts/check.sh`
+- public GitHub Actions parity via `.github/workflows/ci.yml`, which runs
+  `./scripts/check-ci-e2e.sh` across Linux/macOS and `default`/`ffi`
+
+The checked completion snapshot is commit `8bb2ae0`, and GitHub Actions run
+`26365947268` is the first public run that proves all four required matrix jobs
+completed green on that exact source state.

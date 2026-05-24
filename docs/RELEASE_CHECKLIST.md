@@ -199,3 +199,25 @@ GitHub Actions runs these combinations through the scripted lane helper:
 `.github/workflows/ci.yml` executes that helper across the Linux/macOS by
 default/`ffi` matrix, so the checked workflow and the local scripted path use
 the same commands.
+
+## Final signoff evidence
+
+Task 74 is complete only when the local release gates and the public GitHub
+Actions matrix agree on the same checked source state.
+
+The final completion evidence for this snapshot is:
+
+- local release-gate parity:
+  - `./scripts/check-open-source-surface.sh`
+  - `./scripts/check-publishing.sh`
+  - `env CARGO_TARGET_DIR=/tmp/lean-rust-gen-target ./scripts/check.sh`
+- real CI proof:
+  - workflow: `lean-rust-core`
+  - run: `26365947268`
+  - commit: `8bb2ae0`
+  - result: green on `ubuntu-latest`/`macos-latest` for both `default` and
+    `ffi`
+
+The remaining GitHub annotations on that run are non-blocking platform
+warnings: the `actions/checkout@v4` Node 20 deprecation notice and a macOS
+cache-save warning. Neither annotation changed the successful job conclusions.
