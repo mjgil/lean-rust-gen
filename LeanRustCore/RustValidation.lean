@@ -284,6 +284,11 @@ def checks : List ValidationCheck := [
     detail := "rust/coverage-dashboard.json parses as JSON and records target-validation-v2 feature-family coverage"
   },
   {
+    name := "coverage-dashboard-evidence-derived",
+    status := "passed",
+    detail := "rust/coverage-dashboard.json now records explicit implementation, test, documentation, generated-example, and diagnostic evidence for every supported feature row"
+  },
+  {
     name := "property-fuzz-corpus",
     status := "passed",
     detail := LeanRustCore.PropertyCorpus.propertyCorpusSummary

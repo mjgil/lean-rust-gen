@@ -366,7 +366,16 @@ again. `LeanRustCore.PropertyCorpus`, `CoverageDashboard`, `Diagnostics`,
 `CrateDesign`, and `ReleaseMatrix` define the completion metadata that feeds the
 proof report, validation report, and coverage dashboard.
 
-The Rust side is now an explicit workspace rooted at [Cargo.toml](/home/m/git/lean-rust-gen/Cargo.toml) with five crates: the generated crate in `rust/`, plus dedicated runtime, ABI, validation, and header crates under `crates/`. This keeps safe runtime helpers, unsafe FFI contracts, artifact-validation code, and header generation isolated while preserving `lean-rust-core-generated` as the main generated API surface.
+The Rust side is now an explicit workspace rooted at `Cargo.toml` with five
+crates: the generated crate in `rust/`, plus dedicated runtime, ABI,
+validation, and header crates under `crates/`. This keeps safe runtime helpers,
+unsafe FFI contracts, artifact-validation code, and header generation isolated
+while preserving `lean-rust-core-generated` as the main generated API surface.
+
+The public release surface intentionally excludes local tooling artifacts such
+as `.ai-history/` state and `repomix-output.xml`. Release checks validate the
+tracked tree and documentation surface rather than machine-local assistant or
+aggregation outputs.
 
 `lean-rust-core-validate` now owns strict typed schemas for `rust/validation-report.json`, `rust/compatibility-report.json`, `rust/proof-report.json`, `rust/build-metadata.json`, and `rust/coverage-dashboard.json`. Those structs use `serde` with `deny_unknown_fields`, and `rust/tests/validation_report.rs` parses the checked-in reports through that crate before checking counts, status enums, and feature flags against generated artifacts.
 
@@ -444,6 +453,15 @@ Surface evaluator remains fuel-bounded.
 Known recursive, index-free user inductives now lower recursive payload fields through owned `Box<T>` in the safe Rust lane. The initial fixtures are `BinaryTreeU32` and `ExprU32`, including recursive construction, recursive pattern matching, and recursive function calls.
 
 The target-validation artifact now uses `lean-rust-core.target-validation.v2`, which records `box(...)` and `deref(...)` fingerprints. `LeanRustCore.ValidationV2` also emits `rust/coverage-dashboard.json`, a machine-readable feature-family dashboard consumed by validation gates.
+
+Task 66 closes the last manual-dashboard gap: every supported dashboard entry is
+now emitted with explicit `implementation`, `tests`, `docs`,
+`generated_examples`, and `diagnostics` evidence lists. The Lean theorem
+`LeanRustCore.ValidationV2.coverage_entries_require_evidence`, the typed
+validator schema, `rust/tests/validation_report.rs`,
+`rust/tests/final16_property_coverage.rs`, and
+`scripts/check-final-16-completion.py` together ensure coverage claims stay
+derived from real repo artifacts rather than drifting declaration rows.
 
 ## First-20 pipeline completion
 

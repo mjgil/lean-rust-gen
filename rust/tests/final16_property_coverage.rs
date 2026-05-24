@@ -1,10 +1,18 @@
 use std::collections::BTreeSet;
+use std::path::PathBuf;
 
 use lean_rust_core_generated::runtime::*;
 use lean_rust_core_generated::*;
 
 const COVERAGE_DASHBOARD: &str = include_str!("../coverage-dashboard.json");
 const PROPERTY_SEEDS: &str = include_str!("../../corpus/property/seeds.json");
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("rust crate should live under the repo root")
+        .to_path_buf()
+}
 
 #[test]
 fn property_seed_families_are_present_and_exercised() {
@@ -54,4 +62,44 @@ fn quantitative_coverage_dashboard_has_required_denominators() {
             "missing dashboard denominator {denominator}"
         );
     }
+}
+
+#[test]
+fn coverage_dashboard_entries_are_evidence_backed() {
+    let dashboard: serde_json::Value = serde_json::from_str(COVERAGE_DASHBOARD).unwrap();
+    let docs = include_str!("../../docs/COVERAGE.md");
+
+    for entry in dashboard["entries"]
+        .as_array()
+        .expect("coverage dashboard entries")
+    {
+        let feature = entry["feature"].as_str().expect("coverage feature");
+        let evidence = entry["evidence"].as_object().expect("coverage evidence");
+        for key in [
+            "implementation",
+            "tests",
+            "docs",
+            "generated_examples",
+            "diagnostics",
+        ] {
+            let values = evidence[key].as_array().expect("coverage evidence list");
+            assert!(
+                !values.is_empty(),
+                "coverage entry {feature} is missing {key} evidence"
+            );
+            if key != "diagnostics" {
+                for value in values {
+                    let relative = value.as_str().expect("coverage evidence path");
+                    assert!(
+                        repo_root().join(relative).exists(),
+                        "coverage entry {feature} points to missing {key} path {relative}"
+                    );
+                }
+            }
+        }
+    }
+
+    assert!(docs.contains("evidence"));
+    assert!(docs.contains("generated_examples"));
+    assert!(docs.contains("diagnostics"));
 }

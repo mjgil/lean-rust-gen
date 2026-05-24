@@ -257,7 +257,18 @@ pub enum CoverageEntryStatus {
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct CoverageEvidence {
+    pub diagnostics: Vec<String>,
+    pub docs: Vec<String>,
+    pub generated_examples: Vec<String>,
+    pub implementation: Vec<String>,
+    pub tests: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CoverageEntry {
+    pub evidence: CoverageEvidence,
     pub examples: Vec<String>,
     pub feature: String,
     pub status: CoverageEntryStatus,
@@ -370,6 +381,11 @@ mod tests {
             coverage.entries[0].status,
             CoverageEntryStatus::SupportedKnownSlice
         );
+        assert!(!coverage.entries[0].evidence.implementation.is_empty());
+        assert!(!coverage.entries[0].evidence.tests.is_empty());
+        assert!(!coverage.entries[0].evidence.docs.is_empty());
+        assert!(!coverage.entries[0].evidence.generated_examples.is_empty());
+        assert!(!coverage.entries[0].evidence.diagnostics.is_empty());
     }
 
     #[test]

@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::path::PathBuf;
 
 use lean_rust_core_validate::{
     parse_build_metadata_report, parse_compatibility_report, parse_coverage_dashboard,
@@ -47,6 +48,22 @@ fn typed_build_metadata() -> BuildMetadataReport {
 fn typed_coverage_dashboard() -> CoverageDashboard {
     parse_coverage_dashboard(COVERAGE_DASHBOARD)
         .unwrap_or_else(|err| panic!("coverage-dashboard.json should match typed schema: {err}"))
+}
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("rust crate should live under the repo root")
+        .to_path_buf()
+}
+
+fn assert_repo_paths_exist(paths: &[String], feature: &str, field: &str) {
+    for relative in paths {
+        assert!(
+            repo_root().join(relative).exists(),
+            "coverage entry {feature} points to missing {field} path {relative}"
+        );
+    }
 }
 
 #[test]
@@ -104,6 +121,10 @@ fn typed_report_schemas_are_strict_and_complete() {
     assert_eq!(proof.rust_toolchain, "1.85.0");
     assert!(!proof.trusted_core.is_empty());
     assert!(!proof.facts.is_empty());
+    assert!(proof
+        .trusted_core
+        .iter()
+        .any(|item| item == "LeanRustCore.ValidationV2.coverage_entries_require_evidence"));
 
     let build = typed_build_metadata();
     assert_eq!(build.format, "lean-rust-core.build-metadata.v1");
@@ -187,6 +208,10 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
         check.name == "surface-expr-node-coverage" && check.status == ValidationCheckStatus::Passed
     }));
     assert!(validation.checks.iter().any(|check| {
+        check.name == "coverage-dashboard-evidence-derived"
+            && check.status == ValidationCheckStatus::Passed
+    }));
+    assert!(validation.checks.iter().any(|check| {
         check.name == "next20-std-implementation" && check.status == ValidationCheckStatus::Passed
     }));
     assert!(validation
@@ -222,6 +247,10 @@ fn typed_report_counts_and_feature_flags_match_generated_artifacts() {
     assert!(proof.policy.ci_end_to_end_matrix);
     assert!(proof.policy.remaining_completion_rows_41_63);
     assert_eq!(proof.policy.expanded_diagnostic_codes, "LRC001-LRC014");
+    assert!(proof.facts.iter().any(|fact| {
+        fact.name == "coverage_dashboard_evidence_derived"
+            && fact.statement.contains("implementation")
+    }));
 
     assert_eq!(build.generated_artifacts.len(), 10);
     assert!(build
@@ -600,6 +629,68 @@ fn coverage_dashboard_records_feature_families() {
     assert!(text.contains("property-seed-validation"));
     assert!(text.contains("BinaryTreeU32"));
     assert!(text.contains("ExprU32"));
+}
+
+#[test]
+fn coverage_dashboard_entries_are_backed_by_repo_evidence() {
+    let dashboard = typed_coverage_dashboard();
+    let diagnostic_text = [
+        VALIDATION_REPORT,
+        COMPATIBILITY_REPORT,
+        PROOF_REPORT,
+        include_str!("../../docs/DIAGNOSTICS.md"),
+    ]
+    .join("\n");
+
+    for entry in &dashboard.entries {
+        assert!(
+            !entry.evidence.implementation.is_empty(),
+            "coverage entry {} is missing implementation evidence",
+            entry.feature
+        );
+        assert!(
+            !entry.evidence.tests.is_empty(),
+            "coverage entry {} is missing test evidence",
+            entry.feature
+        );
+        assert!(
+            !entry.evidence.docs.is_empty(),
+            "coverage entry {} is missing docs evidence",
+            entry.feature
+        );
+        assert!(
+            !entry.evidence.generated_examples.is_empty(),
+            "coverage entry {} is missing generated-example evidence",
+            entry.feature
+        );
+        assert!(
+            !entry.evidence.diagnostics.is_empty(),
+            "coverage entry {} is missing diagnostic evidence",
+            entry.feature
+        );
+
+        assert_repo_paths_exist(
+            &entry.evidence.implementation,
+            &entry.feature,
+            "implementation",
+        );
+        assert_repo_paths_exist(&entry.evidence.tests, &entry.feature, "tests");
+        assert_repo_paths_exist(&entry.evidence.docs, &entry.feature, "docs");
+        assert_repo_paths_exist(
+            &entry.evidence.generated_examples,
+            &entry.feature,
+            "generated_examples",
+        );
+
+        for diagnostic in &entry.evidence.diagnostics {
+            assert!(
+                diagnostic_text.contains(diagnostic),
+                "coverage entry {} points to unknown diagnostic evidence {}",
+                entry.feature,
+                diagnostic
+            );
+        }
+    }
 }
 
 #[test]

@@ -117,6 +117,7 @@ def check_tests_and_docs() -> None:
     for needle in [
         "property_seed_families_are_present_and_exercised",
         "quantitative_coverage_dashboard_has_required_denominators",
+        "coverage_dashboard_entries_are_evidence_backed",
         "diagnostics_and_docs_are_declared_for_unsupported_constructs",
         "rust_workspace_crate_split_is_visible_to_tests",
         "publishing_metadata_and_semver_policy_are_visible_to_tests",
@@ -130,6 +131,9 @@ def check_tests_and_docs() -> None:
         text = read(path).lower()
         require("test" in text or "tests" in text, f"{path} must describe tests")
         require("doc" in text or "documentation" in text, f"{path} must describe documentation")
+    coverage_doc = read("docs/COVERAGE.md").lower()
+    for needle in ["evidence", "generated_examples", "diagnostics", "implementation", "derived"]:
+        require(needle in coverage_doc, f"docs/COVERAGE.md missing evidence-derived dashboard guidance for {needle}")
 
     publishing = read("docs/PUBLISHING.md")
     for needle in [
@@ -154,6 +158,7 @@ def check_reports() -> None:
     required_checks = [
         "property-fuzz-corpus",
         "quantitative-coverage-dashboard",
+        "coverage-dashboard-evidence-derived",
         "user-facing-diagnostics",
         "rust-workspace-crate-split",
         "generated-crate-final-api",
@@ -174,6 +179,15 @@ def check_reports() -> None:
         "release-acceptance-matrix",
     ]:
         require(feature in features, f"coverage-dashboard missing {feature}")
+    for entry in coverage.get("entries", []):
+        evidence = entry.get("evidence")
+        require(isinstance(evidence, dict), f"coverage entry {entry.get('feature')} missing evidence object")
+        for key in ["implementation", "tests", "docs", "generated_examples", "diagnostics"]:
+            values = evidence.get(key)
+            require(isinstance(values, list) and values, f"coverage entry {entry.get('feature')} missing {key} evidence")
+            if key != "diagnostics":
+                for relative in values:
+                    require((ROOT / relative).exists(), f"coverage entry {entry.get('feature')} points to missing {key} path {relative}")
     metrics = {metric["denominator"] for metric in coverage.get("metrics", [])}
     for denominator in ["checklist_rows_41_56", "rust_workspace_crates", "final_docs", "property_seed_families", "release_acceptance_gates"]:
         require(denominator in metrics, f"coverage-dashboard metrics missing {denominator}")

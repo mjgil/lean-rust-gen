@@ -8,6 +8,7 @@ documentation, reproducible generated artifacts, and safe-lane/FFI separation.
 | Gate | Command |
 |---|---|
 | lean-build | `lake build` |
+| open-source-surface | `scripts/check-open-source-surface.sh` |
 | generated-snapshot | `scripts/check-extractor-snapshot.sh` |
 | artifact-consistency | `scripts/check-artifact-consistency.py` |
 | final-checklist | `scripts/check-final-16-completion.py` |
@@ -71,6 +72,11 @@ controlled IO boundary metadata, complete target semantics, preservation
 obligations, property generators, feature-complete coverage, CI matrix metadata,
 and publishing/versioning metadata.
 
+The final-16 gate now also enforces evidence-derived coverage rows:
+`rust/coverage-dashboard.json` must carry nonempty `implementation`, `tests`,
+`docs`, `generated_examples`, and `diagnostics` lists for every supported
+feature entry, and those repo paths must exist.
+
 Publishing dry-runs are required before external crate release:
 
 ```text
@@ -92,6 +98,7 @@ tests, and the `ffi` feature tests on the pinned toolchains.
 
 ```text
 lake build
+./scripts/check-open-source-surface.sh
 ./scripts/check.sh
 cargo metadata --no-deps --format-version 1
 cargo test --workspace
