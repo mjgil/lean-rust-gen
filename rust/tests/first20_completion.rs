@@ -7,11 +7,13 @@ const GENERATED_SOURCE: &str = include_str!("../src/generated.rs");
 const EXTRACT_IR_SNAPSHOT: &str = include_str!("../extract-ir.txt");
 const EXTRACT_IR: &str = include_str!("../../LeanRustCore/ExtractIR.lean");
 const IR: &str = include_str!("../../LeanRustCore/IR.lean");
+const COMPLETE_SEMANTICS: &str = include_str!("../../LeanRustCore/CompleteSemantics.lean");
 const SURFACE: &str = include_str!("../../LeanRustCore/Surface.lean");
 const SURFACE_COVERAGE: &str = include_str!("../../LeanRustCore/SurfaceCoverage.lean");
 const DIAGNOSTICS: &str = include_str!("../../LeanRustCore/Diagnostics.lean");
 const DIAGNOSTICS_DOC: &str = include_str!("../../docs/DIAGNOSTICS.md");
 const EXTRACT_IR_DOC: &str = include_str!("../../docs/EXTRACT_IR.md");
+const SEMANTICS_DOC: &str = include_str!("../../docs/SEMANTICS.md");
 const RUNTIME_DOC: &str = include_str!("../../docs/RUNTIME_SEMANTICS.md");
 const POSITIVE_FIXTURE: &str = include_str!("../../corpus/positive/simple_u32.expected.json");
 const NEGATIVE_FIXTURE: &str =
@@ -184,6 +186,34 @@ fn first20_extract_ir_and_runtime_semantics_are_documented() {
     assert!(!IR.contains("| .enum _ _ => Nat"));
     assert!(!IR.contains("| .recursive _ => Unit"));
     assert!(RUNTIME_DOC.contains("RuntimeValue subtype witnesses"));
+    assert!(SEMANTICS_DOC.contains("Proved semantics"));
+    assert!(SEMANTICS_DOC.contains("Tested semantics"));
+    assert!(RUNTIME_DOC.contains("Proved semantics"));
+    assert!(RUNTIME_DOC.contains("Tested semantics"));
+}
+
+#[test]
+fn first20_complete_semantics_has_representative_examples() {
+    for needle in [
+        "inductive TargetValue",
+        "inductive TargetTerm",
+        "evalTargetTerm",
+        "representativeStructTerm",
+        "representativeEnumTerm",
+        "representativeRecursiveTerm",
+        "representativeDependentFinTerm",
+        "representativeDependentVectorTerm",
+        "representativeClosureTerm",
+        "representativeDictionaryTerm",
+        "representativeEffectOptionTerm",
+        "representativeEffectResultTerm",
+        "representative_semantics_completion_gate",
+    ] {
+        assert!(
+            COMPLETE_SEMANTICS.contains(needle),
+            "CompleteSemantics missing {needle}"
+        );
+    }
 }
 
 #[test]

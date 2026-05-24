@@ -5,6 +5,12 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::collections::BTreeSet;
 
+mod target_semantics;
+
+pub use target_semantics::{
+    eval_target_term, target_grammar_heads, RecursiveTree, TargetTerm, TargetValue,
+};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GeneratedSummary {
     pub functions: BTreeSet<String>,
@@ -307,79 +313,6 @@ pub fn target_validation_counts(snapshot: &str) -> Option<(usize, usize)> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TargetValue {
-    Unit,
-    Bool(bool),
-    U32(u32),
-    ListU32(Vec<u32>),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TargetTerm {
-    Unit,
-    Bool(bool),
-    U32(u32),
-    Add(Box<TargetTerm>, Box<TargetTerm>),
-    Eq(Box<TargetTerm>, Box<TargetTerm>),
-    If(Box<TargetTerm>, Box<TargetTerm>, Box<TargetTerm>),
-    ListLength(Box<TargetTerm>),
-    List(Vec<TargetTerm>),
-}
-
-pub fn eval_target_term(term: &TargetTerm) -> Option<TargetValue> {
-    match term {
-        TargetTerm::Unit => Some(TargetValue::Unit),
-        TargetTerm::Bool(value) => Some(TargetValue::Bool(*value)),
-        TargetTerm::U32(value) => Some(TargetValue::U32(*value)),
-        TargetTerm::Add(a, b) => match (eval_target_term(a)?, eval_target_term(b)?) {
-            (TargetValue::U32(a), TargetValue::U32(b)) => Some(TargetValue::U32(a.wrapping_add(b))),
-            _ => None,
-        },
-        TargetTerm::Eq(a, b) => Some(TargetValue::Bool(
-            eval_target_term(a)? == eval_target_term(b)?,
-        )),
-        TargetTerm::If(cond, when_true, when_false) => match eval_target_term(cond)? {
-            TargetValue::Bool(true) => eval_target_term(when_true),
-            TargetValue::Bool(false) => eval_target_term(when_false),
-            _ => None,
-        },
-        TargetTerm::ListLength(xs) => match eval_target_term(xs)? {
-            TargetValue::ListU32(values) => Some(TargetValue::U32(values.len() as u32)),
-            _ => None,
-        },
-        TargetTerm::List(values) => {
-            let mut out = Vec::new();
-            for value in values {
-                match eval_target_term(value)? {
-                    TargetValue::U32(value) => out.push(value),
-                    _ => return None,
-                }
-            }
-            Some(TargetValue::ListU32(out))
-        }
-    }
-}
-
-pub fn target_grammar_heads() -> &'static [&'static str] {
-    &[
-        "literal",
-        "variable",
-        "let",
-        "if",
-        "match",
-        "loop",
-        "call",
-        "struct",
-        "enum",
-        "box",
-        "deref",
-        "closure",
-        "dictionary",
-        "effect",
-    ]
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -389,52 +322,6 @@ mod tests {
     const PROOF_REPORT_JSON: &str = include_str!("../../../rust/proof-report.json");
     const BUILD_METADATA_JSON: &str = include_str!("../../../rust/build-metadata.json");
     const COVERAGE_DASHBOARD_JSON: &str = include_str!("../../../rust/coverage-dashboard.json");
-
-    #[test]
-    fn generated_subset_semantics_interprets_core_terms() {
-        let term = TargetTerm::If(
-            Box::new(TargetTerm::Eq(
-                Box::new(TargetTerm::U32(1)),
-                Box::new(TargetTerm::U32(1)),
-            )),
-            Box::new(TargetTerm::Add(
-                Box::new(TargetTerm::U32(40)),
-                Box::new(TargetTerm::U32(2)),
-            )),
-            Box::new(TargetTerm::U32(0)),
-        );
-        assert_eq!(eval_target_term(&term), Some(TargetValue::U32(42)));
-        assert_eq!(
-            eval_target_term(&TargetTerm::ListLength(Box::new(TargetTerm::List(vec![
-                TargetTerm::U32(1),
-                TargetTerm::U32(2),
-                TargetTerm::U32(3),
-            ])))),
-            Some(TargetValue::U32(3))
-        );
-    }
-
-    #[test]
-    fn target_grammar_heads_are_complete() {
-        for head in [
-            "literal",
-            "variable",
-            "let",
-            "if",
-            "match",
-            "loop",
-            "call",
-            "struct",
-            "enum",
-            "box",
-            "deref",
-            "closure",
-            "dictionary",
-            "effect",
-        ] {
-            assert!(target_grammar_heads().contains(&head));
-        }
-    }
 
     #[test]
     fn parses_valid_json_and_rejects_malformed_json() {

@@ -194,6 +194,29 @@ This closes the remaining "unsupported path drift" gap: if a future edit drops a
 diagnostic code, changes a span requirement, or removes an extractor rejection
 branch from the checked corpus/docs, the next-20 gate fails before release.
 
+## Newly completed: representative compositional target semantics
+
+`LeanRustCore.IR.Denote` still provides the proved semantic carrier for the
+typed IR, but Task 18 is now closed by adding a second layer:
+`LeanRustCore.CompleteSemantics` defines a small compositional evaluator for
+representative emitted target terms and values, and the validator crate mirrors
+that evaluator with `TargetTerm`, `TargetValue`, and `eval_target_term`.
+
+The representative semantics are intentionally concrete. They evaluate:
+
+- struct literals
+- enum values plus the admitted `Step::Jump`/`Step::Stay` match shape
+- recursive tree construction and summation
+- dependent `Fin` and `Vector` carriers
+- closure capture/application
+- dictionary-mediated `u32` addition
+- pure `Option`/`Result` effect fragments
+- box/deref, let/if, and builtin calls
+
+The first-20 and remaining-completion gates now require the semantics docs to
+separate proved semantics from tested semantics and require the Lean/Rust
+representative evaluators to stay in sync.
+
 ## Newly completed: Rust identifier hygiene and parser-backed validation
 
 `LeanRustCore.RustHygiene` is now the single place that maps source names to

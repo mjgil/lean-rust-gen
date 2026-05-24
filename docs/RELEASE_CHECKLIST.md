@@ -41,6 +41,12 @@ source-span metadata, corpus fixtures, generated report metadata, the mandatory
 `rust/extract-ir.txt` snapshot, and the docs required for every feature in rows
 1 through 20.
 
+That gate now also checks the row-18 semantics split: `docs/SEMANTICS.md` and
+`docs/RUNTIME_SEMANTICS.md` must explicitly separate proved semantics from
+tested semantics, and `LeanRustCore.CompleteSemantics` must carry
+representative compositional evaluator checks for struct, enum, recursive,
+dependent, closure, dictionary, and effect values.
+
 ## Next-20 gate
 
 The next-20 implementation gate must also pass before release:

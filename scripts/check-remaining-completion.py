@@ -66,7 +66,7 @@ def check_lean_modules() -> None:
         "LeanRustCore/FirstClassClosures.lean": ["closureObjects", "StoredClosureU32", "allClosureObjectsComplete", "closure_object_completion_gate"],
         "LeanRustCore/PureDoNotation.lean": ["ExceptT(StateM)", "allPureDoLoweringsComplete", "pure_do_completion_gate"],
         "LeanRustCore/IOBoundary.lean": ["ControlledIOOp", "allIOPoliciesComplete", "io_boundary_completion_gate"],
-        "LeanRustCore/CompleteSemantics.lean": ["TargetGrammarHead", "semanticCoverageComplete", "complete_semantics_completion_gate"],
+        "LeanRustCore/CompleteSemantics.lean": ["TargetGrammarHead", "TargetValue", "TargetTerm", "evalTargetTerm", "representativeSemanticChecks", "semanticCoverageComplete", "complete_semantics_completion_gate"],
         "LeanRustCore/Preservation.lean": ["PreservationSeam", "preservationSkeletonComplete", "preservation_skeleton_completion_gate"],
         "LeanRustCore/PropertyGenerators.lean": ["GeneratorFamily", "allGeneratorsComplete", "property_generators_completion_gate"],
         "LeanRustCore/CoverageCompletion.lean": ["CoverageDenominator", "coverageCompletionComplete", "coverage_completion_gate"],
@@ -114,13 +114,19 @@ def check_rust_runtime_and_validate() -> None:
     ]:
         require(needle in runtime, f"runtime crate missing {needle}")
 
-    validate = read("crates/validate/src/lib.rs")
+    validate = "\n".join(
+        [
+            read("crates/validate/src/lib.rs"),
+            read("crates/validate/src/target_semantics.rs"),
+        ]
+    )
     for needle in [
         "pub enum TargetValue",
         "pub enum TargetTerm",
         "eval_target_term",
         "target_grammar_heads",
         "generated_subset_semantics_interprets_core_terms",
+        "generated_subset_semantics_interprets_representative_values",
         "target_grammar_heads_are_complete",
     ]:
         require(needle in validate, f"validate crate missing {needle}")
@@ -129,6 +135,7 @@ def check_rust_runtime_and_validate() -> None:
     for needle in [
         "remaining_rows_reports_and_dashboard_are_complete",
         "remaining_runtime_features_are_exercised",
+        "remaining_validate_semantics_cover_representative_values",
         "dictionary_add_u32",
         "closure_apply_stored",
         "ControlledIoProgram",

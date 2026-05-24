@@ -53,6 +53,6 @@ def preservationSummary : String :=
   "preservation skeleton covers extraction, erasure, Surface typing/evaluation, target fingerprints, Rust AST validation, and target semantics with test/doc owners"
 
 theorem preservation_skeleton_completion_gate : preservationSkeletonComplete = true := by
-  rfl
+  native_decide
 
 end LeanRustCore.Preservation

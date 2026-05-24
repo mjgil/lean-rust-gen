@@ -181,6 +181,7 @@ grep -q 'closure_apply_capture_u32(5, 37)' "$differential_tests"
 grep -q 'closure_env_apply_add_delta_u32(5, 37)' "$differential_tests"
 grep -q 'defun_apply_u32(U32FnCase::Inc, 41)' "$differential_tests"
 grep -q 'defun_compose_inc_double_u32(20)' "$differential_tests"
+grep -q 'remaining_validate_semantics_cover_representative_values' rust/tests/remaining_completion.rs
 grep -q 'fin_checked10_u32(9)' "$differential_tests"
 grep -q 'vector_map_inc3_u32(vec!\[1, 2, u32::MAX\])' "$differential_tests"
 grep -q 'syn::parse_file' "$parser_validation_tests"
@@ -241,6 +242,7 @@ grep -q '"name": "surface-expr-node-coverage"' "$validation_report"
 grep -q '"name": "ci-end-to-end-matrix"' "$validation_report"
 grep -q 'next20_diagnostic_corpus_covers_all_rejection_paths' rust/tests/next20_completion.rs
 grep -q 'first_twenty_completion_metadata_is_present' rust/tests/first20_completion.rs
+grep -q 'first20_complete_semantics_has_representative_examples' rust/tests/first20_completion.rs
 grep -q 'expanded_diagnostics_and_corpus_are_complete' rust/tests/first20_completion.rs
 grep -q 'surface_expr_constructor_coverage_is_exhaustive' rust/tests/first20_completion.rs
 grep -q 'checklist_rows_1_20' "$coverage_dashboard"

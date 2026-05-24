@@ -4,6 +4,8 @@
 Lean meaning. The first-20 completion checkpoint removes the old placeholder
 semantics for generated aggregates.
 
+## Proved semantics
+
 ## Aggregate semantics
 
 Primitive and ordinary container types use direct Lean values:
@@ -27,6 +29,21 @@ aggregate denotations.
 That means a generated struct is checked field-by-field, a generated enum is
 checked by constructor payload, and a recursive payload records the expected
 recursive type name. These cases no longer collapse to `Unit` or arbitrary `Nat`.
+
+## Tested semantics
+
+The proved carrier above is intentionally low-level: it says which runtime
+values inhabit an emitted type. Task 18 adds a separate tested target-semantics
+layer in `LeanRustCore.CompleteSemantics` and `lean-rust-core-validate` for
+representative emitted constructs such as struct literals, enum matches,
+recursive trees, dependent `Fin`/`Vector` values, closure capture/application,
+dictionary calls, and pure effects.
+
+The release gates now require both layers:
+
+1. Proved semantics: `RuntimeValue` subtype witnesses and `runtimeValueHasType`.
+2. Tested semantics: compositional evaluator examples for representative target
+   terms and values.
 
 ## Testing requirement
 

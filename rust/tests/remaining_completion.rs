@@ -1,4 +1,5 @@
 use lean_rust_core_generated::runtime::*;
+use lean_rust_core_validate::{eval_target_term, RecursiveTree, TargetTerm, TargetValue};
 
 const PROOF_REPORT: &str = include_str!("../proof-report.json");
 const VALIDATION_REPORT: &str = include_str!("../validation-report.json");
@@ -87,4 +88,43 @@ fn remaining_runtime_features_are_exercised() {
         vec![0, 1, 2, 41, 42, u32::MAX]
     );
     assert_eq!(container_property_values_u32()[2], vec![1, 2, u32::MAX]);
+}
+
+#[test]
+fn remaining_validate_semantics_cover_representative_values() {
+    let closure_term = TargetTerm::ClosureApply(
+        Box::new(TargetTerm::ClosureAddDelta(Box::new(TargetTerm::U32(5)))),
+        Box::new(TargetTerm::U32(37)),
+    );
+    assert_eq!(eval_target_term(&closure_term), Some(TargetValue::U32(42)));
+
+    let dictionary_term = TargetTerm::DictionaryApply(
+        Box::new(TargetTerm::DictionaryAdd),
+        Box::new(TargetTerm::U32(u32::MAX)),
+        Box::new(TargetTerm::U32(1)),
+    );
+    assert_eq!(
+        eval_target_term(&dictionary_term),
+        Some(TargetValue::U32(0))
+    );
+
+    let effect_term = TargetTerm::EffectResultBindAdd1(Box::new(TargetTerm::ResultOkU32(
+        Box::new(TargetTerm::U32(41)),
+    )));
+    assert_eq!(
+        eval_target_term(&effect_term),
+        Some(TargetValue::ResultU32U32(Ok(42)))
+    );
+
+    let recursive_term = TargetTerm::RecursiveSum(Box::new(TargetTerm::Value(
+        TargetValue::RecursiveTree(RecursiveTree::Node(
+            Box::new(RecursiveTree::Leaf),
+            42,
+            Box::new(RecursiveTree::Leaf),
+        )),
+    )));
+    assert_eq!(
+        eval_target_term(&recursive_term),
+        Some(TargetValue::U32(42))
+    );
 }

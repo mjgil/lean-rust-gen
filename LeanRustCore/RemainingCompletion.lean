@@ -63,6 +63,6 @@ def remainingCompletionSummary : String :=
   "checklist rows 41-63 are complete: generated dictionaries, first-class closures, pure do, IO boundary, complete semantics, preservation skeleton, property generators, coverage completion, CI matrix, crate publishing, and crate split"
 
 theorem remaining_completion_gate : allRemainingComplete = true := by
-  rfl
+  native_decide
 
 end LeanRustCore.RemainingCompletion

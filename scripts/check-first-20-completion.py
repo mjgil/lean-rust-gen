@@ -54,8 +54,10 @@ def check_required_files() -> None:
         "LeanRustCore/ExtractIR.lean",
         "LeanRustCore/Diagnostics.lean",
         "LeanRustCore/IR.lean",
+        "LeanRustCore/CompleteSemantics.lean",
         "LeanRustCore/SurfaceCoverage.lean",
         "docs/EXTRACT_IR.md",
+        "docs/SEMANTICS.md",
         "docs/RUNTIME_SEMANTICS.md",
         "docs/DIAGNOSTICS.md",
         "docs/TRUSTED_CORE.md",
@@ -131,6 +133,35 @@ def check_runtime_denotation() -> None:
     require(".struct name fields => { value : RuntimeValue" in text, "struct Denote must use RuntimeValue subtype")
     require(".enum name variants => { value : RuntimeValue" in text, "enum Denote must use RuntimeValue subtype")
     require(".recursive name => { value : RuntimeValue" in text, "recursive Denote must use RuntimeValue subtype")
+
+
+def check_complete_semantics() -> None:
+    text = read("LeanRustCore/CompleteSemantics.lean")
+    for needle in [
+        "inductive TargetValue",
+        "inductive TargetTerm",
+        "evalTargetTerm",
+        "representativeSemanticChecks",
+        "representative_semantics_completion_gate",
+        "semanticCoverageComplete",
+    ]:
+        require(needle in text, f"CompleteSemantics missing {needle}")
+    for phrase in [
+        "representative struct",
+        "representative enum",
+        "representative recursive",
+        "representative dependent",
+        "representative closure",
+        "representative dictionary",
+        "representative effect",
+    ]:
+        require(phrase.replace("representative ", "") in text.lower(), f"CompleteSemantics should cover {phrase}")
+    docs = read("docs/SEMANTICS.md").lower()
+    runtime_docs = read("docs/RUNTIME_SEMANTICS.md").lower()
+    require("proved semantics" in docs, "docs/SEMANTICS.md must separate proved semantics")
+    require("tested semantics" in docs, "docs/SEMANTICS.md must separate tested semantics")
+    require("proved semantics" in runtime_docs, "docs/RUNTIME_SEMANTICS.md must separate proved semantics")
+    require("tested semantics" in runtime_docs, "docs/RUNTIME_SEMANTICS.md must separate tested semantics")
 
 
 def check_surface_coverage() -> None:
@@ -308,6 +339,7 @@ def main() -> None:
     check_required_files()
     check_extract_ir()
     check_runtime_denotation()
+    check_complete_semantics()
     check_surface_coverage()
     check_diagnostics()
     check_corpus()
