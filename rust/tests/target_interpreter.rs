@@ -45,7 +45,7 @@ fn generated_subset_semantics_are_executable_for_every_emitted_function() {
     let functions = parse_snapshot_functions();
     assert_eq!(
         functions.len(),
-        126,
+        135,
         "unexpected target-validation function count"
     );
     let functions_by_name = function_map(&functions);

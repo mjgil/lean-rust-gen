@@ -1678,6 +1678,8 @@ private def u32OptionTy : RType := .option .u32
 
 private def u32ResultTy : RType := .result .u32 .u32
 
+private def u32StringResultTy : RType := .result .u32 .string
+
 private def fin10Ty : RType := .fin 10
 
 private def vector3U32Ty : RType := .vector .u32 3
@@ -1763,6 +1765,24 @@ private def sprint13ManualSurfaceFun? (declName : Name) (rustFunName : String) :
       some { name := rustFunName, args := [("xs", u32ArrayTy)], ret := .u32, body := .arrayFoldl "acc" "x" .u32 .u32 (.litU32 0) (.var "xs") (.add .u32 (.var "acc") (.var "x")) }
   | "array_push_u32" =>
       some { name := rustFunName, args := [("xs", u32ArrayTy), ("x", .u32)], ret := u32ArrayTy, body := .arrayPush .u32 (.var "xs") (.var "x") }
+  | "checked_add_u32" =>
+      some { name := rustFunName, args := [("a", .u32), ("b", .u32)], ret := u32OptionTy, body := .call "__runtime_u32_checked_add" [.u32, .u32] u32OptionTy [.var "a", .var "b"] }
+  | "checked_sub_u32" =>
+      some { name := rustFunName, args := [("a", .u32), ("b", .u32)], ret := u32OptionTy, body := .call "__runtime_u32_checked_sub" [.u32, .u32] u32OptionTy [.var "a", .var "b"] }
+  | "checked_div_u32" =>
+      some { name := rustFunName, args := [("a", .u32), ("b", .u32)], ret := u32OptionTy, body := .call "__runtime_u32_checked_div" [.u32, .u32] u32OptionTy [.var "a", .var "b"] }
+  | "checked_mod_u32" =>
+      some { name := rustFunName, args := [("a", .u32), ("b", .u32)], ret := u32OptionTy, body := .call "__runtime_u32_checked_mod" [.u32, .u32] u32OptionTy [.var "a", .var "b"] }
+  | "saturating_add_u32" =>
+      some { name := rustFunName, args := [("a", .u32), ("b", .u32)], ret := .u32, body := .call "__runtime_u32_saturating_add" [.u32, .u32] .u32 [.var "a", .var "b"] }
+  | "saturating_sub_u32" =>
+      some { name := rustFunName, args := [("a", .u32), ("b", .u32)], ret := .u32, body := .call "__runtime_u32_saturating_sub" [.u32, .u32] .u32 [.var "a", .var "b"] }
+  | "preconditioned_div_u32" =>
+      some { name := rustFunName, args := [("a", .u32), ("b", .u32)], ret := u32StringResultTy, body := .call "__runtime_u32_preconditioned_div" [.u32, .u32] u32StringResultTy [.var "a", .var "b"] }
+  | "preconditioned_mod_u32" =>
+      some { name := rustFunName, args := [("a", .u32), ("b", .u32)], ret := u32StringResultTy, body := .call "__runtime_u32_preconditioned_mod" [.u32, .u32] u32StringResultTy [.var "a", .var "b"] }
+  | "checked_cast_u64_to_u32" =>
+      some { name := rustFunName, args := [("x", .u64)], ret := u32OptionTy, body := .call "__runtime_u64_to_u32_checked" [.u64] u32OptionTy [.var "x"] }
   | "fin_checked10_u32" =>
       some { name := rustFunName, args := [("x", .u32)], ret := .option fin10Ty, body := .finCheck 10 (.var "x") }
   | "fin_succ_checked10_u32" =>

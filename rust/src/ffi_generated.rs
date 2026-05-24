@@ -6,6 +6,11 @@
 use crate::abi::ChStatus;
 
 #[no_mangle]
+pub extern "C" fn lrc_saturating_add_u32(a: u32, b: u32) -> u32 {
+    crate::saturating_add_u32(a, b)
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn lrc_result_ok_u32(
     x: u32,
     out_ok: *mut u32,
@@ -184,6 +189,11 @@ pub extern "C" fn lrc_proof_erased_u32(x: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn lrc_echo_u64(x: u64) -> u64 {
     crate::echo_u64(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_saturating_sub_u32(a: u32, b: u32) -> u32 {
+    crate::saturating_sub_u32(a, b)
 }
 
 #[no_mangle]

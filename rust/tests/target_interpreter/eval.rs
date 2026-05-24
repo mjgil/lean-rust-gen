@@ -2,8 +2,12 @@ use lean_rust_core_generated::*;
 use lean_rust_core_validate::TargetValidationFunction;
 
 use super::model::{
-    as_binary_tree_u32, as_bool, as_expr_u32, as_option_u32, as_string, as_u32, as_vec_u32, Env,
-    FunctionMap, UnaryFnU32, Value,
+    as_binary_tree_u32, as_bool, as_expr_u32, as_option_u32, as_string, as_u32, as_u64, as_vec_u32,
+    Env, FunctionMap, UnaryFnU32, Value,
+};
+use lean_rust_core_generated::runtime::{
+    u32_checked_add, u32_checked_div, u32_checked_mod, u32_checked_sub, u32_preconditioned_div,
+    u32_preconditioned_mod, u32_saturating_add, u32_saturating_sub, u64_to_u32_checked,
 };
 
 pub fn eval_target_function(
@@ -151,13 +155,67 @@ fn eval_expr(functions: &FunctionMap, expr: &str, env: &Env) -> Result<Value, St
     }
     if let Some(inner) = call_payload(expr, "call") {
         let args = split_top_args(inner);
-        let function = functions
-            .get(args[0])
-            .ok_or_else(|| format!("missing callee {}", args[0]))?;
         let values = args[1..]
             .iter()
             .map(|arg| eval_expr(functions, arg, env))
             .collect::<Result<Vec<_>, _>>()?;
+        match args[0] {
+            "__runtime_u32_checked_add" => {
+                return Ok(Value::OptionU32(u32_checked_add(
+                    as_u32(&values[0])?,
+                    as_u32(&values[1])?,
+                )))
+            }
+            "__runtime_u32_checked_sub" => {
+                return Ok(Value::OptionU32(u32_checked_sub(
+                    as_u32(&values[0])?,
+                    as_u32(&values[1])?,
+                )))
+            }
+            "__runtime_u32_checked_div" => {
+                return Ok(Value::OptionU32(u32_checked_div(
+                    as_u32(&values[0])?,
+                    as_u32(&values[1])?,
+                )))
+            }
+            "__runtime_u32_checked_mod" => {
+                return Ok(Value::OptionU32(u32_checked_mod(
+                    as_u32(&values[0])?,
+                    as_u32(&values[1])?,
+                )))
+            }
+            "__runtime_u32_saturating_add" => {
+                return Ok(Value::U32(u32_saturating_add(
+                    as_u32(&values[0])?,
+                    as_u32(&values[1])?,
+                )))
+            }
+            "__runtime_u32_saturating_sub" => {
+                return Ok(Value::U32(u32_saturating_sub(
+                    as_u32(&values[0])?,
+                    as_u32(&values[1])?,
+                )))
+            }
+            "__runtime_u32_preconditioned_div" => {
+                return Ok(Value::ResultU32String(
+                    u32_preconditioned_div(as_u32(&values[0])?, as_u32(&values[1])?)
+                        .map_err(String::from),
+                ))
+            }
+            "__runtime_u32_preconditioned_mod" => {
+                return Ok(Value::ResultU32String(
+                    u32_preconditioned_mod(as_u32(&values[0])?, as_u32(&values[1])?)
+                        .map_err(String::from),
+                ))
+            }
+            "__runtime_u64_to_u32_checked" => {
+                return Ok(Value::OptionU32(u64_to_u32_checked(as_u64(&values[0])?)))
+            }
+            _ => {}
+        }
+        let function = functions
+            .get(args[0])
+            .ok_or_else(|| format!("missing callee {}", args[0]))?;
         return eval_target_function(functions, function, &values);
     }
     if let Some(inner) = call_payload(expr, "call_value") {

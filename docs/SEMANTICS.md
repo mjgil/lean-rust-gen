@@ -33,7 +33,7 @@ validator crate mirror each other for:
 generated subset. It parses `rust/target-validation.txt`, generates sample
 inputs for every emitted function, interprets every emitted fingerprint, and
 compares the interpreted value with the compiled generated Rust function. The
-current snapshot covers 126 emitted functions.
+current snapshot covers 135 emitted functions.
 
 The executable fingerprint constructors covered by that exhaustive test are:
 

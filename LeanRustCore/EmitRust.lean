@@ -91,10 +91,8 @@ private def emitRustChar (c : Char) : String :=
 
 private def emitExactNatLiteral (n : Nat) : String :=
   "num_bigint::BigUint::parse_bytes(b\"" ++ toString n ++ "\", 10).unwrap()"
-
 private def emitExactIntLiteral (n : Int) : String :=
   "num_bigint::BigInt::parse_bytes(b\"" ++ toString n ++ "\", 10).unwrap()"
-
 private def wrappingMethod : RType → String → Option String
   | .u32, op => some ("wrapping_" ++ op)
   | .u64, op => some ("wrapping_" ++ op)
@@ -106,10 +104,8 @@ private def emitWrapping (op : String) (t : RType) (a b : String) : String :=
   match wrappingMethod t op with
   | some method => "(" ++ a ++ ")." ++ method ++ "(" ++ b ++ ")"
   | none => "(" ++ a ++ " /* unsupported wrapping op */ " ++ b ++ ")"
-
 private def borrowExpr (expr : String) : String :=
   "(&(" ++ expr ++ "))"
-
 private def emitExactArithmetic (op : String) (t : RType) (a b : String) : String :=
   match t, op with
   | .nat, "add" => borrowExpr a ++ " + " ++ borrowExpr b
@@ -124,6 +120,19 @@ private def emitArithmetic (op : String) (t : RType) (a b : String) : String :=
   match t with
   | .nat | .int => emitExactArithmetic op t a b
   | _ => emitWrapping op t a b
+
+private def emitRuntimeCall? (name : String) (args : List String) : Option String :=
+  match name, args with
+  | "__runtime_u32_checked_add", [a, b] => some s!"crate::runtime::u32_checked_add({a}, {b})"
+  | "__runtime_u32_checked_sub", [a, b] => some s!"crate::runtime::u32_checked_sub({a}, {b})"
+  | "__runtime_u32_checked_div", [a, b] => some s!"crate::runtime::u32_checked_div({a}, {b})"
+  | "__runtime_u32_checked_mod", [a, b] => some s!"crate::runtime::u32_checked_mod({a}, {b})"
+  | "__runtime_u32_saturating_add", [a, b] => some s!"crate::runtime::u32_saturating_add({a}, {b})"
+  | "__runtime_u32_saturating_sub", [a, b] => some s!"crate::runtime::u32_saturating_sub({a}, {b})"
+  | "__runtime_u32_preconditioned_div", [a, b] => some s!"crate::runtime::u32_preconditioned_div({a}, {b}).map_err(String::from)"
+  | "__runtime_u32_preconditioned_mod", [a, b] => some s!"crate::runtime::u32_preconditioned_mod({a}, {b}).map_err(String::from)"
+  | "__runtime_u64_to_u32_checked", [x] => some s!"crate::runtime::u64_to_u32_checked({x})"
+  | _, _ => none
 
 private partial def emitDefaultValue : RType → String
   | .unit => "()"
@@ -244,7 +253,10 @@ partial def emitSurfaceExpr : SurfaceExpr → String
       let renderedPayload := if payload.isEmpty then "" else "(" ++ joinWith ", " (payload.map emitSurfaceExpr) ++ ")"
       enumPath ty variant ++ renderedPayload
   | .call name _ _ args =>
-      rustValueIdent "generated" name ++ "(" ++ joinWith ", " (args.map emitSurfaceExpr) ++ ")"
+      let renderedArgs := args.map emitSurfaceExpr
+      match emitRuntimeCall? name renderedArgs with
+      | some runtimeCall => runtimeCall
+      | none => rustValueIdent "generated" name ++ "(" ++ joinWith ", " renderedArgs ++ ")"
   | .callValue fn _ _ arg =>
       emitSurfaceExpr fn ++ "(" ++ emitSurfaceExpr arg ++ ")"
   | .boxNew _ value =>

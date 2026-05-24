@@ -491,3 +491,17 @@ The same first-20 gate now also proves exhaustive `SurfaceExpr` node coverage.
 `LeanRustCore.SurfaceCoverage.surfaceCoverageConstructorNames` must match the
 current `SurfaceExpr` definition exactly, and `docs/RUNTIME_SEMANTICS.md` must
 document every constructor by name.
+
+## Next-20 numeric mode completion
+
+Task 28 now reaches the real extractor/emitter lane rather than stopping at
+runtime helpers and metadata. `LeanRustCore.NumericExamples` defines exported
+checked, saturating, preconditioned, and checked-cast examples; `LeanRustCore.Extract`
+lowers those declarations to checked surface functions; and `LeanRustCore.EmitRust`
+routes the admitted numeric helper calls to `crate::runtime`.
+
+The generated lane now includes concrete `u32` checked add/sub/div/mod,
+saturating add/sub, preconditioned div/mod with `Result<u32, String>`, and
+checked `u64` to `u32` casts. Those functions are enforced by
+`rust/tests/generated.rs`, `rust/tests/next20_completion.rs`,
+`rust/target-validation.txt`, and the exhaustive target interpreter.

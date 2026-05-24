@@ -432,7 +432,7 @@ mod tests {
     #[test]
     fn parses_current_target_validation_functions() {
         let functions = parse_target_validation_functions(TARGET_VALIDATION_TXT).unwrap();
-        assert_eq!(functions.len(), 126);
+        assert_eq!(functions.len(), 135);
         assert!(functions
             .iter()
             .any(|function| function.name == "tree_sum_u32"));

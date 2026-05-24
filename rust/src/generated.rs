@@ -94,6 +94,14 @@ pub fn inhabited_default_u32(_x: ()) -> u32 {
     0
 }
 
+pub fn checked_sub_u32(a: u32, b: u32) -> Option<u32> {
+    crate::runtime::u32_checked_sub(a, b)
+}
+
+pub fn saturating_add_u32(a: u32, b: u32) -> u32 {
+    crate::runtime::u32_saturating_add(a, b)
+}
+
 pub fn some_u32(x: u32) -> Option<u32> {
     Some(x)
 }
@@ -113,6 +121,10 @@ pub fn general_step_match_u32(s: Step, fallback: u32) -> u32 {
     }
 }
 
+pub fn checked_add_u32(a: u32, b: u32) -> Option<u32> {
+    crate::runtime::u32_checked_add(a, b)
+}
+
 pub fn nested_payload_err_u32_string(message: String, fallback: u32) -> NestedpayloadU32String {
     NestedpayloadU32String {
         primary: Some(fallback),
@@ -126,6 +138,10 @@ pub fn list_append_u32(xs: Vec<u32>, ys: Vec<u32>) -> Vec<u32> {
         __lrc_vec.extend(ys);
         __lrc_vec
     }
+}
+
+pub fn checked_cast_u64_to_u32(x: u64) -> Option<u32> {
+    crate::runtime::u64_to_u32_checked(x)
 }
 
 pub fn option_identity_u32(x: Option<u32>) -> Option<u32> {
@@ -338,6 +354,10 @@ pub fn defun_map_selected_u32(use_double: bool, xs: Vec<u32>) -> Vec<u32> {
     }
 }
 
+pub fn checked_mod_u32(a: u32, b: u32) -> Option<u32> {
+    crate::runtime::u32_checked_mod(a, b)
+}
+
 pub fn choose_by_enum(choice: Choice, left: u32, right: u32) -> u32 {
     match choice {
         Choice::First => left,
@@ -387,7 +407,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg1897) => fallback,
+        PairchoiceU32String::Right(_hyg1976) => fallback,
     }
 }
 
@@ -577,6 +597,10 @@ pub fn point_y(p: Point) -> u32 {
     (p).y
 }
 
+pub fn preconditioned_mod_u32(a: u32, b: u32) -> Result<u32, String> {
+    crate::runtime::u32_preconditioned_mod(a, b).map_err(String::from)
+}
+
 pub fn general_option_match_u32(x: Option<u32>, fallback: u32) -> u32 {
     match x {
         None => fallback,
@@ -757,6 +781,14 @@ pub fn state_tick_u32(s: u32) -> (u32, u32) {
     }
 }
 
+pub fn preconditioned_div_u32(a: u32, b: u32) -> Result<u32, String> {
+    crate::runtime::u32_preconditioned_div(a, b).map_err(String::from)
+}
+
+pub fn saturating_sub_u32(a: u32, b: u32) -> u32 {
+    crate::runtime::u32_saturating_sub(a, b)
+}
+
 pub fn list_foldr_sum_u32(xs: Vec<u32>) -> u32 {
     {
         let mut acc: u32 = 0;
@@ -780,6 +812,10 @@ pub fn nested_payload_ok_u32_string(x: u32) -> NestedpayloadU32String {
         primary: Some(x),
         secondary: Ok(x),
     }
+}
+
+pub fn checked_div_u32(a: u32, b: u32) -> Option<u32> {
+    crate::runtime::u32_checked_div(a, b)
 }
 
 pub fn list_all_nonzero_u32(xs: Vec<u32>) -> bool {

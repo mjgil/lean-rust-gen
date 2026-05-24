@@ -17,9 +17,21 @@ preconditioned.
 ## Implementation requirements
 
 - Numeric rules live in `LeanRustCore.NumericSemantics.rules`.
+- Exported generated examples live in `LeanRustCore.NumericExamples`.
 - Runtime helpers live in `lean-rust-core-runtime`.
 - Casts and division/modulus must never be silently emitted without an explicit
   checked or preconditioned rule.
+
+## Generated examples required before completion
+
+- `checked_add_u32`, `checked_sub_u32`, `checked_div_u32`, and `checked_mod_u32`
+  must reach checked-in `rust/src/generated.rs` and `rust/target-validation.txt`.
+- `saturating_add_u32` and `saturating_sub_u32` must prove overflow and
+  underflow clamping in generated crate tests.
+- `preconditioned_div_u32` and `preconditioned_mod_u32` must return
+  `Result<u32, String>` and preserve `division-by-zero` / `modulus-by-zero`
+  errors through generated Rust.
+- `checked_cast_u64_to_u32` must prove cast overflow at the generated boundary.
 
 ## Tests required before completion
 

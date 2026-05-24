@@ -8,8 +8,8 @@ use super::model::{
     as_u64, as_unit, as_vec_u32, v_binary_tree_u32, v_bool, v_bounded_proof, v_boxed_u32, v_char,
     v_expr_u32, v_i32, v_i64, v_int, v_nat, v_nested_option_u32, v_nestedpayload_u32_string,
     v_option_u32, v_ordering, v_pairbox_string_u32, v_pairbox_u32_string, v_pairchoice_u32_string,
-    v_point, v_prod_u32, v_result_option_u32_u32, v_result_u32_option_u32, v_result_u32_u32,
-    v_step, v_string, v_tagged_u32, v_u32, v_u64, v_unit, v_vec_u32, Value,
+    v_point, v_prod_u32, v_result_option_u32_u32, v_result_u32_option_u32, v_result_u32_string,
+    v_result_u32_u32, v_step, v_string, v_tagged_u32, v_u32, v_u64, v_unit, v_vec_u32, Value,
 };
 
 pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, String> {
@@ -128,6 +128,22 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[1])?,
         ))),
         "add_u32" => Ok(v_u32(add_u32(as_u32(&args[0])?, as_u32(&args[1])?))),
+        "checked_add_u32" => Ok(v_option_u32(checked_add_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "checked_sub_u32" => Ok(v_option_u32(checked_sub_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "checked_div_u32" => Ok(v_option_u32(checked_div_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "checked_mod_u32" => Ok(v_option_u32(checked_mod_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
         "repr_u32" => Ok(v_string(repr_u32(as_u32(&args[0])?))),
         "list_filter_nonzero_u32" => Ok(v_vec_u32(list_filter_nonzero_u32(as_vec_u32(&args[0])?))),
         "point_x" => Ok(v_u32(point_x(as_point(&args[0])?))),
@@ -225,6 +241,23 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         ))),
         "max_u32" => Ok(v_u32(max_u32(as_u32(&args[0])?, as_u32(&args[1])?))),
         "mul_u32" => Ok(v_u32(mul_u32(as_u32(&args[0])?, as_u32(&args[1])?))),
+        "saturating_add_u32" => Ok(v_u32(saturating_add_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "saturating_sub_u32" => Ok(v_u32(saturating_sub_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "preconditioned_div_u32" => Ok(v_result_u32_string(preconditioned_div_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "preconditioned_mod_u32" => Ok(v_result_u32_string(preconditioned_mod_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "checked_cast_u64_to_u32" => Ok(v_option_u32(checked_cast_u64_to_u32(as_u64(&args[0])?))),
         "vector_echo3_u32" => Ok(v_vec_u32(vector_echo3_u32(as_vec_u32(&args[0])?))),
         "result_err_u32" => Ok(v_result_u32_u32(result_err_u32(as_u32(&args[0])?))),
         "boxed_value_u32" => Ok(v_u32(boxed_value_u32(as_boxed_u32(&args[0])?))),

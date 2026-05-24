@@ -3,6 +3,10 @@ use std::fs;
 use std::path::PathBuf;
 
 use lean_rust_core_generated::runtime::*;
+use lean_rust_core_generated::{
+    checked_add_u32, checked_cast_u64_to_u32, checked_div_u32, checked_mod_u32, checked_sub_u32,
+    preconditioned_div_u32, preconditioned_mod_u32, saturating_add_u32, saturating_sub_u32,
+};
 use num_bigint::{BigInt, BigUint};
 
 const VALIDATION_REPORT: &str = include_str!("../validation-report.json");
@@ -171,6 +175,15 @@ fn next20_parameterized_data_examples_cover_multi_parameter_and_nested_shapes() 
     let generated =
         fs::read_to_string(repo_root().join("rust/src/generated.rs")).expect("generated Rust");
     for needle in [
+        "pub fn checked_add_u32",
+        "pub fn checked_sub_u32",
+        "pub fn checked_div_u32",
+        "pub fn checked_mod_u32",
+        "pub fn saturating_add_u32",
+        "pub fn saturating_sub_u32",
+        "pub fn preconditioned_div_u32",
+        "pub fn preconditioned_mod_u32",
+        "pub fn checked_cast_u64_to_u32",
         "pub struct PairboxU32String",
         "pub struct PairboxStringU32",
         "pub enum PairchoiceU32String",
@@ -192,6 +205,15 @@ fn next20_parameterized_data_examples_cover_multi_parameter_and_nested_shapes() 
     let target_validation = fs::read_to_string(repo_root().join("rust/target-validation.txt"))
         .expect("target validation");
     for needle in [
+        "FN\tchecked_add_u32",
+        "FN\tchecked_sub_u32",
+        "FN\tchecked_div_u32",
+        "FN\tchecked_mod_u32",
+        "FN\tsaturating_add_u32",
+        "FN\tsaturating_sub_u32",
+        "FN\tpreconditioned_div_u32",
+        "FN\tpreconditioned_mod_u32",
+        "FN\tchecked_cast_u64_to_u32",
         "TYPE\tstruct\tPairboxU32String",
         "TYPE\tstruct\tPairboxStringU32",
         "TYPE\tenum\tPairchoiceU32String",
@@ -289,6 +311,21 @@ fn next20_runtime_helpers_cover_numeric_std_and_layouts() {
         exact_int_mul(BigInt::from(-7i32), BigInt::from(6i32)),
         BigInt::from(-42i32)
     );
+    assert_eq!(checked_add_u32(u32::MAX, 1), None);
+    assert_eq!(checked_sub_u32(0, 1), None);
+    assert_eq!(checked_div_u32(12, 0), None);
+    assert_eq!(checked_mod_u32(12, 0), None);
+    assert_eq!(saturating_add_u32(u32::MAX, 1), u32::MAX);
+    assert_eq!(saturating_sub_u32(0, 1), 0);
+    assert_eq!(
+        preconditioned_div_u32(12, 0),
+        Err(String::from("division-by-zero"))
+    );
+    assert_eq!(
+        preconditioned_mod_u32(12, 0),
+        Err(String::from("modulus-by-zero"))
+    );
+    assert_eq!(checked_cast_u64_to_u32(u64::from(u32::MAX) + 1), None);
 
     assert_eq!(list_append_u32(vec![1, 2], vec![3, 4]), vec![1, 2, 3, 4]);
     assert_eq!(list_find_nonzero_u32(&[0, 0, 42]), Some(42));

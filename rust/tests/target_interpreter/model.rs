@@ -201,6 +201,10 @@ pub fn v_result_u32_u32(value: Result<u32, u32>) -> Value {
     Value::ResultU32U32(value)
 }
 
+pub fn v_result_u32_string(value: Result<u32, String>) -> Value {
+    Value::ResultU32String(value)
+}
+
 pub fn v_result_u32_option_u32(value: Result<u32, Option<u32>>) -> Value {
     Value::ResultU32OptionU32(value)
 }

@@ -1,6 +1,7 @@
 import LeanRustCore.IR
 import LeanRustCore.EmitRust
 import LeanRustCore.Extract
+import LeanRustCore.NumericExamples
 import LeanRustCore.ParameterizedExamples
 
 namespace LeanRustCore.Examples
@@ -268,6 +269,16 @@ def exact_int_add (a b : Int) : Int :=
 @[rust_export, rust_int_exact]
 def exact_int_mul (a b : Int) : Int :=
   a * b
+
+@[rust_export] def checked_add_u32 (a b : UInt32) : Option UInt32 := LeanRustCore.NumericExamples.checked_add_u32 a b
+@[rust_export] def checked_sub_u32 (a b : UInt32) : Option UInt32 := LeanRustCore.NumericExamples.checked_sub_u32 a b
+@[rust_export] def checked_div_u32 (a b : UInt32) : Option UInt32 := LeanRustCore.NumericExamples.checked_div_u32 a b
+@[rust_export] def checked_mod_u32 (a b : UInt32) : Option UInt32 := LeanRustCore.NumericExamples.checked_mod_u32 a b
+@[rust_export] def saturating_add_u32 (a b : UInt32) : UInt32 := LeanRustCore.NumericExamples.saturating_add_u32 a b
+@[rust_export] def saturating_sub_u32 (a b : UInt32) : UInt32 := LeanRustCore.NumericExamples.saturating_sub_u32 a b
+@[rust_export] def preconditioned_div_u32 (a b : UInt32) : Except String UInt32 := LeanRustCore.NumericExamples.preconditioned_div_u32 a b
+@[rust_export] def preconditioned_mod_u32 (a b : UInt32) : Except String UInt32 := LeanRustCore.NumericExamples.preconditioned_mod_u32 a b
+@[rust_export] def checked_cast_u64_to_u32 (x : UInt64) : Option UInt32 := LeanRustCore.NumericExamples.checked_cast_u64_to_u32 x
 
 
 @[rust_export]

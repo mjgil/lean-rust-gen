@@ -57,6 +57,7 @@ def check_files() -> None:
         "LeanRustCore/ParameterizedExamples.lean",
         "LeanRustCore/GenericPolicy.lean",
         "LeanRustCore/NumericSemantics.lean",
+        "LeanRustCore/NumericExamples.lean",
         "LeanRustCore/DependentErasureChecker.lean",
         "LeanRustCore/RecursiveDiscovery.lean",
         "LeanRustCore/OwnershipPolicy.lean",
@@ -90,6 +91,7 @@ def check_lean_modules() -> None:
         "LeanRustCore/ParameterizedExamples.lean": ["structure PairBox", "inductive PairChoice", "structure NestedPayload"],
         "LeanRustCore/GenericPolicy.lean": ["ExportGenericDecision", "finalRustGenericPolicySummary", "LRC009"],
         "LeanRustCore/NumericSemantics.lean": ["NumericMode", "NumericRule", "checkedAddU32", "preconditionedDivU32", "numericSemanticsSummary"],
+        "LeanRustCore/NumericExamples.lean": ["def checked_add_u32", "def saturating_add_u32", "def preconditioned_div_u32", "def checked_cast_u64_to_u32"],
         "LeanRustCore/DependentErasureChecker.lean": ["RuntimeRelevance", "ErasureDecision", "checkDependentErasure", "dependentErasureCheckerSummary"],
         "LeanRustCore/RecursiveDiscovery.lean": ["RecursiveEdgeKind", "RecursiveLayoutMode", "layoutDecisions", "recursiveDiscoverySummary"],
         "LeanRustCore/OwnershipPolicy.lean": ["OwnershipMode", "OwnershipRule", "borrowedShared", "ownershipPolicySummary"],
@@ -125,12 +127,17 @@ def check_runtime_and_tests() -> None:
         "next20_diagnostic_corpus_covers_all_rejection_paths",
         "next20_parameterized_data_examples_cover_multi_parameter_and_nested_shapes",
         "next20_runtime_helpers_cover_numeric_std_and_layouts",
-        "u32_checked_div", "RcTreeU32", "ArenaTreeU32", "list_append_u32", "list_partition_nonzero_u32",
+        "u32_checked_div", "checked_add_u32", "preconditioned_div_u32", "RcTreeU32",
+        "ArenaTreeU32", "list_append_u32", "list_partition_nonzero_u32",
     ]:
         require(needle in test, f"next20 test missing {needle}")
 
     generated = read("rust/src/generated.rs")
     for needle in [
+        "pub fn checked_add_u32",
+        "pub fn saturating_add_u32",
+        "pub fn preconditioned_div_u32",
+        "pub fn checked_cast_u64_to_u32",
         "pub struct PairboxU32String",
         "pub struct PairboxStringU32",
         "pub enum PairchoiceU32String",
@@ -144,6 +151,10 @@ def check_runtime_and_tests() -> None:
 
     target_validation = read("rust/target-validation.txt")
     for needle in [
+        "FN\tchecked_add_u32",
+        "FN\tsaturating_add_u32",
+        "FN\tpreconditioned_div_u32",
+        "FN\tchecked_cast_u64_to_u32",
         "TYPE\tstruct\tPairboxU32String",
         "TYPE\tenum\tPairchoiceU32String",
         "TYPE\tstruct\tNestedpayloadU32String",
@@ -249,6 +260,9 @@ def check_docs() -> None:
     generics = read("docs/GENERICS.md").lower()
     for phrase in ["multi-parameter", "nested", "dependent generic", "index-free", "lrc013"]:
         require(phrase in generics, f"docs/GENERICS.md missing phrase {phrase}")
+    numerics = read("docs/NUMERIC_SEMANTICS.md")
+    for phrase in ["checked_add_u32", "preconditioned_div_u32", "checked_cast_u64_to_u32"]:
+        require(phrase in numerics, f"docs/NUMERIC_SEMANTICS.md missing phrase {phrase}")
 
 
 def check_reports() -> None:

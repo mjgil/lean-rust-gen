@@ -84,6 +84,28 @@ fn exact_nat_and_int_modes_use_bigints() {
 }
 
 #[test]
+fn numeric_modes_cover_checked_saturating_preconditioned_and_cast_paths() {
+    assert_eq!(checked_add_u32(u32::MAX, 1), None);
+    assert_eq!(checked_add_u32(40, 2), Some(42));
+    assert_eq!(checked_sub_u32(0, 1), None);
+    assert_eq!(checked_div_u32(12, 0), None);
+    assert_eq!(checked_mod_u32(12, 0), None);
+    assert_eq!(saturating_add_u32(u32::MAX, 1), u32::MAX);
+    assert_eq!(saturating_sub_u32(0, 1), 0);
+    assert_eq!(preconditioned_div_u32(12, 3), Ok(4));
+    assert_eq!(
+        preconditioned_div_u32(12, 0),
+        Err(String::from("division-by-zero"))
+    );
+    assert_eq!(
+        preconditioned_mod_u32(12, 0),
+        Err(String::from("modulus-by-zero"))
+    );
+    assert_eq!(checked_cast_u64_to_u32(u64::from(u32::MAX)), Some(u32::MAX));
+    assert_eq!(checked_cast_u64_to_u32(u64::from(u32::MAX) + 1), None);
+}
+
+#[test]
 fn typeclass_and_closure_specializations_lower() {
     assert!(decidable_eq_u32(7, 7));
     assert!(!decidable_eq_u32(7, 8));
