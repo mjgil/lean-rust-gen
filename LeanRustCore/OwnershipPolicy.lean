@@ -37,7 +37,16 @@ def rules : List OwnershipRule := [
   { typeShape := "recursive payload", inputMode := .boxed, outputMode := .boxed, rustShape := "Box<T>/Rc<T>/arena index", condition := "recursive SCC layout decision", requiredTests := ["recursive data property tests"], requiredDocs := ["docs/RECURSIVE_DATA.md", "docs/OWNERSHIP.md"] }
 ]
 
+def approvedReferenceForms : List String := [
+  "temporary shared operand borrows for exact BigUint/BigInt arithmetic and comparisons",
+  "no reference types in emitted struct, enum, or function signatures",
+  "no explicit lifetimes in emitted Rust"
+]
+
 def ownershipPolicySummary : String :=
   "ownership completion keeps owned values as default, allows audited shared borrows for read-only helpers, records clone/move/box decisions, and rejects ad-hoc lifetime/reference emission outside the policy table"
+
+def ownershipPolicyEnforcementSummary : String :=
+  "emitted Rust keeps owned values as default, permits only temporary shared operand borrows for exact BigUint/BigInt arithmetic/comparisons, and rejects reference types or explicit lifetimes in generated declarations"
 
 end LeanRustCore.OwnershipPolicy

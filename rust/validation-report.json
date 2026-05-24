@@ -91,6 +91,7 @@
     { "name": "ffi-result-status-out-params", "status": "passed", "detail": "Result<u32,u32> raw ABI wrappers lower through ChStatus plus out_ok/out_err pointers instead of exposing native Rust Result across FFI" },
     { "name": "syn-parser-backed-validation", "status": "passed", "detail": "rust/tests/parser_validation.rs parses generated.rs with syn and validates the approved top-level safe Rust subset by AST instead of relying only on text grep" },
     { "name": "json-artifact-parse-validation", "status": "passed", "detail": "rust/tests/validation_report.rs parses validation, compatibility, proof, and build-metadata JSON artifacts with serde_json" },
+    { "name": "ownership-reference-allowlist", "status": "passed", "detail": "emitted Rust keeps owned values as default, permits only temporary shared operand borrows for exact BigUint/BigInt arithmetic/comparisons, and rejects reference types or explicit lifetimes in generated declarations" },
     { "name": "compatibility-report-output-consistency", "status": "passed", "detail": "rust/tests/validation_report.rs compares compatibility diagnostics and generated function counts against the parsed generated.rs AST" },
     { "name": "extract-ir-pipeline", "status": "passed", "detail": "first-20 ExtractIR normalized pipeline metadata is present" },
     { "name": "runtime-value-denotation", "status": "passed", "detail": "first-20 RuntimeValue denotation metadata is present" },

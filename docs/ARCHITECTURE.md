@@ -233,6 +233,22 @@ are backed by positive corpus fixtures. Dependent generic/indexed shapes such as
 `Vector α n` remain explicitly rejected and are covered by the unsupported
 corpus plus `docs/GENERICS.md`.
 
+## Newly completed: ownership-policy enforcement for emitted Rust
+
+`LeanRustCore.OwnershipPolicy` now defines both the allowed ownership table and
+the concrete emitted borrow forms for the direct lane. The current generated
+Rust policy is stricter than the runtime helper policy:
+
+- generated signatures and data declarations stay owned-only,
+- generated Rust emits no explicit lifetimes,
+- the only admitted reference expressions are temporary shared operand borrows
+  used for exact `num_bigint::BigUint` / `num_bigint::BigInt` arithmetic and
+  comparison operators.
+
+That policy is enforced by the validator crate's ownership scanner and by
+`rust/tests/parser_validation.rs`, so ad-hoc `&T`, `&mut T`, or lifetime-bearing
+forms in emitted Rust fail the release gates.
+
 ## Newly completed: Rust identifier hygiene and parser-backed validation
 
 `LeanRustCore.RustHygiene` is now the single place that maps source names to

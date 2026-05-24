@@ -414,6 +414,11 @@ def checks : List ValidationCheck := [
     detail := "rust/tests/validation_report.rs parses validation, compatibility, proof, and build-metadata JSON artifacts with serde_json"
   },
   {
+    name := "ownership-reference-allowlist",
+    status := "passed",
+    detail := LeanRustCore.OwnershipPolicy.ownershipPolicyEnforcementSummary
+  },
+  {
     name := "compatibility-report-output-consistency",
     status := "passed",
     detail := "rust/tests/validation_report.rs compares compatibility diagnostics and generated function counts against the parsed generated.rs AST"

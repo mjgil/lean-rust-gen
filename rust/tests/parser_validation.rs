@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use lean_rust_core_validate::validate_generated_ownership;
 use syn::{
     visit::{self, Visit},
     ExprMacro, ExprUnsafe, FnArg, Item, ItemEnum, ItemFn, ItemForeignMod, ItemStruct,
@@ -171,6 +172,18 @@ fn parser_rejects_raw_boundary_or_panic_constructs() {
         visitor.violations.is_empty(),
         "generated Rust left the approved safe subset: {:?}",
         visitor.violations
+    );
+}
+
+#[test]
+fn parser_validates_generated_ownership_policy() {
+    let validation =
+        validate_generated_ownership(GENERATED_SOURCE).expect("generated Rust should parse");
+    assert_eq!(validation.approved_reference_exprs, 8);
+    assert!(
+        validation.violations.is_empty(),
+        "generated Rust violated ownership/reference policy: {:?}",
+        validation.violations
     );
 }
 

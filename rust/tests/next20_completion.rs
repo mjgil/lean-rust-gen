@@ -12,6 +12,7 @@ use lean_rust_core_generated::{
     saturating_sub_u32, sigma_runtime_pair_echo_u32, sigma_runtime_pair_sum_u32, tree_leaf_u32,
     tree_node_u32, tree_sum_u32, EvenNode, OddNode, RoseTreeU32,
 };
+use lean_rust_core_validate::validate_generated_ownership;
 use num_bigint::{BigInt, BigUint};
 
 const VALIDATION_REPORT: &str = include_str!("../validation-report.json");
@@ -361,6 +362,37 @@ fn next20_runtime_helpers_cover_numeric_std_and_layouts() {
         dictionary_compare_u32(ORD_U32, 1, 2),
         std::cmp::Ordering::Less
     );
+}
+
+#[test]
+fn next20_ownership_policy_enforces_non_escaping_borrows() {
+    let generated =
+        fs::read_to_string(repo_root().join("rust/src/generated.rs")).expect("generated Rust");
+    let validation = validate_generated_ownership(&generated).expect("generated Rust should parse");
+    assert_eq!(validation.approved_reference_exprs, 8);
+    assert!(
+        validation.violations.is_empty(),
+        "generated ownership policy violations: {:?}",
+        validation.violations
+    );
+    assert!(!generated.contains("&mut"));
+    assert!(!generated.contains("'a"));
+
+    let docs = fs::read_to_string(repo_root().join("docs/OWNERSHIP.md")).expect("ownership docs");
+    for phrase in [
+        "temporary shared operand borrows",
+        "exact BigUint/BigInt arithmetic",
+        "no reference types",
+        "no explicit lifetimes",
+    ] {
+        assert!(
+            docs.contains(phrase),
+            "ownership docs missing phrase {phrase}"
+        );
+    }
+
+    assert!(VALIDATION_REPORT.contains("\"name\": \"ownership-reference-allowlist\""));
+    assert!(PROOF_REPORT.contains("ownership_policy_enforced_emission"));
 }
 
 #[test]

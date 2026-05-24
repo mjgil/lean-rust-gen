@@ -5,10 +5,14 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::collections::BTreeSet;
 
+mod ownership_validation;
 mod property_generators;
 mod target_semantics;
 mod target_validation;
 
+pub use ownership_validation::{
+    validate_generated_ownership, validate_generated_ownership_file, OwnershipValidation,
+};
 pub use property_generators::{
     generate_target_term_cases, generated_terms_are_well_typed, minimize_target_term,
     shrink_target_term, target_term_head, PropertyRng,
@@ -419,6 +423,14 @@ mod tests {
         assert!(summary.types.contains("Point"));
         assert!(summary.types.contains("E"));
         assert!(summary.functions.contains("f"));
+    }
+
+    #[test]
+    fn validates_generated_ownership_policy() {
+        let validation =
+            validate_generated_ownership(include_str!("../../../rust/src/generated.rs")).unwrap();
+        assert_eq!(validation.approved_reference_exprs, 8);
+        assert!(validation.violations.is_empty());
     }
 
     #[test]

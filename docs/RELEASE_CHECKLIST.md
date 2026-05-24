@@ -65,7 +65,10 @@ rejected dependent generic shapes, the positive dependent-erasure corpus for
 equality casts, invariant `Sigma`, invariant indexed-family carriers, invariant
 dependent matches, and nested proof wrappers, the positive recursive corpus for
 direct trees, nested `RoseTreeU32`, and mutual `EvenNode`/`OddNode` SCCs, and
-the Rust completion test that scans the checked corpus fixtures.
+the Rust completion test that scans the checked corpus fixtures. It also now
+requires parser-backed ownership validation: the direct generated lane must emit
+no reference types, no explicit lifetimes, and only the approved temporary
+shared operand borrows for exact `BigUint`/`BigInt` arithmetic.
 
 ## Remaining rows 41-63 gate
 

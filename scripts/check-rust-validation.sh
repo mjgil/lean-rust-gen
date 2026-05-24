@@ -57,6 +57,7 @@ grep -q '"name": "lean-evaluator-differential-tests"' "$validation_report"
 grep -q '"name": "safe-rust-subset-gate"' "$validation_report"
 grep -q '"name": "rust-identifier-hygiene"' "$validation_report"
 grep -q '"name": "syn-parser-backed-validation"' "$validation_report"
+grep -q '"name": "ownership-reference-allowlist"' "$validation_report"
 grep -q '"name": "json-artifact-parse-validation"' "$validation_report"
 grep -q '"name": "expanded-diagnostic-coverage"' "$validation_report"
 grep -q '"name": "next20-diagnostic-corpus"' "$validation_report"
@@ -201,6 +202,7 @@ grep -q 'vector_map_inc3_u32(vec!\[1, 2, u32::MAX\])' "$differential_tests"
 grep -q 'syn::parse_file' "$parser_validation_tests"
 grep -q 'parser_validates_generated_top_level_subset' "$parser_validation_tests"
 grep -q 'parser_rejects_raw_boundary_or_panic_constructs' "$parser_validation_tests"
+grep -q 'parser_validates_generated_ownership_policy' "$parser_validation_tests"
 
 # Optional raw ABI wrappers are present but isolated from the default safe direct-emission lane.
 grep -q '#\[cfg(feature = "ffi")\]' rust/src/lib.rs

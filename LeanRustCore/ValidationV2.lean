@@ -256,12 +256,12 @@ def coverageEntries : List CoverageEntry := [
     ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/recursive_binary_tree.expected.json", "corpus/positive/recursive_rose_tree.expected.json", "corpus/positive/recursive_even_odd.expected.json"]
     ["next20-recursive-discovery"],
   mkEntry "ownership-borrowing-policy" "supported-complete"
-    ["OwnershipPolicy.rules", "borrowed_vec_len_u32", "docs/OWNERSHIP.md"]
-    ["LeanRustCore/OwnershipPolicy.lean", "crates/runtime/src/lib.rs"]
-    ["rust/tests/next20_completion.rs", "rust/tests/validation_report.rs"]
+    ["OwnershipPolicy.rules", "OwnershipPolicy.approvedReferenceForms", "borrowed_vec_len_u32", "docs/OWNERSHIP.md"]
+    ["LeanRustCore/OwnershipPolicy.lean", "crates/runtime/src/lib.rs", "crates/validate/src/ownership_validation.rs"]
+    ["rust/tests/next20_completion.rs", "rust/tests/parser_validation.rs", "crates/validate/src/lib.rs"]
     ["docs/OWNERSHIP.md", "docs/ARCHITECTURE.md"]
     ["rust/proof-report.json", "rust/coverage-dashboard.json"]
-    ["next20-ownership-policy"],
+    ["next20-ownership-policy", "ownership-reference-allowlist"],
   mkEntry "pattern-matrix-compiler" "supported-complete"
     ["PatternMatrix.completedPatternFeatures", "docs/PATTERN_COMPILER.md"]
     ["LeanRustCore/PatternMatrix.lean"]

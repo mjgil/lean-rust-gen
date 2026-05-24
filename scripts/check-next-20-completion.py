@@ -75,6 +75,7 @@ def check_files() -> None:
         "docs/RECURSION_LOWERING.md",
         "docs/STD_LOWERINGS.md",
         "docs/TYPECLASSES.md",
+        "crates/validate/src/ownership_validation.rs",
         "rust/tests/next20_completion.rs",
         "corpus/positive/parameterized_pair_box.expected.json",
         "corpus/positive/parameterized_nested_payload.expected.json",
@@ -102,7 +103,7 @@ def check_lean_modules() -> None:
         "LeanRustCore/NumericExamples.lean": ["def checked_add_u32", "def saturating_add_u32", "def preconditioned_div_u32", "def checked_cast_u64_to_u32"],
         "LeanRustCore/DependentErasureChecker.lean": ["RuntimeRelevance", "ErasureDecision", "checkDependentErasure", "dependentErasureCheckerSummary"],
         "LeanRustCore/RecursiveDiscovery.lean": ["RecursiveEdgeKind", "RecursiveLayoutMode", "layoutDecisions", "recursiveDiscoverySummary"],
-        "LeanRustCore/OwnershipPolicy.lean": ["OwnershipMode", "OwnershipRule", "borrowedShared", "ownershipPolicySummary"],
+        "LeanRustCore/OwnershipPolicy.lean": ["OwnershipMode", "OwnershipRule", "borrowedShared", "approvedReferenceForms", "ownershipPolicySummary", "ownershipPolicyEnforcementSummary"],
         "LeanRustCore/PatternMatrix.lean": ["PatternClass", "completedPatternFeatures", "patternMatrixSummary"],
         "LeanRustCore/RecursionAnalysis.lean": ["RecursionKind", "StackPolicy", "decisions", "recursionAnalysisSummary"],
         "LeanRustCore/StdImplementation.lean": ["ImplementedLowering", "implementedLoweringCount", "stdImplementationSummary"],
@@ -135,12 +136,21 @@ def check_runtime_and_tests() -> None:
         "next20_diagnostic_corpus_covers_all_rejection_paths",
         "next20_parameterized_data_examples_cover_multi_parameter_and_nested_shapes",
         "next20_recursive_discovery_examples_cover_direct_nested_and_mutual_sccs",
+        "next20_ownership_policy_enforces_non_escaping_borrows",
         "next20_runtime_helpers_cover_numeric_std_and_layouts",
         "u32_checked_div", "checked_add_u32", "preconditioned_div_u32", "RcTreeU32",
         "ArenaTreeU32", "list_append_u32", "list_partition_nonzero_u32",
         "next20_dependent_erasure_examples_cover_invariant_sigma_and_indexed_shapes",
     ]:
         require(needle in test, f"next20 test missing {needle}")
+
+    parser_validation = read("rust/tests/parser_validation.rs")
+    for needle in [
+        "parser_validates_generated_ownership_policy",
+        "validate_generated_ownership",
+        "approved_reference_exprs",
+    ]:
+        require(needle in parser_validation, f"parser validation missing {needle}")
 
     generated = read("rust/src/generated.rs")
     for needle in [
@@ -377,6 +387,9 @@ def check_docs() -> None:
     recursive = read("docs/RECURSIVE_DATA.md").lower()
     for phrase in ["direct recursion", "nested recursion", "mutual recursion", "cycle-breaking", "list/array/vec", "layout selection"]:
         require(phrase in recursive, f"docs/RECURSIVE_DATA.md missing phrase {phrase}")
+    ownership = read("docs/OWNERSHIP.md").lower()
+    for phrase in ["temporary shared operand borrows", "exact biguint/bigint arithmetic", "no reference types", "no explicit lifetimes", "generated references do not escape"]:
+        require(phrase in ownership, f"docs/OWNERSHIP.md missing phrase {phrase}")
 
 
 def check_reports() -> None:
@@ -387,7 +400,7 @@ def check_reports() -> None:
     for check in [
         "next20-base-type-universe", "next20-parameterized-data", "next20-generic-policy",
         "next20-numeric-semantics", "next20-dependent-erasure", "next20-recursive-discovery",
-        "next20-diagnostic-corpus",
+        "next20-diagnostic-corpus", "ownership-reference-allowlist",
         "next20-ownership-policy", "next20-pattern-matrix", "next20-recursion-analysis",
         "next20-std-implementation", "next20-typeclass-specialization",
     ]:
@@ -418,6 +431,11 @@ def check_reports() -> None:
         "LeanRustCore.TypeclassSpecialization.classes",
     ]:
         require(needle in trusted, f"proof-report trusted core missing {needle}")
+    facts = {fact["name"] for fact in proof.get("facts", [])}
+    require(
+        "ownership_policy_enforced_emission" in facts,
+        "proof-report missing ownership_policy_enforced_emission fact",
+    )
 
 
 def check_scripts() -> None:

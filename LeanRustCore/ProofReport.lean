@@ -95,6 +95,7 @@ def facts : List ProofFact := [
   { name := "transitive_helper_extraction", statement := "first-order helper definitions reached from exported bodies are enqueued and emitted as auto-helper-export functions" },
   { name := "proof_erased_binders", statement := "conservative proof-shaped binders are erased from Rust signatures when their values are not used computationally" },
   { name := "limited_higher_order_function_pointer", statement := "unary function-typed arguments lower to Rust fn-pointer arguments and SurfaceExpr.callValue nodes" },
+  { name := "ownership_policy_enforced_emission", statement := LeanRustCore.OwnershipPolicy.ownershipPolicyEnforcementSummary },
   { name := "closure_converted_environments", statement := LeanRustCore.ClosureConversion.closureConversionSummary },
   { name := "finite_defunctionalization", statement := LeanRustCore.Defunctionalization.defunctionalizationSummary },
   { name := "recursive_box_owned_data_layout", statement := LeanRustCore.RecursiveData.recursiveDataSummary },
