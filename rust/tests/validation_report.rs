@@ -497,6 +497,13 @@ fn generated_source_stays_inside_safe_subset_textually() {
         "pub fn proof_erased_u32",
         "pub fn bounded_proof_make_u32",
         "pub fn bounded_proof_value_u32",
+        "pub fn equality_cast_subtype_value_u32",
+        "pub fn sigma_runtime_pair_echo_u32",
+        "pub fn sigma_runtime_pair_sum_u32",
+        "pub fn flag_carrier_true_roundtrip_u32",
+        "pub fn flag_carrier_false_value_u32",
+        "pub fn flag_carrier_match_invariant_u32",
+        "pub fn nested_proof_wrapper_value_u32",
         "pub fn subtype_val_u32",
         "pub fn subtype_inc_u32",
         "pub fn subtype_roundtrip_u32",
@@ -621,6 +628,13 @@ fn target_validation_snapshot_records_generated_subset() {
     assert!(snapshot.contains("box(var(left))"));
     assert!(snapshot.contains("deref(var(left))"));
     assert!(snapshot.contains("FN\tbounded_proof_make_u32"));
+    assert!(snapshot.contains("FN\tequality_cast_subtype_value_u32"));
+    assert!(snapshot.contains("FN\tsigma_runtime_pair_echo_u32"));
+    assert!(snapshot.contains("FN\tsigma_runtime_pair_sum_u32"));
+    assert!(snapshot.contains("FN\tflag_carrier_true_roundtrip_u32"));
+    assert!(snapshot.contains("FN\tflag_carrier_false_value_u32"));
+    assert!(snapshot.contains("FN\tflag_carrier_match_invariant_u32"));
+    assert!(snapshot.contains("FN\tnested_proof_wrapper_value_u32"));
     assert!(snapshot.contains("FN\tsubtype_val_u32"));
     assert!(snapshot.contains("FN\tsubtype_inc_u32"));
     assert!(snapshot.contains("FN\tsubtype_roundtrip_u32"));

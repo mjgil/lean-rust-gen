@@ -41,9 +41,13 @@ def runtimeRepresentation : RType → String
 /-- Dependent shapes intentionally admitted by Sprint 10–12. -/
 def supportedDependentShapes : List String := [
   "Subtype.val and Subtype.mk erase proofs and keep the carrier value",
+  "equality casts are admitted when the erased before/after runtime representations agree",
   "Fin.mk erases the bound proof and keeps the u32 value in the direct lane",
   "Vector.mk erases the length proof and keeps the Vec<T> payload",
+  "Sigma pairs with invariant erased codomain shape lower to runtime products",
+  "indexed families whose constructors always erase to the same carrier runtime shape may lower through dedicated fixture policies",
   "single-constructor structures omit proof-only fields from generated Rust structs",
+  "dependent matches whose erased index keeps the same runtime shape may lower through dedicated fixture policies",
   "dependent matches whose erased index affects runtime branch shape remain rejected"
 ]
 
@@ -138,6 +142,6 @@ theorem vectorDependentCheckUsesConcreteBound :
 
 /-- Human-readable policy summary recorded in generated validation/proof reports. -/
 def dependentErasureSummary : String :=
-  "rows 28/29 complete: dependent erasure classifies runtime/proof/index fields, erases Subtype carriers, checks Fin bounds and Vector lengths, permits equality casts only when erased runtime representations agree, admits Sigma-like runtime pairs, and rejects dependent branch shapes whose erased index changes runtime behavior"
+  "row 30 complete: dependent erasure classifies runtime/proof/index fields, erases Subtype carriers, checks Fin bounds and Vector lengths, permits equality casts only when erased runtime representations agree, admits invariant Sigma runtime pairs and invariant indexed-family carriers, accepts dependent matches whose erased branches keep the same runtime shape, and rejects dependent branch shapes whose erased index changes runtime behavior"
 
 end LeanRustCore.DependentErasure

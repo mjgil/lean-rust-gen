@@ -78,6 +78,11 @@ def check_files() -> None:
         "rust/tests/next20_completion.rs",
         "corpus/positive/parameterized_pair_box.expected.json",
         "corpus/positive/parameterized_nested_payload.expected.json",
+        "corpus/positive/equality_cast_subtype.expected.json",
+        "corpus/positive/sigma_runtime_pair.expected.json",
+        "corpus/positive/flag_carrier_invariant.expected.json",
+        "corpus/positive/flag_carrier_invariant_match.expected.json",
+        "corpus/positive/nested_proof_wrapper.expected.json",
         "corpus/unsupported/dependent_generic_index.expected.json",
     ]
     for path in required:
@@ -129,6 +134,7 @@ def check_runtime_and_tests() -> None:
         "next20_runtime_helpers_cover_numeric_std_and_layouts",
         "u32_checked_div", "checked_add_u32", "preconditioned_div_u32", "RcTreeU32",
         "ArenaTreeU32", "list_append_u32", "list_partition_nonzero_u32",
+        "next20_dependent_erasure_examples_cover_invariant_sigma_and_indexed_shapes",
     ]:
         require(needle in test, f"next20 test missing {needle}")
 
@@ -138,6 +144,13 @@ def check_runtime_and_tests() -> None:
         "pub fn saturating_add_u32",
         "pub fn preconditioned_div_u32",
         "pub fn checked_cast_u64_to_u32",
+        "pub fn equality_cast_subtype_value_u32",
+        "pub fn sigma_runtime_pair_echo_u32",
+        "pub fn sigma_runtime_pair_sum_u32",
+        "pub fn flag_carrier_true_roundtrip_u32",
+        "pub fn flag_carrier_false_value_u32",
+        "pub fn flag_carrier_match_invariant_u32",
+        "pub fn nested_proof_wrapper_value_u32",
         "pub struct PairboxU32String",
         "pub struct PairboxStringU32",
         "pub enum PairchoiceU32String",
@@ -155,6 +168,13 @@ def check_runtime_and_tests() -> None:
         "FN\tsaturating_add_u32",
         "FN\tpreconditioned_div_u32",
         "FN\tchecked_cast_u64_to_u32",
+        "FN\tequality_cast_subtype_value_u32",
+        "FN\tsigma_runtime_pair_echo_u32",
+        "FN\tsigma_runtime_pair_sum_u32",
+        "FN\tflag_carrier_true_roundtrip_u32",
+        "FN\tflag_carrier_false_value_u32",
+        "FN\tflag_carrier_match_invariant_u32",
+        "FN\tnested_proof_wrapper_value_u32",
         "TYPE\tstruct\tPairboxU32String",
         "TYPE\tenum\tPairchoiceU32String",
         "TYPE\tstruct\tNestedpayloadU32String",
@@ -237,6 +257,44 @@ def check_parameterized_data_corpus() -> None:
     )
 
 
+def check_dependent_erasure_positive_corpus() -> None:
+    expected = {
+        "corpus/positive/equality_cast_subtype.expected.json": (
+            "LeanRustCore.Examples.equality_cast_subtype_value_u32",
+            {"dependent-erasure", "proof-erasure"},
+        ),
+        "corpus/positive/sigma_runtime_pair.expected.json": (
+            "LeanRustCore.Examples.sigma_runtime_pair_echo_u32",
+            {"dependent-erasure", "container-shape"},
+        ),
+        "corpus/positive/flag_carrier_invariant.expected.json": (
+            "LeanRustCore.Examples.flag_carrier_true_roundtrip_u32",
+            {"dependent-erasure"},
+        ),
+        "corpus/positive/flag_carrier_invariant_match.expected.json": (
+            "LeanRustCore.Examples.flag_carrier_match_invariant_u32",
+            {"dependent-erasure", "general-pattern-match"},
+        ),
+        "corpus/positive/nested_proof_wrapper.expected.json": (
+            "LeanRustCore.Examples.nested_proof_wrapper_value_u32",
+            {"dependent-erasure", "proof-erasure"},
+        ),
+    }
+    for path, (source, features) in expected.items():
+        fixture = load_json(path)
+        require(fixture["kind"] == "positive", f"{path} must be positive")
+        require(fixture["source"] == source, f"{path} must reference {source}")
+        require(fixture["expected_status"] == "supported", f"{path} must be supported")
+        require(
+            set(fixture["required_features"]) == features,
+            f"{path} must record required features {sorted(features)}",
+        )
+        require(
+            "docs/DEPENDENT_ERASURE.md" in fixture["documentation"],
+            f"{path} must reference docs/DEPENDENT_ERASURE.md",
+        )
+
+
 def check_docs() -> None:
     for path in [
         "docs/GENERICS.md", "docs/NUMERIC_SEMANTICS.md", "docs/DEPENDENT_ERASURE.md", "docs/RECURSIVE_DATA.md",
@@ -263,6 +321,9 @@ def check_docs() -> None:
     numerics = read("docs/NUMERIC_SEMANTICS.md")
     for phrase in ["checked_add_u32", "preconditioned_div_u32", "checked_cast_u64_to_u32"]:
         require(phrase in numerics, f"docs/NUMERIC_SEMANTICS.md missing phrase {phrase}")
+    dependent = read("docs/DEPENDENT_ERASURE.md").lower()
+    for phrase in ["equality cast", "sigma", "indexed family", "invariant runtime shape", "nested proof", "proof/index/runtime"]:
+        require(phrase in dependent, f"docs/DEPENDENT_ERASURE.md missing phrase {phrase}")
 
 
 def check_reports() -> None:
@@ -317,6 +378,7 @@ def main() -> None:
     check_runtime_and_tests()
     check_diagnostic_corpus()
     check_parameterized_data_corpus()
+    check_dependent_erasure_positive_corpus()
     check_docs()
     check_reports()
     check_scripts()

@@ -294,6 +294,12 @@ runtime envelope in four concrete ways:
   `Subtype` erases to its carrier, literal-bound `Fin` lowers to checked `u32`
   carriers, literal-length `Vector` lowers to checked `Vec<T>` carriers, and
   proof-only struct fields are omitted from emitted runtime layouts.
+- Row 30 closes the remaining indexed-family slice without widening the default
+  lane into general dependent computation: equality casts are admitted only when
+  erased runtime carriers match, invariant `Sigma` codomains lower to runtime
+  products, the fixture indexed family `FlagCarrier` erases to `u32`, and
+  dependent matches are admitted only when every erased branch keeps the same
+  runtime shape. Branch-shape-changing dependent matches remain rejected.
 
 `LeanRustCore.RecursionPolicy` is retained as an analyzer/strict-compatibility
 gate, but the default large-subset emission path no longer rejects generated

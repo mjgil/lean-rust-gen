@@ -5,7 +5,11 @@ use std::path::PathBuf;
 use lean_rust_core_generated::runtime::*;
 use lean_rust_core_generated::{
     checked_add_u32, checked_cast_u64_to_u32, checked_div_u32, checked_mod_u32, checked_sub_u32,
-    preconditioned_div_u32, preconditioned_mod_u32, saturating_add_u32, saturating_sub_u32,
+    equality_cast_subtype_value_u32, flag_carrier_false_value_u32,
+    flag_carrier_match_invariant_u32, flag_carrier_true_roundtrip_u32,
+    nested_proof_wrapper_value_u32, preconditioned_div_u32, preconditioned_mod_u32,
+    saturating_add_u32, saturating_sub_u32, sigma_runtime_pair_echo_u32,
+    sigma_runtime_pair_sum_u32,
 };
 use num_bigint::{BigInt, BigUint};
 
@@ -356,4 +360,117 @@ fn next20_runtime_helpers_cover_numeric_std_and_layouts() {
         dictionary_compare_u32(ORD_U32, 1, 2),
         std::cmp::Ordering::Less
     );
+}
+
+#[test]
+fn next20_dependent_erasure_examples_cover_invariant_sigma_and_indexed_shapes() {
+    let generated =
+        fs::read_to_string(repo_root().join("rust/src/generated.rs")).expect("generated Rust");
+    for needle in [
+        "pub fn equality_cast_subtype_value_u32",
+        "pub fn sigma_runtime_pair_echo_u32",
+        "pub fn sigma_runtime_pair_sum_u32",
+        "pub fn flag_carrier_true_roundtrip_u32",
+        "pub fn flag_carrier_false_value_u32",
+        "pub fn flag_carrier_match_invariant_u32",
+        "pub fn nested_proof_wrapper_value_u32",
+    ] {
+        assert!(
+            generated.contains(needle),
+            "missing generated item {needle}"
+        );
+    }
+
+    let target_validation = fs::read_to_string(repo_root().join("rust/target-validation.txt"))
+        .expect("target validation");
+    for needle in [
+        "FN\tequality_cast_subtype_value_u32",
+        "FN\tsigma_runtime_pair_echo_u32",
+        "FN\tsigma_runtime_pair_sum_u32",
+        "FN\tflag_carrier_true_roundtrip_u32",
+        "FN\tflag_carrier_false_value_u32",
+        "FN\tflag_carrier_match_invariant_u32",
+        "FN\tnested_proof_wrapper_value_u32",
+    ] {
+        assert!(
+            target_validation.contains(needle),
+            "missing target-validation item {needle}"
+        );
+    }
+
+    assert_eq!(equality_cast_subtype_value_u32(41), 41);
+    assert_eq!(sigma_runtime_pair_echo_u32((40, 2)), (40, 2));
+    assert_eq!(sigma_runtime_pair_sum_u32((40, 2)), 42);
+    assert_eq!(flag_carrier_true_roundtrip_u32(41), 41);
+    assert_eq!(flag_carrier_false_value_u32(41), 41);
+    assert_eq!(flag_carrier_match_invariant_u32(true, 41), 42);
+    assert_eq!(flag_carrier_match_invariant_u32(false, 41), 41);
+    assert_eq!(nested_proof_wrapper_value_u32(41), 41);
+
+    for (path, source, features) in [
+        (
+            "corpus/positive/equality_cast_subtype.expected.json",
+            "LeanRustCore.Examples.equality_cast_subtype_value_u32",
+            BTreeSet::from(["dependent-erasure", "proof-erasure"]),
+        ),
+        (
+            "corpus/positive/sigma_runtime_pair.expected.json",
+            "LeanRustCore.Examples.sigma_runtime_pair_echo_u32",
+            BTreeSet::from(["container-shape", "dependent-erasure"]),
+        ),
+        (
+            "corpus/positive/flag_carrier_invariant.expected.json",
+            "LeanRustCore.Examples.flag_carrier_true_roundtrip_u32",
+            BTreeSet::from(["dependent-erasure"]),
+        ),
+        (
+            "corpus/positive/flag_carrier_invariant_match.expected.json",
+            "LeanRustCore.Examples.flag_carrier_match_invariant_u32",
+            BTreeSet::from(["dependent-erasure", "general-pattern-match"]),
+        ),
+        (
+            "corpus/positive/nested_proof_wrapper.expected.json",
+            "LeanRustCore.Examples.nested_proof_wrapper_value_u32",
+            BTreeSet::from(["dependent-erasure", "proof-erasure"]),
+        ),
+    ] {
+        let fixture = serde_json::from_str::<serde_json::Value>(
+            &fs::read_to_string(repo_root().join(path)).expect("fixture"),
+        )
+        .unwrap();
+        assert_eq!(fixture["kind"].as_str(), Some("positive"));
+        assert_eq!(fixture["source"].as_str(), Some(source));
+        assert_eq!(fixture["expected_status"].as_str(), Some("supported"));
+        assert_eq!(
+            fixture["required_features"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|item| item.as_str())
+                .collect::<BTreeSet<_>>(),
+            features
+        );
+        assert!(fixture["documentation"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|item| item.as_str())
+            .any(|item| item == "docs/DEPENDENT_ERASURE.md"));
+    }
+
+    let dependent_doc =
+        fs::read_to_string(repo_root().join("docs/DEPENDENT_ERASURE.md")).expect("dependent doc");
+    for phrase in [
+        "equality cast",
+        "Sigma",
+        "indexed family",
+        "invariant runtime shape",
+        "nested proof",
+        "proof/index/runtime",
+    ] {
+        assert!(
+            dependent_doc.contains(phrase),
+            "docs/DEPENDENT_ERASURE.md missing {phrase}"
+        );
+    }
 }

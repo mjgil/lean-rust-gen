@@ -1,0 +1,9 @@
+{
+  "format": "lean-rust-core.corpus-case.v1",
+  "kind": "positive",
+  "source": "LeanRustCore.Examples.flag_carrier_true_roundtrip_u32",
+  "expected_status": "supported",
+  "required_features": ["dependent-erasure"],
+  "tests": ["differential_generated", "parser_validation", "semantic_validation", "rust/tests/generated.rs", "rust/tests/next20_completion.rs"],
+  "documentation": ["docs/DEPENDENT_ERASURE.md", "docs/ARCHITECTURE.md"]
+}

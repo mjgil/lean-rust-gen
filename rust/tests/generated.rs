@@ -327,6 +327,7 @@ fn dependent_shape_erasure_sprint_10_12() {
     assert_eq!(subtype_val_u32(42), 42);
     assert_eq!(subtype_inc_u32(u32::MAX), 0);
     assert_eq!(subtype_roundtrip_u32(7), 7);
+    assert_eq!(equality_cast_subtype_value_u32(11), 11);
     assert_eq!(fin_val10_u32(9), 9);
     assert_eq!(fin_checked10_u32(9), Some(9));
     assert_eq!(fin_checked10_u32(10), None);
@@ -334,8 +335,15 @@ fn dependent_shape_erasure_sprint_10_12() {
     assert_eq!(fin_succ_checked10_u32(9), None);
     assert_eq!(vector_echo3_u32(vec![1, 2, 3]), vec![1, 2, 3]);
     assert_eq!(vector_map_inc3_u32(vec![1, 2, u32::MAX]), vec![2, 3, 0]);
+    assert_eq!(sigma_runtime_pair_echo_u32((5, 6)), (5, 6));
+    assert_eq!(sigma_runtime_pair_sum_u32((40, 2)), 42);
+    assert_eq!(flag_carrier_true_roundtrip_u32(7), 7);
+    assert_eq!(flag_carrier_false_value_u32(9), 9);
+    assert_eq!(flag_carrier_match_invariant_u32(true, 9), 10);
+    assert_eq!(flag_carrier_match_invariant_u32(false, 9), 9);
     assert_eq!(bounded_proof_make_u32(42), BoundedProof { value: 42 });
     assert_eq!(bounded_proof_value_u32(BoundedProof { value: 42 }), 42);
+    assert_eq!(nested_proof_wrapper_value_u32(13), 13);
 }
 
 #[test]

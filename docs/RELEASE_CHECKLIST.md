@@ -61,8 +61,10 @@ It verifies the rows 21 through 40 feature modules and docs, plus complete
 diagnostic corpus coverage for `LRC001` through `LRC014`, per-template
 `requiresSpan`/`nextFeature` metadata, the four explicit extractor fallback
 branches, the parameterized-data corpus for multi-parameter, nested, and
-rejected dependent generic shapes, and the Rust completion test that scans the
-checked corpus fixtures.
+rejected dependent generic shapes, the positive dependent-erasure corpus for
+equality casts, invariant `Sigma`, invariant indexed-family carriers, invariant
+dependent matches, and nested proof wrappers, and the Rust completion test that
+scans the checked corpus fixtures.
 
 ## Remaining rows 41-63 gate
 

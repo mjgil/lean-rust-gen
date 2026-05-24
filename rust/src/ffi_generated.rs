@@ -20,6 +20,11 @@ pub unsafe extern "C" fn lrc_result_ok_u32(
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_flag_carrier_false_value_u32(x: u32) -> u32 {
+    crate::flag_carrier_false_value_u32(x)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_auto_identity_u32(x: u32) -> u32 {
     crate::auto_identity_u32(x)
 }
@@ -39,6 +44,11 @@ pub extern "C" fn lrc_subtype_inc_u32(x: u32) -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_flag_carrier_true_roundtrip_u32(x: u32) -> u32 {
+    crate::flag_carrier_true_roundtrip_u32(x)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_bool_match_u32(flag: u32, when_true: u32, when_false: u32) -> u32 {
     crate::bool_match_u32(flag != 0, when_true, when_false)
 }
@@ -53,6 +63,11 @@ pub extern "C" fn lrc_decidable_eq_u32(a: u32, b: u32) -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn lrc_equality_cast_subtype_value_u32(x: u32) -> u32 {
+    crate::equality_cast_subtype_value_u32(x)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
     crate::clamp_u32(lo, hi, x)
 }
@@ -60,6 +75,11 @@ pub extern "C" fn lrc_clamp_u32(lo: u32, hi: u32, x: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn lrc_pair_sum_match_u32(a: u32, b: u32) -> u32 {
     crate::pair_sum_match_u32(a, b)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_nested_proof_wrapper_value_u32(x: u32) -> u32 {
+    crate::nested_proof_wrapper_value_u32(x)
 }
 
 #[no_mangle]
@@ -110,6 +130,11 @@ pub extern "C" fn lrc_bounded_bump_u32(x: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn lrc_inc_u32(x: u32) -> u32 {
     crate::inc_u32(x)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_flag_carrier_match_invariant_u32(flag: u32, x: u32) -> u32 {
+    crate::flag_carrier_match_invariant_u32(flag != 0, x)
 }
 
 #[no_mangle]

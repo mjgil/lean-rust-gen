@@ -79,6 +79,28 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[2])?,
         ))),
         "vector_map_inc3_u32" => Ok(v_vec_u32(vector_map_inc3_u32(as_vec_u32(&args[0])?))),
+        "equality_cast_subtype_value_u32" => {
+            Ok(v_u32(equality_cast_subtype_value_u32(as_u32(&args[0])?)))
+        }
+        "sigma_runtime_pair_echo_u32" => Ok(v_prod_u32(sigma_runtime_pair_echo_u32(as_prod_u32(
+            &args[0],
+        )?))),
+        "sigma_runtime_pair_sum_u32" => {
+            Ok(v_u32(sigma_runtime_pair_sum_u32(as_prod_u32(&args[0])?)))
+        }
+        "flag_carrier_true_roundtrip_u32" => {
+            Ok(v_u32(flag_carrier_true_roundtrip_u32(as_u32(&args[0])?)))
+        }
+        "flag_carrier_false_value_u32" => {
+            Ok(v_u32(flag_carrier_false_value_u32(as_u32(&args[0])?)))
+        }
+        "flag_carrier_match_invariant_u32" => Ok(v_u32(flag_carrier_match_invariant_u32(
+            as_bool(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
+        "nested_proof_wrapper_value_u32" => {
+            Ok(v_u32(nested_proof_wrapper_value_u32(as_u32(&args[0])?)))
+        }
         "pair_sum_match_u32" => Ok(v_u32(pair_sum_match_u32(
             as_u32(&args[0])?,
             as_u32(&args[1])?,

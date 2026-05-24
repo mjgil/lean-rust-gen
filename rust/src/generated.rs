@@ -168,6 +168,10 @@ pub fn tagged_present_u32(x: u32) -> TaggedU32 {
     TaggedU32::Present(x)
 }
 
+pub fn flag_carrier_false_value_u32(x: u32) -> u32 {
+    x
+}
+
 pub fn unsupported_higher_order_u32(f: fn(u32) -> u32, x: u32) -> u32 {
     f(x)
 }
@@ -186,6 +190,10 @@ pub fn pair_choice_left_u32_string(x: u32) -> PairchoiceU32String {
 
 pub fn subtype_inc_u32(x: u32) -> u32 {
     (x).wrapping_add(1)
+}
+
+pub fn flag_carrier_true_roundtrip_u32(x: u32) -> u32 {
+    x
 }
 
 pub fn step_amount_plus_one_or(s: Step, fallback: u32) -> u32 {
@@ -243,6 +251,10 @@ pub fn tree_leaf_u32(_x: ()) -> BinaryTreeU32 {
     BinaryTreeU32::Leaf
 }
 
+pub fn equality_cast_subtype_value_u32(x: u32) -> u32 {
+    x
+}
+
 pub fn pair_box_swap_u32_string(pair: PairboxU32String) -> PairboxStringU32 {
     PairboxStringU32 {
         left: (pair).right,
@@ -283,6 +295,10 @@ pub fn result_map_err_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
         Ok(err) => Ok::<u32, _>(err),
         Err(err) => Err((err).wrapping_add(1)),
     }
+}
+
+pub fn nested_proof_wrapper_value_u32(x: u32) -> u32 {
+    x
 }
 
 pub fn subtype_val_u32(x: u32) -> u32 {
@@ -407,7 +423,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg1976) => fallback,
+        PairchoiceU32String::Right(_hyg2236) => fallback,
     }
 }
 
@@ -499,6 +515,14 @@ pub fn inc_u32(x: u32) -> u32 {
     (x).wrapping_add(1)
 }
 
+pub fn flag_carrier_match_invariant_u32(flag: bool, x: u32) -> u32 {
+    if flag {
+        (x).wrapping_add(1)
+    } else {
+        x
+    }
+}
+
 pub fn result_bind_inc_u32(x: Result<u32, u32>) -> Result<u32, u32> {
     match x {
         Err(__lrc_err) => Err::<_, u32>(__lrc_err),
@@ -563,6 +587,12 @@ pub fn option_map_inc_u32(x: Option<u32>) -> Option<u32> {
     match x {
         None => None::<u32>,
         Some(y) => Some((y).wrapping_add(1)),
+    }
+}
+
+pub fn sigma_runtime_pair_sum_u32(pair: (u32, u32)) -> u32 {
+    match pair {
+        (tag, value) => (tag).wrapping_add(value),
     }
 }
 
@@ -829,6 +859,10 @@ pub fn list_all_nonzero_u32(xs: Vec<u32>) -> bool {
         }
         __lrc_all
     }
+}
+
+pub fn sigma_runtime_pair_echo_u32(pair: (u32, u32)) -> (u32, u32) {
+    pair
 }
 
 pub fn identity_u64(x: u64) -> u64 {

@@ -2,7 +2,7 @@ import LeanRustCore.DependentErasure
 
 namespace LeanRustCore.DependentErasureChecker
 
-/-! Row 29 compatibility facade for completed dependent erasure. -/
+/-! Row 30 compatibility facade for completed dependent erasure. -/
 
 abbrev RuntimeRelevance := LeanRustCore.DependentErasure.RuntimeRelevance
 abbrev ErasureDecision := LeanRustCore.DependentErasure.ErasureDecision

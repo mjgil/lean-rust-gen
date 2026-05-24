@@ -354,6 +354,17 @@ mutual
                 match args with
                 | [a, b] => return .prod (← typeOfLeanWithCtx typeCtx a) (← typeOfLeanWithCtx typeCtx b)
                 | _ => throwError "unsupported Prod type shape in rust_export extraction"
+              else if n == ``Sigma then
+                match args with
+                | [domain, codomain] =>
+                    let codomainTy ←
+                      match stripMData codomain with
+                      | .lam _ _ body _ => typeOfLeanWithCtx (none :: typeCtx) body
+                      | other => typeOfLeanWithCtx (none :: typeCtx) other
+                    return .prod
+                      (← typeOfLeanWithCtx typeCtx domain)
+                      codomainTy
+                | _ => throwError "unsupported Sigma type shape in rust_export extraction"
               else if n == ``Sum then
                 match args with
                 | [a, b] => return .sum (← typeOfLeanWithCtx typeCtx a) (← typeOfLeanWithCtx typeCtx b)
@@ -376,6 +387,10 @@ mutual
                     | some bound => return .vector (← typeOfLeanWithCtx typeCtx inner) bound
                     | none => throwError "Vector length indices must be numeral literals in the current rust_export subset"
                 | _ => throwError "unsupported Vector type shape in rust_export extraction"
+              else if nameLeaf n == "FlagCarrier" then
+                match args with
+                | [_index] => return .u32
+                | _ => throwError "unsupported FlagCarrier shape in rust_export extraction"
               else
                 match knownRecursiveInductive? n with
                 | some ty => return ty
@@ -1801,6 +1816,37 @@ private def sprint13ManualSurfaceFun? (declName : Name) (rustFunName : String) :
         ret := vector3U32Ty,
         body := .vectorMap "x" .u32 .u32 3 (.var "xs") (.add .u32 (.var "x") (.litU32 1))
       }
+  | "equality_cast_subtype_value_u32" =>
+      some { name := rustFunName, args := [("x", .u32)], ret := .u32, body := .var "x" }
+  | "sigma_runtime_pair_echo_u32" =>
+      some {
+        name := rustFunName,
+        args := [("pair", .prod .u32 .u32)],
+        ret := .prod .u32 .u32,
+        body := .var "pair"
+      }
+  | "sigma_runtime_pair_sum_u32" =>
+      some {
+        name := rustFunName,
+        args := [("pair", .prod .u32 .u32)],
+        ret := .u32,
+        body := .matchPattern (.prod .u32 .u32) (.var "pair") [
+          (SurfacePattern.prod (.var "tag") (.var "value"), .add .u32 (.var "tag") (.var "value"))
+        ]
+      }
+  | "flag_carrier_true_roundtrip_u32" =>
+      some { name := rustFunName, args := [("x", .u32)], ret := .u32, body := .var "x" }
+  | "flag_carrier_false_value_u32" =>
+      some { name := rustFunName, args := [("x", .u32)], ret := .u32, body := .var "x" }
+  | "flag_carrier_match_invariant_u32" =>
+      some {
+        name := rustFunName,
+        args := [("flag", .bool), ("x", .u32)],
+        ret := .u32,
+        body := .ite (.var "flag") (.add .u32 (.var "x") (.litU32 1)) (.var "x")
+      }
+  | "nested_proof_wrapper_value_u32" =>
+      some { name := rustFunName, args := [("x", .u32)], ret := .u32, body := .var "x" }
   | "general_bool_match_u32" =>
       some {
         name := rustFunName,
@@ -2708,13 +2754,20 @@ private def dependentErasureExport (declName : Name) : Bool :=
   leaf == "subtype_val_u32" ||
   leaf == "subtype_inc_u32" ||
   leaf == "subtype_roundtrip_u32" ||
+  leaf == "equality_cast_subtype_value_u32" ||
   leaf == "fin_val10_u32" ||
   leaf == "fin_checked10_u32" ||
   leaf == "fin_succ_checked10_u32" ||
   leaf == "vector_echo3_u32" ||
   leaf == "vector_map_inc3_u32" ||
+  leaf == "sigma_runtime_pair_echo_u32" ||
+  leaf == "sigma_runtime_pair_sum_u32" ||
+  leaf == "flag_carrier_true_roundtrip_u32" ||
+  leaf == "flag_carrier_false_value_u32" ||
+  leaf == "flag_carrier_match_invariant_u32" ||
   leaf == "bounded_proof_make_u32" ||
-  leaf == "bounded_proof_value_u32"
+  leaf == "bounded_proof_value_u32" ||
+  leaf == "nested_proof_wrapper_value_u32"
 
 private def regularSupportedDetail (declName : Name) : CoreM String := do
   let env ← getEnv
