@@ -4,6 +4,7 @@ import LeanRustCore.Extract
 import LeanRustCore.NumericExamples
 import LeanRustCore.ParameterizedExamples
 import LeanRustCore.RecursionExamples
+import LeanRustCore.TypeclassDictionaryExamples
 import LeanRustCore.TypedIRExamples
 
 namespace LeanRustCore.Examples
@@ -364,6 +365,12 @@ def repr_u32 (x : UInt32) : String :=
 @[rust_export]
 def ord_compare_u32 (a b : UInt32) : Ordering :=
   compare a b
+
+@[rust_export] def generated_dict_beq_u32 (a b : UInt32) : Bool := apply_beq_dict_u32 beq_dict_u32_inst a b
+@[rust_export] def generated_dict_compare_u32 (a b : UInt32) : Ordering := apply_compare_dict_u32 compare_dict_u32_inst a b
+@[rust_export] def generated_dict_add_u32 (a b : UInt32) : UInt32 := apply_add_dict_u32 add_dict_u32_inst a b
+@[rust_export] def generated_dict_default_u32 (_x : Unit) : UInt32 := apply_default_dict_u32 default_dict_u32_inst
+@[rust_export] def generated_dict_to_string_u32 (x : UInt32) : String := apply_to_string_dict_u32 to_string_dict_u32_inst x
 
 @[rust_export]
 def option_do_inc_u32 (x : Option UInt32) : Option UInt32 := do

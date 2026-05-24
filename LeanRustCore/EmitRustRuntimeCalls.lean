@@ -52,6 +52,13 @@ def emitRuntimeCall? (name : String) (args : List String) : Option String :=
   | "__runtime_string_append", [left, right] => some s!"crate::runtime::string_append({left}, &({right}))"
   | "__runtime_string_length_chars", [s] => some s!"crate::runtime::string_length_chars(&({s})) as u32"
   | "__runtime_string_contains_char", [s, c] => some s!"crate::runtime::string_contains_char(&({s}), {c})"
+  | "__runtime_dictionary_beq_u32_const", [a, b] => some s!"crate::runtime::dictionary_beq_u32(crate::runtime::BEQ_U32, {a}, {b})"
+  | "__runtime_dictionary_compare_u32_const", [a, b] =>
+      some ("match crate::runtime::dictionary_compare_u32(crate::runtime::ORD_U32, " ++ a ++ ", " ++ b ++
+        ") { std::cmp::Ordering::Less => Ordering::Lt, std::cmp::Ordering::Equal => Ordering::Eq, std::cmp::Ordering::Greater => Ordering::Gt }")
+  | "__runtime_dictionary_add_u32_const", [a, b] => some s!"crate::runtime::dictionary_add_u32(crate::runtime::ADD_U32, {a}, {b})"
+  | "__runtime_dictionary_default_u32_const", [] => some "crate::runtime::dictionary_default_u32(crate::runtime::DEFAULT_U32)"
+  | "__runtime_dictionary_to_string_u32_const", [value] => some s!"crate::runtime::dictionary_to_string_u32(crate::runtime::TO_STRING_U32, {value})"
   | _, _ => none
 
 end LeanRustCore

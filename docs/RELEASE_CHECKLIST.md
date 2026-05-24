@@ -82,6 +82,14 @@ controlled IO boundary metadata, complete target semantics, preservation
 obligations, property generators, feature-complete coverage, CI matrix metadata,
 and publishing/versioning metadata.
 
+For generated dictionaries, that gate now requires the ordinary Lean helper and
+export module `LeanRustCore.TypeclassDictionaryExamples`, the positive corpus
+fixtures `corpus/positive/generated_dict_*.expected.json`, and the Rust test
+`rust/tests/typeclass_dictionaries.rs` proving that `generated_dict_beq_u32`,
+`generated_dict_compare_u32`, `generated_dict_add_u32`,
+`generated_dict_default_u32`, and `generated_dict_to_string_u32` lower to
+explicit runtime dictionary constants.
+
 For preservation, that gate now requires the named Lean theorems in
 `LeanRustCore.Preservation`, their proof-report facts, and the docs split that
 separates proved lemmas from regression-tested facts.

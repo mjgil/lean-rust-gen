@@ -29,6 +29,7 @@ def json_file(path: str):
 def check_required_files() -> None:
     required = [
         "LeanRustCore/TypeclassDictionaries.lean",
+        "LeanRustCore/TypeclassDictionaryExamples.lean",
         "LeanRustCore/FirstClassClosures.lean",
         "LeanRustCore/PureDoNotation.lean",
         "LeanRustCore/IOBoundary.lean",
@@ -51,7 +52,13 @@ def check_required_files() -> None:
         "docs/PUBLISHING.md",
         "CHANGELOG.md",
         "rust/tests/remaining_completion.rs",
+        "rust/tests/typeclass_dictionaries.rs",
         "rust/tests/target_interpreter.rs",
+        "corpus/positive/generated_dict_beq.expected.json",
+        "corpus/positive/generated_dict_compare.expected.json",
+        "corpus/positive/generated_dict_add.expected.json",
+        "corpus/positive/generated_dict_default.expected.json",
+        "corpus/positive/generated_dict_to_string.expected.json",
     ]
     for path in required:
         require((ROOT / path).exists(), f"missing remaining-completion artifact {path}")
@@ -63,7 +70,14 @@ def check_required_files() -> None:
 
 def check_lean_modules() -> None:
     expectations = {
-        "LeanRustCore/TypeclassDictionaries.lean": ["dictionaryShapes", "AddDictU32", "allDictionariesComplete", "dictionary_completion_gate"],
+        "LeanRustCore/TypeclassDictionaries.lean": [
+            "dictionaryShapes",
+            "generatedDictionaryHelpers",
+            "generatedDictionaryExports",
+            "AddDictU32",
+            "allDictionariesComplete",
+            "dictionary_completion_gate",
+        ],
         "LeanRustCore/FirstClassClosures.lean": ["closureObjects", "StoredClosureU32", "allClosureObjectsComplete", "closure_object_completion_gate"],
         "LeanRustCore/PureDoNotation.lean": ["ExceptT(StateM)", "allPureDoLoweringsComplete", "pure_do_completion_gate"],
         "LeanRustCore/IOBoundary.lean": ["ControlledIOOp", "allIOPoliciesComplete", "io_boundary_completion_gate"],
@@ -159,6 +173,7 @@ def check_rust_runtime_and_validate() -> None:
         require(needle in validate, f"validate crate missing {needle}")
 
     remaining_test = read("rust/tests/remaining_completion.rs")
+    dictionary_test = read("rust/tests/typeclass_dictionaries.rs")
     target_interpreter = read("rust/tests/target_interpreter.rs")
     for needle in [
         "remaining_rows_reports_and_dashboard_are_complete",
@@ -170,6 +185,15 @@ def check_rust_runtime_and_validate() -> None:
         "ControlledIoProgram",
     ]:
         require(needle in remaining_test, f"remaining completion test missing {needle}")
+    for needle in [
+        "generated_dictionary_exports_use_runtime_dictionary_values",
+        "generated_rust_snapshot_mentions_dictionary_constants_and_helpers",
+        "generated_dict_beq_u32",
+        "generated_dict_compare_u32",
+        "crate::runtime::BEQ_U32",
+        "crate::runtime::TO_STRING_U32",
+    ]:
+        require(needle in dictionary_test, f"typeclass dictionary test missing {needle}")
     for needle in [
         "generated_subset_semantics_are_executable_for_every_emitted_function",
         "dispatch_compiled_function",
@@ -276,6 +300,55 @@ def check_reports_and_dashboard() -> None:
         require(feature in entries, f"coverage dashboard missing feature {feature}")
 
 
+def check_dictionary_docs_and_corpus() -> None:
+    docs = read("docs/TYPECLASS_DICTIONARIES.md")
+    for needle in [
+        "generated_dict_beq_u32",
+        "generated_dict_compare_u32",
+        "apply_beq_dict_u32",
+        "closed monomorphic dictionary arguments",
+    ]:
+        require(needle in docs, f"docs/TYPECLASS_DICTIONARIES.md missing {needle}")
+
+    helper_examples = read("LeanRustCore/TypeclassDictionaryExamples.lean")
+    exported_examples = read("LeanRustCore/Examples.lean")
+    for needle in [
+        "apply_beq_dict_u32",
+        "apply_compare_dict_u32",
+        "apply_add_dict_u32",
+        "apply_default_dict_u32",
+        "apply_to_string_dict_u32",
+    ]:
+        require(needle in helper_examples, f"LeanRustCore/TypeclassDictionaryExamples.lean missing {needle}")
+
+    for needle in [
+        "generated_dict_beq_u32",
+        "generated_dict_compare_u32",
+        "generated_dict_add_u32",
+        "generated_dict_default_u32",
+        "generated_dict_to_string_u32",
+    ]:
+        require(needle in exported_examples, f"LeanRustCore/Examples.lean missing {needle}")
+
+    for fixture_name in [
+        "generated_dict_beq.expected.json",
+        "generated_dict_compare.expected.json",
+        "generated_dict_add.expected.json",
+        "generated_dict_default.expected.json",
+        "generated_dict_to_string.expected.json",
+    ]:
+        fixture = json_file(f"corpus/positive/{fixture_name}")
+        require(fixture.get("expected_status") == "supported", f"{fixture_name} must be supported")
+        require(
+            "remaining-typeclass-dictionaries" in fixture.get("tests", []),
+            f"{fixture_name} missing remaining-typeclass-dictionaries test tag",
+        )
+        require(
+            "docs/TYPECLASS_DICTIONARIES.md" in fixture.get("documentation", []),
+            f"{fixture_name} missing typeclass dictionary docs",
+        )
+
+
 def check_docs_and_release() -> None:
     for path in [
         "docs/TYPECLASS_DICTIONARIES.md",
@@ -367,6 +440,7 @@ def main() -> None:
     check_lean_modules()
     check_rust_runtime_and_validate()
     check_reports_and_dashboard()
+    check_dictionary_docs_and_corpus()
     check_docs_and_release()
     check_scripts()
 

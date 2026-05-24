@@ -6,6 +6,11 @@
 use crate::abi::ChStatus;
 
 #[no_mangle]
+pub extern "C" fn lrc_generated_dict_add_u32(a: u32, b: u32) -> u32 {
+    crate::generated_dict_add_u32(a, b)
+}
+
+#[no_mangle]
 pub extern "C" fn lrc_saturating_add_u32(a: u32, b: u32) -> u32 {
     crate::saturating_add_u32(a, b)
 }
@@ -237,6 +242,15 @@ pub extern "C" fn lrc_echo_u32(x: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn lrc_nat_sum_to_u32(n: u32) -> u32 {
     crate::nat_sum_to_u32(n)
+}
+
+#[no_mangle]
+pub extern "C" fn lrc_generated_dict_beq_u32(a: u32, b: u32) -> u32 {
+    if crate::generated_dict_beq_u32(a, b) {
+        1
+    } else {
+        0
+    }
 }
 
 #[no_mangle]

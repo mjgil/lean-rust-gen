@@ -70,6 +70,10 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[0])?,
             as_u32(&args[1])?,
         ))),
+        "generated_dict_beq_u32" => Ok(v_bool(generated_dict_beq_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
         "echo_list_u32" => Ok(v_vec_u32(echo_list_u32(as_vec_u32(&args[0])?))),
         "tree_leaf_u32" => Ok(v_binary_tree_u32(tree_leaf_u32(as_unit(&args[0])?))),
         "pair_box_swap_u32_string" => Ok(v_pairbox_string_u32(pair_box_swap_u32_string(
@@ -162,6 +166,10 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[0])?,
             as_u32(&args[1])?,
         ))),
+        "generated_dict_compare_u32" => Ok(v_ordering(generated_dict_compare_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
         "defun_compose_inc_double_u32" => {
             Ok(v_u32(defun_compose_inc_double_u32(as_u32(&args[0])?)))
         }
@@ -170,6 +178,10 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
             as_u32(&args[1])?,
         ))),
         "add_u32" => Ok(v_u32(add_u32(as_u32(&args[0])?, as_u32(&args[1])?))),
+        "generated_dict_add_u32" => Ok(v_u32(generated_dict_add_u32(
+            as_u32(&args[0])?,
+            as_u32(&args[1])?,
+        ))),
         "checked_add_u32" => Ok(v_option_u32(checked_add_u32(
             as_u32(&args[0])?,
             as_u32(&args[1])?,
@@ -255,6 +267,10 @@ pub fn dispatch_compiled_function(name: &str, args: &[Value]) -> Result<Value, S
         "echo_sum_u32" => Ok(v_result_u32_u32(echo_sum_u32(as_result_u32_u32(&args[0])?))),
         "fin_val10_u32" => Ok(v_u32(fin_val10_u32(as_u32(&args[0])?))),
         "to_string_u32" => Ok(v_string(to_string_u32(as_u32(&args[0])?))),
+        "generated_dict_default_u32" => Ok(v_u32(generated_dict_default_u32(as_unit(&args[0])?))),
+        "generated_dict_to_string_u32" => {
+            Ok(v_string(generated_dict_to_string_u32(as_u32(&args[0])?)))
+        }
         "echo_i64" => Ok(v_i64(echo_i64(as_i64(&args[0])?))),
         "step_stay" => Ok(v_step(step_stay(as_unit(&args[0])?))),
         "point_y" => Ok(v_u32(point_y(as_point(&args[0])?))),

@@ -1367,29 +1367,51 @@ where
           pure none
     | _ => pure none
 
+  translateGeneratedDictionaryCall? (typeCtx : TypeCtx) (locals : LocalCtx) (calledName : Name)
+      (args : List Expr) : CoreM (Option SurfaceExpr) := do
+    match nameLeaf calledName, args with
+    | "apply_beq_dict_u32", [_dictExpr, a, b] =>
+        return some (.call "__runtime_dictionary_beq_u32_const" [.u32, .u32] .bool
+          [← translateExpr typeCtx locals (some .u32) a, ← translateExpr typeCtx locals (some .u32) b])
+    | "apply_compare_dict_u32", [_dictExpr, a, b] =>
+        return some (.call "__runtime_dictionary_compare_u32_const" [.u32, .u32] .ordering
+          [← translateExpr typeCtx locals (some .u32) a, ← translateExpr typeCtx locals (some .u32) b])
+    | "apply_add_dict_u32", [_dictExpr, a, b] =>
+        return some (.call "__runtime_dictionary_add_u32_const" [.u32, .u32] .u32
+          [← translateExpr typeCtx locals (some .u32) a, ← translateExpr typeCtx locals (some .u32) b])
+    | "apply_default_dict_u32", [_dictExpr] =>
+        return some (.call "__runtime_dictionary_default_u32_const" [] .u32 [])
+    | "apply_to_string_dict_u32", [_dictExpr, valueExpr] =>
+        return some (.call "__runtime_dictionary_to_string_u32_const" [.u32] .string
+          [← translateExpr typeCtx locals (some .u32) valueExpr])
+    | _, _ => return none
+
   translateFunctionCall? (typeCtx : TypeCtx) (locals : LocalCtx) (calledName : Name) (args : List Expr) : CoreM (Option SurfaceExpr) := do
-    match (← callSignature? calledName) with
+    match (← translateGeneratedDictionaryCall? typeCtx locals calledName args) with
+    | some expr => return some expr
+    | none =>
+      match (← callSignature? calledName) with
     | some (argTypes, retTy) =>
         if args.length == argTypes.length then
           let translatedArgs ← (argTypes.zip args).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
           return some (.call (sanitizeRustIdent "generated" (nameLeaf calledName)) argTypes retTy translatedArgs)
         else
           return none
-    | none =>
-        match (← instantiateGenericCall? typeCtx calledName args) with
-        | some (rustName, argTypes, retTy, valueArgs) =>
-            let translatedArgs ← (argTypes.zip valueArgs).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
-            return some (.call rustName argTypes retTy translatedArgs)
-        | none =>
-            match (← firstOrderSignature? calledName) with
-            | some (argTypes, retTy) =>
-                if args.length == argTypes.length then
-                  let rustName ← registerAutoHelperSpec calledName
-                  let translatedArgs ← (argTypes.zip args).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
-                  return some (.call rustName argTypes retTy translatedArgs)
-                else
-                  return none
-            | none => return none
+      | none =>
+          match (← instantiateGenericCall? typeCtx calledName args) with
+          | some (rustName, argTypes, retTy, valueArgs) =>
+              let translatedArgs ← (argTypes.zip valueArgs).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
+              return some (.call rustName argTypes retTy translatedArgs)
+          | none =>
+              match (← firstOrderSignature? calledName) with
+              | some (argTypes, retTy) =>
+                  if args.length == argTypes.length then
+                    let rustName ← registerAutoHelperSpec calledName
+                    let translatedArgs ← (argTypes.zip args).mapM (fun pair => translateExpr typeCtx locals (some pair.1) pair.2)
+                    return some (.call rustName argTypes retTy translatedArgs)
+                  else
+                    return none
+              | none => return none
 
 
   isDefaultConst (n : Name) : Bool :=
@@ -2938,6 +2960,14 @@ private def typeclassSpecializationExport (declName : Name) : Bool :=
   leaf == "to_string_u32" ||
   leaf == "repr_u32"
 
+private def generatedDictionaryExport (declName : Name) : Bool :=
+  let leaf := nameLeaf declName
+  leaf == "generated_dict_beq_u32" ||
+  leaf == "generated_dict_compare_u32" ||
+  leaf == "generated_dict_add_u32" ||
+  leaf == "generated_dict_default_u32" ||
+  leaf == "generated_dict_to_string_u32"
+
 private def monadicSpecializationExport (declName : Name) : Bool :=
   nameLeaf declName == "option_do_inc_u32"
 
@@ -2995,6 +3025,8 @@ private def regularSupportedDetail (declName : Name) : CoreM String := do
     pure "exported-nat-wrapping-u32"
   else if typeclassSpecializationExport declName then
     pure "exported-typeclass-specialization"
+  else if generatedDictionaryExport declName then
+    pure "exported-generated-typeclass-dictionary"
   else if monadicSpecializationExport declName then
     pure "exported-monadic-bind-specialization"
   else if closureConversionExport declName then

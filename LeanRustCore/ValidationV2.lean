@@ -291,11 +291,11 @@ def coverageEntries : List CoverageEntry := [
     ["rust/proof-report.json", "rust/coverage-dashboard.json"]
     ["next20-typeclass-specialization"],
   mkEntry "remaining-typeclass-dictionaries" "supported-complete"
-    ["TypeclassDictionaries.dictionaryShapes", "AddDictU32", "docs/TYPECLASS_DICTIONARIES.md"]
-    ["LeanRustCore/TypeclassDictionaries.lean", "crates/runtime/src/lib.rs"]
-    ["rust/tests/remaining_completion.rs", "scripts/check-remaining-completion.py"]
+    ["TypeclassDictionaries.dictionaryShapes", "TypeclassDictionaries.generatedDictionaryExports", "AddDictU32", "generated_dict_beq_u32", "docs/TYPECLASS_DICTIONARIES.md"]
+    ["LeanRustCore/TypeclassDictionaries.lean", "LeanRustCore/TypeclassDictionaryExamples.lean", "LeanRustCore/Extract.lean", "crates/runtime/src/lib.rs"]
+    ["rust/tests/remaining_completion.rs", "rust/tests/typeclass_dictionaries.rs", "scripts/check-remaining-completion.py", "rust/tests/target_interpreter.rs"]
     ["docs/TYPECLASS_DICTIONARIES.md", "docs/ARCHITECTURE.md"]
-    ["rust/proof-report.json", "rust/coverage-dashboard.json"]
+    ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/generated_dict_beq.expected.json", "corpus/positive/generated_dict_compare.expected.json", "corpus/positive/generated_dict_add.expected.json", "corpus/positive/generated_dict_default.expected.json", "corpus/positive/generated_dict_to_string.expected.json"]
     ["remaining-typeclass-dictionaries"],
   mkEntry "remaining-first-class-closures" "supported-complete"
     ["FirstClassClosures.closureObjects", "StoredClosureU32", "docs/FIRST_CLASS_CLOSURES.md"]

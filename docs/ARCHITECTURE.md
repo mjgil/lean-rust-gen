@@ -336,8 +336,12 @@ runtime envelope in four concrete ways:
 
 `LeanRustCore.RecursionPolicy` is retained as an analyzer/strict-compatibility
 gate, but the default large-subset emission path no longer rejects generated
-first-order call cycles before emission. General first-class closure conversion,
-full generated typeclass dictionaries, and a complete Rust→IR semantics theorem
+first-order call cycles before emission. `LeanRustCore.TypeclassDictionaryExamples`
+now closes the generated-dictionary slice for closed monomorphic `UInt32`
+instances by lowering helper calls such as `apply_beq_dict_u32` and
+`apply_to_string_dict_u32` to explicit runtime dictionary constants
+`BEQ_U32`, `ORD_U32`, `ADD_U32`, `DEFAULT_U32`, and `TO_STRING_U32`.
+General first-class closure conversion and a complete Rust→IR semantics theorem
 remain future hardening work.
 
 ## Phase 3 completed: Rust→target semantic validation

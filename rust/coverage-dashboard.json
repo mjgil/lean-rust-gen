@@ -263,12 +263,12 @@
       "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
       "diagnostics": ["next20-typeclass-specialization"]
       } },
-    { "feature": "remaining-typeclass-dictionaries", "status": "supported-complete", "examples": ["TypeclassDictionaries.dictionaryShapes", "AddDictU32", "docs/TYPECLASS_DICTIONARIES.md"],
+    { "feature": "remaining-typeclass-dictionaries", "status": "supported-complete", "examples": ["TypeclassDictionaries.dictionaryShapes", "TypeclassDictionaries.generatedDictionaryExports", "AddDictU32", "generated_dict_beq_u32", "docs/TYPECLASS_DICTIONARIES.md"],
       "evidence": {
-      "implementation": ["LeanRustCore/TypeclassDictionaries.lean", "crates/runtime/src/lib.rs"],
-      "tests": ["rust/tests/remaining_completion.rs", "scripts/check-remaining-completion.py"],
+      "implementation": ["LeanRustCore/TypeclassDictionaries.lean", "LeanRustCore/TypeclassDictionaryExamples.lean", "LeanRustCore/Extract.lean", "crates/runtime/src/lib.rs"],
+      "tests": ["rust/tests/remaining_completion.rs", "rust/tests/typeclass_dictionaries.rs", "scripts/check-remaining-completion.py", "rust/tests/target_interpreter.rs"],
       "docs": ["docs/TYPECLASS_DICTIONARIES.md", "docs/ARCHITECTURE.md"],
-      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json"],
+      "generated_examples": ["rust/proof-report.json", "rust/coverage-dashboard.json", "corpus/positive/generated_dict_beq.expected.json", "corpus/positive/generated_dict_compare.expected.json", "corpus/positive/generated_dict_add.expected.json", "corpus/positive/generated_dict_default.expected.json", "corpus/positive/generated_dict_to_string.expected.json"],
       "diagnostics": ["remaining-typeclass-dictionaries"]
       } },
     { "feature": "remaining-first-class-closures", "status": "supported-complete", "examples": ["FirstClassClosures.closureObjects", "StoredClosureU32", "docs/FIRST_CLASS_CLOSURES.md"],

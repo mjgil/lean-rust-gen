@@ -59,13 +59,6 @@ pub enum Choice {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Ordering {
-    Lt,
-    Eq,
-    Gt,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PairchoiceU32String {
     Left(u32),
     Right(String),
@@ -97,6 +90,13 @@ pub enum BinaryTreeU32 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Ordering {
+    Lt,
+    Eq,
+    Gt,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvenNode {
     Terminal(u32),
     Step(u32, Box<OddNode>),
@@ -114,6 +114,10 @@ pub fn inhabited_default_u32(_x: ()) -> u32 {
 
 pub fn array_get_opt_u32(xs: Vec<u32>, i: u32) -> Option<u32> {
     crate::runtime::array_get_u32(&(xs), (i) as usize)
+}
+
+pub fn generated_dict_add_u32(a: u32, b: u32) -> u32 {
+    crate::runtime::dictionary_add_u32(crate::runtime::ADD_U32, a, b)
 }
 
 pub fn checked_sub_u32(a: u32, b: u32) -> Option<u32> {
@@ -226,9 +230,9 @@ pub fn list_head_or_zero_u32(xs: Vec<u32>) -> u32 {
     } else {
         match crate::runtime::list_head_clone(&(xs)) {
             None => 0,
-            Some(_hyg1663) => {
-                let _hyg1664 = crate::runtime::list_tail_clone(&(xs));
-                _hyg1663
+            Some(_hyg1703) => {
+                let _hyg1704 = crate::runtime::list_tail_clone(&(xs));
+                _hyg1703
             }
         }
     }
@@ -275,6 +279,10 @@ pub fn shift_point_x(p: Point, dx: u32) -> Point {
     }
 }
 
+pub fn generated_dict_to_string_u32(x: u32) -> String {
+    crate::runtime::dictionary_to_string_u32(crate::runtime::TO_STRING_U32, x)
+}
+
 pub fn array_fold_sum_u32(xs: Vec<u32>) -> u32 {
     {
         let mut acc: u32 = 0;
@@ -313,11 +321,11 @@ pub fn rose_branch_u32(value: u32, children: Vec<RoseTreeU32>) -> RoseTreeU32 {
 
 pub fn list_reverse_first_or_u32(xs: Vec<u32>, fallback: u32) -> u32 {
     {
-        let mut _hyg1633: u32 = fallback;
+        let mut _hyg1673: u32 = fallback;
         for x in crate::runtime::list_reverse_u32(xs) {
-            _hyg1633 = x;
+            _hyg1673 = x;
         }
-        _hyg1633
+        _hyg1673
     }
 }
 
@@ -408,16 +416,16 @@ pub fn list_second_or_zero_u32(xs: Vec<u32>) -> u32 {
     } else {
         match crate::runtime::list_head_clone(&(xs)) {
             None => 0,
-            Some(_hyg1698) => {
-                let _hyg1699 = crate::runtime::list_tail_clone(&(xs));
-                if (_hyg1699).len() as u32 == 0 {
+            Some(_hyg1738) => {
+                let _hyg1739 = crate::runtime::list_tail_clone(&(xs));
+                if (_hyg1739).len() as u32 == 0 {
                     0
                 } else {
-                    match crate::runtime::list_head_clone(&(_hyg1699)) {
+                    match crate::runtime::list_head_clone(&(_hyg1739)) {
                         None => 0,
-                        Some(_hyg1700) => {
-                            let _hyg1701 = crate::runtime::list_tail_clone(&(_hyg1699));
-                            _hyg1700
+                        Some(_hyg1740) => {
+                            let _hyg1741 = crate::runtime::list_tail_clone(&(_hyg1739));
+                            _hyg1740
                         }
                     }
                 }
@@ -531,13 +539,13 @@ pub fn nat_two_step_or_zero_u32(n: u32) -> u32 {
         0
     } else {
         {
-            let _hyg1744 = (n).wrapping_sub(1);
-            if _hyg1744 == 0 {
+            let _hyg1784 = (n).wrapping_sub(1);
+            if _hyg1784 == 0 {
                 0
             } else {
                 {
-                    let _hyg1745 = (_hyg1744).wrapping_sub(1);
-                    (_hyg1745).wrapping_add(2)
+                    let _hyg1785 = (_hyg1784).wrapping_sub(1);
+                    (_hyg1785).wrapping_add(2)
                 }
             }
         }
@@ -571,7 +579,7 @@ pub fn defun_compose_inc_double_u32(x: u32) -> u32 {
 pub fn pair_choice_default_u32_string(choice: PairchoiceU32String, fallback: u32) -> u32 {
     match choice {
         PairchoiceU32String::Left(value) => value,
-        PairchoiceU32String::Right(_hyg2693) => fallback,
+        PairchoiceU32String::Right(_hyg2733) => fallback,
     }
 }
 
@@ -949,6 +957,10 @@ pub fn nat_sum_to_u32(n: u32) -> u32 {
     }
 }
 
+pub fn generated_dict_beq_u32(a: u32, b: u32) -> bool {
+    crate::runtime::dictionary_beq_u32(crate::runtime::BEQ_U32, a, b)
+}
+
 pub fn proof_erased_u32(x: u32) -> u32 {
     x
 }
@@ -1005,6 +1017,14 @@ pub fn exact_int_add(a: num_bigint::BigInt, b: num_bigint::BigInt) -> num_bigint
     (&(a)) + (&(b))
 }
 
+pub fn generated_dict_compare_u32(a: u32, b: u32) -> Ordering {
+    match crate::runtime::dictionary_compare_u32(crate::runtime::ORD_U32, a, b) {
+        std::cmp::Ordering::Less => Ordering::Lt,
+        std::cmp::Ordering::Equal => Ordering::Eq,
+        std::cmp::Ordering::Greater => Ordering::Gt,
+    }
+}
+
 pub fn list_length_u32(xs: Vec<u32>) -> u32 {
     (xs).len() as u32
 }
@@ -1018,6 +1038,10 @@ pub fn nested_payload_ok_u32_string(x: u32) -> NestedpayloadU32String {
 
 pub fn even_terminal_u32(value: u32) -> EvenNode {
     EvenNode::Terminal(value)
+}
+
+pub fn generated_dict_default_u32(_x: ()) -> u32 {
+    crate::runtime::dictionary_default_u32(crate::runtime::DEFAULT_U32)
 }
 
 pub fn checked_div_u32(a: u32, b: u32) -> Option<u32> {
